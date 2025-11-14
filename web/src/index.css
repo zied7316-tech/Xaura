@@ -13,16 +13,36 @@
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Mobile optimizations */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Better mobile font sizes */
+  @media (max-width: 640px) {
+    html {
+      font-size: 16px; /* Prevent mobile zoom on input focus */
+    }
+  }
+
+  /* Safe area for iOS devices (notch support) */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
 @layer components {
+  /* Button Components - Mobile optimized with bigger touch targets */
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply px-4 py-2 sm:px-4 sm:py-2 md:px-4 md:py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    /* Mobile: Minimum 44x44px touch target */
+    min-height: 44px;
+    @apply active:scale-95;
   }
   
   .btn-primary {
     @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply shadow-md active:shadow-sm;
   }
   
   .btn-secondary {
@@ -33,14 +53,20 @@
     @apply border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500;
   }
   
+  /* Input Fields - Mobile optimized */
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    /* Mobile: Larger touch target and text */
+    min-height: 48px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
   }
   
+  /* Card Components - Mobile responsive */
   .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+    @apply bg-white rounded-lg shadow-md p-4 sm:p-6;
   }
   
+  /* Badge Components */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
@@ -59,6 +85,22 @@
   
   .badge-cancelled {
     @apply bg-red-100 text-red-800;
+  }
+
+  /* Mobile-optimized stat cards */
+  .stat-card-mobile {
+    @apply bg-white rounded-xl p-4 shadow-sm;
+    @apply active:scale-98 transition-transform;
+  }
+
+  /* Mobile-friendly table alternative */
+  .mobile-card-list {
+    @apply space-y-3;
+  }
+
+  .mobile-card-list-item {
+    @apply bg-white p-4 rounded-lg shadow-sm border border-gray-100;
+    @apply active:bg-gray-50 transition-colors;
   }
 }
 

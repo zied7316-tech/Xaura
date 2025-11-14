@@ -33,41 +33,43 @@ const Navbar = ({ onMenuClick }) => {
     <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50 border-b border-gray-200">
       <div className="lg:pl-64">
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-          {/* Mobile menu button */}
+          {/* Mobile menu button - Bigger touch target */}
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100"
+            className="lg:hidden p-3 rounded-lg text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+            aria-label="Open menu"
           >
-            <Menu size={24} />
+            <Menu size={26} />
           </button>
 
-          {/* Logo (mobile only) */}
-          <div className="lg:hidden font-bold text-primary-600">Xaura</div>
+          {/* Logo (mobile only) - Bigger and clearer */}
+          <div className="lg:hidden font-bold text-xl text-primary-600">Xaura</div>
 
           <div className="flex-1"></div>
 
           {/* Right side */}
-          <div className="flex items-center gap-4">
-            {/* Owner Salon Switcher */}
-            {isOwner && <SalonSwitcher />}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Owner Salon Switcher - Hidden on very small mobile, show on tablet+ */}
+            {isOwner && <div className="hidden sm:block"><SalonSwitcher /></div>}
             
-            {/* Worker Status Toggle */}
-            {isWorker && <WorkerStatusToggle />}
+            {/* Worker Status Toggle - Hidden on very small mobile */}
+            {isWorker && <div className="hidden sm:block"><WorkerStatusToggle /></div>}
             
-            {/* Language Switcher */}
-            <LanguageSwitcher />
+            {/* Language Switcher - Compact on mobile */}
+            <div className="hidden sm:block"><LanguageSwitcher /></div>
             
-            {/* Notifications */}
+            {/* Notifications - Always visible but compact */}
             <NotificationBell />
 
-            {/* User menu */}
+            {/* User menu - Better mobile touch target */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100"
+                className="flex items-center gap-2 p-2 sm:p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
+                aria-label="User menu"
               >
-                <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                  <User size={18} className="text-primary-600" />
+                <div className="w-9 h-9 sm:w-8 sm:h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                  <User size={20} className="text-primary-600" />
                 </div>
                 <div className="hidden sm:block text-left">
                   <div className="text-sm font-medium">{user?.name}</div>
@@ -76,24 +78,24 @@ const Navbar = ({ onMenuClick }) => {
               </button>
 
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border">
+                <div className="absolute right-0 mt-2 w-56 sm:w-48 bg-white rounded-lg shadow-xl py-2 border border-gray-200">
                   <button
                     onClick={() => {
                       navigate('/profile')
                       setShowDropdown(false)
                     }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="w-full flex items-center gap-3 px-4 py-3 sm:py-2 text-base sm:text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[48px] sm:min-h-[40px]"
                   >
-                    <User size={16} />
-                    Profile
+                    <User size={20} className="sm:w-4 sm:h-4" />
+                    <span className="font-medium">Profile</span>
                   </button>
                   <hr className="my-2" />
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="w-full flex items-center gap-3 px-4 py-3 sm:py-2 text-base sm:text-sm text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors min-h-[48px] sm:min-h-[40px]"
                   >
-                    <LogOut size={16} />
-                    Logout
+                    <LogOut size={20} className="sm:w-4 sm:h-4" />
+                    <span className="font-medium">Logout</span>
                   </button>
                 </div>
               )}

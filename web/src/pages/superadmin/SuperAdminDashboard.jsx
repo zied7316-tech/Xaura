@@ -48,120 +48,114 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header - Mobile optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
               <Crown className="text-white" size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{t('superAdmin.platformDashboard', 'Super Admin Dashboard')}</h1>
-              <p className="text-gray-600 mt-1">{t('superAdmin.platformManagement', 'Platform-wide Xaura management')}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('superAdmin.platformDashboard', 'Super Admin Dashboard')}</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-0.5">{t('superAdmin.platformManagement', 'Platform-wide Xaura management')}</p>
             </div>
           </div>
         </div>
-        <Link to="/super-admin/salons">
-          <Button>
+        <Link to="/super-admin/salons" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto justify-center">
             <Building size={18} />
             {t('superAdmin.allSalons', 'Manage Salons')}
           </Button>
         </Link>
       </div>
 
-      {/* Platform Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">{t('superAdmin.totalSalons', 'Total Salons')}</p>
-              <p className="text-3xl font-bold text-primary-600 mt-1">{overview.totalSalons}</p>
+      {/* Platform Overview - Mobile optimized grid (2 cols on mobile, 4 on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer active:scale-98">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="order-2 sm:order-1">
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">{t('superAdmin.totalSalons', 'Total Salons')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary-600 mt-1">{overview.totalSalons}</p>
             </div>
-            <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-              <Store className="text-primary-600" size={24} />
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">{t('superAdmin.totalUsers', 'Total Users')}</p>
-              <p className="text-3xl font-bold text-blue-600 mt-1">{overview.totalUsers.toLocaleString()}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="text-blue-600" size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-100 rounded-lg flex items-center justify-center order-1 sm:order-2">
+              <Store className="text-primary-600" size={20} />
             </div>
           </div>
         </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">{t('superAdmin.totalAppointments', 'Total Appointments')}</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">{overview.totalAppointments.toLocaleString()}</p>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer active:scale-98">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="order-2 sm:order-1">
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">{t('superAdmin.totalUsers', 'Total Users')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">{overview.totalUsers.toLocaleString()}</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Calendar className="text-green-600" size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center order-1 sm:order-2">
+              <Users className="text-blue-600" size={20} />
             </div>
           </div>
         </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">{t('superAdmin.platformRevenue', 'Platform Revenue')}</p>
-              <p className="text-3xl font-bold text-yellow-600 mt-1">
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer active:scale-98">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="order-2 sm:order-1">
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">{t('superAdmin.totalAppointments', 'Total Appointments')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1">{overview.totalAppointments.toLocaleString()}</p>
+            </div>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center order-1 sm:order-2">
+              <Calendar className="text-green-600" size={20} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer active:scale-98">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="order-2 sm:order-1">
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">{t('superAdmin.platformRevenue', 'Platform Revenue')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-yellow-600 mt-1">
                 {formatCurrency(revenue.platform.totalRevenue)}
               </p>
             </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="text-yellow-600" size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-lg flex items-center justify-center order-1 sm:order-2">
+              <DollarSign className="text-yellow-600" size={20} />
             </div>
           </div>
         </Card>
       </div>
 
-      {/* User Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Building className="text-purple-600" size={20} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">{t('superAdmin.salonOwners', 'Salon Owners')}</p>
-                <p className="text-2xl font-bold text-gray-900">{overview.totalOwners}</p>
-              </div>
+      {/* User Breakdown - Mobile: 3 cols in one row */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-6">
+        <Card className="hover:shadow-md transition-shadow active:scale-98">
+          <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-2 sm:mb-0">
+              <Building className="text-purple-600" size={20} />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">{t('superAdmin.salonOwners', 'Salon Owners')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">{overview.totalOwners}</p>
             </div>
           </div>
         </Card>
 
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="text-blue-600" size={20} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">{t('superAdmin.workers', 'Workers')}</p>
-                <p className="text-2xl font-bold text-gray-900">{overview.totalWorkers}</p>
-              </div>
+        <Card className="hover:shadow-md transition-shadow active:scale-98">
+          <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-2 sm:mb-0">
+              <Users className="text-blue-600" size={20} />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">{t('superAdmin.workers', 'Workers')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">{overview.totalWorkers}</p>
             </div>
           </div>
         </Card>
 
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Users className="text-green-600" size={20} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">{t('superAdmin.clients', 'Clients')}</p>
-                <p className="text-2xl font-bold text-gray-900">{overview.totalClients.toLocaleString()}</p>
-              </div>
+        <Card className="hover:shadow-md transition-shadow active:scale-98">
+          <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center mb-2 sm:mb-0">
+              <Users className="text-green-600" size={20} />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">{t('superAdmin.clients', 'Clients')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">{overview.totalClients.toLocaleString()}</p>
             </div>
           </div>
         </Card>
@@ -236,41 +230,49 @@ const SuperAdminDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Mobile optimized with bigger touch targets */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('superAdmin.platformManagement', 'Platform Management')}</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">{t('superAdmin.platformManagement', 'Platform Management')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link to="/super-admin/salons">
-              <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full border-2">
-                <Store className="text-primary-600 mb-2" size={32} />
-                <span className="text-sm font-medium">{t('superAdmin.allSalons', 'Manage Salons')}</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <Link to="/super-admin/salons" className="block">
+              <button className="flex flex-col items-center p-4 sm:p-5 hover:bg-gray-50 active:bg-gray-100 rounded-xl transition-all w-full border-2 border-gray-200 hover:border-primary-300 hover:shadow-md min-h-[120px] sm:min-h-[130px]">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary-100 rounded-full flex items-center justify-center mb-2">
+                  <Store className="text-primary-600" size={24} />
+                </div>
+                <span className="text-sm sm:text-base font-semibold text-gray-900">{t('superAdmin.allSalons', 'Manage Salons')}</span>
                 <span className="text-xs text-gray-500 mt-1">{overview.totalSalons} {t('common.total', 'total')}</span>
               </button>
             </Link>
 
-            <Link to="/super-admin/users">
-              <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full border-2">
-                <Users className="text-blue-600 mb-2" size={32} />
-                <span className="text-sm font-medium">{t('superAdmin.allUsers', 'All Users')}</span>
+            <Link to="/super-admin/users" className="block">
+              <button className="flex flex-col items-center p-4 sm:p-5 hover:bg-gray-50 active:bg-gray-100 rounded-xl transition-all w-full border-2 border-gray-200 hover:border-blue-300 hover:shadow-md min-h-[120px] sm:min-h-[130px]">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                  <Users className="text-blue-600" size={24} />
+                </div>
+                <span className="text-sm sm:text-base font-semibold text-gray-900">{t('superAdmin.allUsers', 'All Users')}</span>
                 <span className="text-xs text-gray-500 mt-1">{overview.totalUsers.toLocaleString()} {t('common.total', 'total')}</span>
               </button>
             </Link>
 
-            <Link to="/super-admin/analytics">
-              <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full border-2">
-                <TrendingUp className="text-green-600 mb-2" size={32} />
-                <span className="text-sm font-medium">{t('superAdmin.growthAnalytics', 'Growth Analytics')}</span>
-                <span className="text-xs text-gray-500 mt-1">{t('common.details', 'Charts & trends')}</span>
+            <Link to="/super-admin/analytics" className="block">
+              <button className="flex flex-col items-center p-4 sm:p-5 hover:bg-gray-50 active:bg-gray-100 rounded-xl transition-all w-full border-2 border-gray-200 hover:border-green-300 hover:shadow-md min-h-[120px] sm:min-h-[130px]">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                  <TrendingUp className="text-green-600" size={24} />
+                </div>
+                <span className="text-sm sm:text-base font-semibold text-gray-900">{t('superAdmin.growthAnalytics', 'Growth Analytics')}</span>
+                <span className="text-xs text-gray-500 mt-1 truncate max-w-full">{t('common.details', 'Charts & trends')}</span>
               </button>
             </Link>
 
-            <Link to="/super-admin/subscriptions">
-              <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full border-2">
-                <Crown className="text-yellow-600 mb-2" size={32} />
-                <span className="text-sm font-medium">{t('superAdmin.subscriptions', 'Subscriptions')}</span>
+            <Link to="/super-admin/subscriptions" className="block">
+              <button className="flex flex-col items-center p-4 sm:p-5 hover:bg-gray-50 active:bg-gray-100 rounded-xl transition-all w-full border-2 border-gray-200 hover:border-yellow-300 hover:shadow-md min-h-[120px] sm:min-h-[130px]">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-yellow-100 rounded-full flex items-center justify-center mb-2">
+                  <Crown className="text-yellow-600" size={24} />
+                </div>
+                <span className="text-sm sm:text-base font-semibold text-gray-900">{t('superAdmin.subscriptions', 'Subscriptions')}</span>
                 <span className="text-xs text-gray-500 mt-1">{revenue.subscriptions.activeSubscriptions} {t('common.status', 'active')}</span>
               </button>
             </Link>
