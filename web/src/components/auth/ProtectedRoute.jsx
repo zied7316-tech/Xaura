@@ -17,10 +17,14 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   }
 
   // Check if user has required role
-  if (roles.length > 0 && !roles.includes(user.role)) {
+  // Normalize role for comparison (handle both 'SuperAdmin' and 'super-admin')
+  const normalizedRole = user.role === 'super-admin' ? 'SuperAdmin' : user.role
+  
+  if (roles.length > 0 && !roles.includes(user.role) && !roles.includes(normalizedRole)) {
     // Redirect to appropriate dashboard based on user role
     const dashboards = {
       SuperAdmin: '/super-admin/dashboard',
+      'super-admin': '/super-admin/dashboard',
       Owner: '/owner/dashboard',
       Worker: '/worker/dashboard',
       Client: '/client/dashboard',

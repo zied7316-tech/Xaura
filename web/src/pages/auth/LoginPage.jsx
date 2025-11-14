@@ -22,6 +22,7 @@ const LoginPage = () => {
       // Navigate based on user role
       const dashboardRoutes = {
         'SuperAdmin': '/super-admin/dashboard',
+        'super-admin': '/super-admin/dashboard', // Support both formats
         'Owner': '/owner/dashboard',
         'Worker': '/worker/dashboard',
         'Client': '/client/dashboard'

@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateUser,
     isAuthenticated: !!user,
-    isSuperAdmin: user?.role === 'SuperAdmin',
+    isSuperAdmin: user?.role === 'SuperAdmin' || user?.role === 'super-admin',
     isOwner: user?.role === 'Owner',
     isWorker: user?.role === 'Worker',
     isClient: user?.role === 'Client',
