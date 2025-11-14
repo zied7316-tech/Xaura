@@ -23,13 +23,16 @@ const corsOptions = {
       'http://localhost:5173',
       'http://localhost:3000',
       'https://xaura-production.up.railway.app', // Backend URL
+      'https://www.xaura.pro', // Custom domain
+      'https://xaura.pro', // Root domain
     ];
     
-    // Allow any Railway domain or exact matches
+    // Allow any Railway domain, custom domain, or exact matches
     if (
       allowedOrigins.indexOf(origin) !== -1 ||
       origin.includes('.railway.app') ||
-      origin.includes('.up.railway.app')
+      origin.includes('.up.railway.app') ||
+      origin.includes('.xaura.pro')
     ) {
       callback(null, true);
     } else {

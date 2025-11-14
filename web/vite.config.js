@@ -21,7 +21,11 @@ export default defineConfig({
       'localhost',
       '.railway.app',
       '.up.railway.app',
-      'xaura-production-fd43.up.railway.app'
+      'xaura-production-fd43.up.railway.app',
+      'www.xaura.pro',
+      'xaura.pro',
+      'api.xaura.pro',
+      '.xaura.pro'
     ]
   },
   build: {
