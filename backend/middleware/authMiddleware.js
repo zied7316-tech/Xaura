@@ -68,7 +68,17 @@ const authorize = (...roles) => {
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Normalize role for comparison (handle both 'SuperAdmin' and 'super-admin')
+    const normalizeRole = (role) => {
+      if (role === 'super-admin') return 'SuperAdmin';
+      if (role === 'SuperAdmin') return 'SuperAdmin';
+      return role;
+    };
+
+    const userRole = normalizeRole(req.user.role);
+    const normalizedRoles = roles.map(r => normalizeRole(r));
+
+    if (!normalizedRoles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: `Role '${req.user.role}' is not authorized to access this route`
