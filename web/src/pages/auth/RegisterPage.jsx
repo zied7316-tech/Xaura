@@ -22,7 +22,7 @@ const RegisterPage = () => {
   const selectedRole = watch('role')
 
   const roleOptions = [
-    { value: USER_ROLES.CLIENT, label: 'Client - Book appointments' },
+    { value: USER_ROLES.CLIENT, label: 'Client' },
     { value: USER_ROLES.WORKER, label: 'Worker - Provide services' },
     { value: USER_ROLES.OWNER, label: 'Owner - Manage salon' },
   ]
