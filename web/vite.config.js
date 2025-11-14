@@ -17,6 +17,12 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0', // Listen on all interfaces for preview
     port: 3000,
+    allowedHosts: [
+      'localhost',
+      '.railway.app',
+      '.up.railway.app',
+      'xaura-production-fd43.up.railway.app'
+    ]
   },
   build: {
     outDir: 'dist',
