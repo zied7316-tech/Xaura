@@ -8,12 +8,14 @@ import {
   Activity, Crown, Building
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
+import { useLanguage } from '../../context/LanguageContext'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 
 const SuperAdminDashboard = () => {
+  const { t } = useLanguage()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -54,15 +56,15 @@ const SuperAdminDashboard = () => {
               <Crown className="text-white" size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Super Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Platform-wide Xaura management</p>
+              <h1 className="text-3xl font-bold text-gray-900">{t('superAdmin.platformDashboard', 'Super Admin Dashboard')}</h1>
+              <p className="text-gray-600 mt-1">{t('superAdmin.platformManagement', 'Platform-wide Xaura management')}</p>
             </div>
           </div>
         </div>
         <Link to="/super-admin/salons">
           <Button>
             <Building size={18} />
-            Manage Salons
+            {t('superAdmin.allSalons', 'Manage Salons')}
           </Button>
         </Link>
       </div>
@@ -72,7 +74,7 @@ const SuperAdminDashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Salons</p>
+              <p className="text-sm text-gray-600">{t('superAdmin.totalSalons', 'Total Salons')}</p>
               <p className="text-3xl font-bold text-primary-600 mt-1">{overview.totalSalons}</p>
             </div>
             <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
@@ -84,7 +86,7 @@ const SuperAdminDashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Users</p>
+              <p className="text-sm text-gray-600">{t('superAdmin.totalUsers', 'Total Users')}</p>
               <p className="text-3xl font-bold text-blue-600 mt-1">{overview.totalUsers.toLocaleString()}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -96,7 +98,7 @@ const SuperAdminDashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Appointments</p>
+              <p className="text-sm text-gray-600">{t('superAdmin.totalAppointments', 'Total Appointments')}</p>
               <p className="text-3xl font-bold text-green-600 mt-1">{overview.totalAppointments.toLocaleString()}</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -108,7 +110,7 @@ const SuperAdminDashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Platform Revenue</p>
+              <p className="text-sm text-gray-600">{t('superAdmin.platformRevenue', 'Platform Revenue')}</p>
               <p className="text-3xl font-bold text-yellow-600 mt-1">
                 {formatCurrency(revenue.platform.totalRevenue)}
               </p>
@@ -129,7 +131,7 @@ const SuperAdminDashboard = () => {
                 <Building className="text-purple-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Salon Owners</p>
+                <p className="text-sm text-gray-600">{t('superAdmin.salonOwners', 'Salon Owners')}</p>
                 <p className="text-2xl font-bold text-gray-900">{overview.totalOwners}</p>
               </div>
             </div>
@@ -143,7 +145,7 @@ const SuperAdminDashboard = () => {
                 <Users className="text-blue-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Workers</p>
+                <p className="text-sm text-gray-600">{t('superAdmin.workers', 'Workers')}</p>
                 <p className="text-2xl font-bold text-gray-900">{overview.totalWorkers}</p>
               </div>
             </div>
@@ -157,7 +159,7 @@ const SuperAdminDashboard = () => {
                 <Users className="text-green-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Clients</p>
+                <p className="text-sm text-gray-600">{t('superAdmin.clients', 'Clients')}</p>
                 <p className="text-2xl font-bold text-gray-900">{overview.totalClients.toLocaleString()}</p>
               </div>
             </div>
@@ -169,16 +171,16 @@ const SuperAdminDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Today's Activity</CardTitle>
+            <CardTitle>{t('superAdmin.todaysActivity', "Today's Activity")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">New Appointments</span>
+                <span className="text-gray-600">{t('superAdmin.newAppointments', 'New Appointments')}</span>
                 <span className="text-2xl font-bold text-gray-900">{revenue.today.appointments}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Revenue</span>
+                <span className="text-gray-600">{t('superAdmin.revenue', 'Revenue')}</span>
                 <span className="text-2xl font-bold text-green-600">{formatCurrency(revenue.today.revenue)}</span>
               </div>
             </div>
@@ -187,20 +189,20 @@ const SuperAdminDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>This Month</CardTitle>
+            <CardTitle>{t('superAdmin.thisMonth', 'This Month')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Appointments</span>
+                <span className="text-gray-600">{t('appointments.upcoming', 'Appointments')}</span>
                 <span className="text-2xl font-bold text-gray-900">{revenue.thisMonth.appointments}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Revenue</span>
+                <span className="text-gray-600">{t('superAdmin.revenue', 'Revenue')}</span>
                 <span className="text-2xl font-bold text-green-600">{formatCurrency(revenue.thisMonth.revenue)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">New Salons</span>
+                <span className="text-gray-600">{t('superAdmin.newSalons', 'New Salons')}</span>
                 <span className="text-2xl font-bold text-primary-600">{revenue.thisMonth.newSalons}</span>
               </div>
             </div>
@@ -213,21 +215,21 @@ const SuperAdminDashboard = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Crown className="text-yellow-600" />
-            Your Subscription Revenue
+            {t('superAdmin.monthlyRevenue', 'Your Subscription Revenue')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-sm text-gray-600">Active Subscriptions</p>
+              <p className="text-sm text-gray-600">{t('superAdmin.activeSubscriptions', 'Active Subscriptions')}</p>
               <p className="text-3xl font-bold text-primary-600">{revenue.subscriptions.activeSubscriptions}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Monthly Recurring Revenue (MRR)</p>
+              <p className="text-sm text-gray-600">{t('superAdmin.monthlyRevenue', 'Monthly Recurring Revenue (MRR)')}</p>
               <p className="text-3xl font-bold text-green-600">{formatCurrency(revenue.subscriptions.monthlyRecurring)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Subscription Revenue</p>
+              <p className="text-sm text-gray-600">{t('superAdmin.totalRevenue', 'Total Subscription Revenue')}</p>
               <p className="text-3xl font-bold text-yellow-600">{formatCurrency(revenue.subscriptions.totalRevenue)}</p>
             </div>
           </div>
@@ -237,39 +239,39 @@ const SuperAdminDashboard = () => {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Platform Management</CardTitle>
+          <CardTitle>{t('superAdmin.platformManagement', 'Platform Management')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link to="/super-admin/salons">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full border-2">
                 <Store className="text-primary-600 mb-2" size={32} />
-                <span className="text-sm font-medium">Manage Salons</span>
-                <span className="text-xs text-gray-500 mt-1">{overview.totalSalons} total</span>
+                <span className="text-sm font-medium">{t('superAdmin.allSalons', 'Manage Salons')}</span>
+                <span className="text-xs text-gray-500 mt-1">{overview.totalSalons} {t('common.total', 'total')}</span>
               </button>
             </Link>
 
             <Link to="/super-admin/users">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full border-2">
                 <Users className="text-blue-600 mb-2" size={32} />
-                <span className="text-sm font-medium">All Users</span>
-                <span className="text-xs text-gray-500 mt-1">{overview.totalUsers.toLocaleString()} total</span>
+                <span className="text-sm font-medium">{t('superAdmin.allUsers', 'All Users')}</span>
+                <span className="text-xs text-gray-500 mt-1">{overview.totalUsers.toLocaleString()} {t('common.total', 'total')}</span>
               </button>
             </Link>
 
             <Link to="/super-admin/analytics">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full border-2">
                 <TrendingUp className="text-green-600 mb-2" size={32} />
-                <span className="text-sm font-medium">Growth Analytics</span>
-                <span className="text-xs text-gray-500 mt-1">Charts & trends</span>
+                <span className="text-sm font-medium">{t('superAdmin.growthAnalytics', 'Growth Analytics')}</span>
+                <span className="text-xs text-gray-500 mt-1">{t('common.details', 'Charts & trends')}</span>
               </button>
             </Link>
 
             <Link to="/super-admin/subscriptions">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full border-2">
                 <Crown className="text-yellow-600 mb-2" size={32} />
-                <span className="text-sm font-medium">Subscriptions</span>
-                <span className="text-xs text-gray-500 mt-1">{revenue.subscriptions.activeSubscriptions} active</span>
+                <span className="text-sm font-medium">{t('superAdmin.subscriptions', 'Subscriptions')}</span>
+                <span className="text-xs text-gray-500 mt-1">{revenue.subscriptions.activeSubscriptions} {t('common.status', 'active')}</span>
               </button>
             </Link>
           </div>
