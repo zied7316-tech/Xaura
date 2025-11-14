@@ -78,6 +78,7 @@ function App() {
     if (!user) return '/login'
     switch (user.role) {
       case 'SuperAdmin':
+      case 'super-admin': // Support both formats
         return '/super-admin/dashboard'
       case 'Owner':
         return '/owner/dashboard'
