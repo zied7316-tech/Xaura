@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
+import imageCompression from 'browser-image-compression'
 import Button from './Button'
 
 const ImageUpload = ({ 
@@ -13,18 +14,11 @@ const ImageUpload = ({
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file size
-    const fileSizeMB = file.size / (1024 * 1024)
-    if (fileSizeMB > maxSize) {
-      setError(`File size must be less than ${maxSize}MB`)
-      return
-    }
-
-    // Validate file type
+    // Validate file type - accept all image types
     if (!file.type.startsWith('image/')) {
       setError('Please select an image file')
       return
@@ -32,16 +26,30 @@ const ImageUpload = ({
 
     setError('')
 
-    // Create preview
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setPreview(reader.result)
-    }
-    reader.readAsDataURL(file)
+    try {
+      // Resize and compress image to 1080x1080
+      const options = {
+        maxSizeMB: maxSize,
+        maxWidthOrHeight: 1080,
+        useWebWorker: true
+      }
+      
+      const compressedFile = await imageCompression(file, options)
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreview(reader.result)
+      }
+      reader.readAsDataURL(compressedFile)
 
-    // Pass file to parent
-    if (onImageSelect) {
-      onImageSelect(file)
+      // Pass resized file to parent
+      if (onImageSelect) {
+        onImageSelect(compressedFile)
+      }
+    } catch (error) {
+      console.error('Error processing image:', error)
+      setError('Failed to process image. Please try again.')
     }
   }
 
@@ -107,7 +115,7 @@ const ImageUpload = ({
             {preview ? 'Change Image' : 'Select Image'}
           </Button>
           <p className="text-xs text-gray-500 mt-1">
-            Max size: {maxSize}MB. Formats: JPG, PNG, GIF, WebP
+            Max size: {maxSize}MB. All image formats accepted. Images will be resized to 1080x1080.
           </p>
         </div>
       </div>

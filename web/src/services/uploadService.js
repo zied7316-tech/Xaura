@@ -66,7 +66,10 @@ export const uploadService = {
   getImageUrl: (imagePath) => {
     if (!imagePath) return null
     if (imagePath.startsWith('http')) return imagePath
-    return `http://localhost:5000${imagePath}`
+    
+    // Extract base URL from API_URL (remove /api)
+    const baseUrl = API_URL.replace('/api', '')
+    return `${baseUrl}${imagePath}`
   }
 }
 
