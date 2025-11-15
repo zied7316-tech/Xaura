@@ -28,11 +28,19 @@ export const AuthProvider = ({ children }) => {
               const { salonAccountService } = await import('../services/salonAccountService')
               const salonData = await salonAccountService.getSalonAccount()
               
-              // Preserve logo from stored salon if new data doesn't have it
+              // Preserve logo from stored salon if new data doesn't have it or is empty
               const parsedStoredSalon = storedSalon ? JSON.parse(storedSalon) : null
-              if (parsedStoredSalon?.logo && !salonData.salon?.logo) {
-                console.warn('Logo missing in API response, preserving from localStorage')
-                salonData.salon.logo = parsedStoredSalon.logo
+              const storedLogo = parsedStoredSalon?.logo
+              const apiLogo = salonData.salon?.logo
+              
+              // Check if stored logo is valid (not empty string, null, or undefined)
+              const hasValidStoredLogo = storedLogo && storedLogo.trim() !== ''
+              // Check if API logo is empty or missing
+              const apiLogoIsEmpty = !apiLogo || apiLogo.trim() === ''
+              
+              if (hasValidStoredLogo && apiLogoIsEmpty) {
+                console.warn('Logo missing/empty in API response, preserving from localStorage:', storedLogo)
+                salonData.salon.logo = storedLogo
               }
               
               console.log('Initial salon load - Logo:', salonData.salon?.logo)
@@ -73,6 +81,20 @@ export const AuthProvider = ({ children }) => {
         try {
           const { salonAccountService } = await import('../services/salonAccountService')
           const salonData = await salonAccountService.getSalonAccount()
+          
+          // Preserve logo from localStorage if API returns empty
+          const storedSalon = localStorage.getItem('salon')
+          const parsedStoredSalon = storedSalon ? JSON.parse(storedSalon) : null
+          const storedLogo = parsedStoredSalon?.logo
+          const apiLogo = salonData.salon?.logo
+          
+          const hasValidStoredLogo = storedLogo && storedLogo.trim() !== ''
+          const apiLogoIsEmpty = !apiLogo || apiLogo.trim() === ''
+          
+          if (hasValidStoredLogo && apiLogoIsEmpty) {
+            console.warn('Login - Logo missing/empty in API, preserving from localStorage')
+            salonData.salon.logo = storedLogo
+          }
           
           console.log('Login - Salon logo from API:', salonData.salon?.logo)
           setSalon(salonData.salon)
@@ -125,17 +147,31 @@ export const AuthProvider = ({ children }) => {
         const { salonAccountService } = await import('../services/salonAccountService')
         const salonData = await salonAccountService.getSalonAccount()
         
-        // Preserve logo if it exists in current state but not in new data
+        // Preserve logo if it exists in current state or localStorage but not in new data
         const currentSalon = salon
+        const storedSalon = localStorage.getItem('salon')
+        const parsedStoredSalon = storedSalon ? JSON.parse(storedSalon) : null
         const newSalon = salonData.salon
         
-        if (currentSalon?.logo && !newSalon?.logo) {
-          console.warn('Logo missing in refreshed data, preserving current logo')
-          newSalon.logo = currentSalon.logo
+        // Get logo from current state or localStorage (prioritize current state)
+        const logoToPreserve = currentSalon?.logo || parsedStoredSalon?.logo
+        
+        // Check if we have a valid logo to preserve (not empty string, null, or undefined)
+        const hasValidLogo = logoToPreserve && logoToPreserve.trim() !== ''
+        
+        // Check if new data has empty/invalid logo
+        const newLogoIsEmpty = !newSalon?.logo || newSalon.logo.trim() === ''
+        
+        if (hasValidLogo && newLogoIsEmpty) {
+          console.warn('Logo missing/empty in refreshed data, preserving from cache:', logoToPreserve)
+          newSalon.logo = logoToPreserve
         }
         
-        console.log('Refreshed salon data:', newSalon)
-        console.log('Salon logo after refresh:', newSalon?.logo)
+        console.log('Refreshed salon data:', {
+          logoFromAPI: newSalon?.logo,
+          logoPreserved: hasValidLogo && newLogoIsEmpty ? logoToPreserve : null,
+          finalLogo: newSalon?.logo
+        })
         
         setSalon(newSalon)
         localStorage.setItem('salon', JSON.stringify(newSalon))

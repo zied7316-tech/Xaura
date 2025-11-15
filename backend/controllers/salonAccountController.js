@@ -174,6 +174,12 @@ const getSalonAccount = async (req, res, next) => {
 
     // Log logo to verify it's being returned
     console.log('getSalonAccount - Salon logo:', salon.logo);
+    console.log('getSalonAccount - Salon logo type:', typeof salon.logo, 'length:', salon.logo?.length);
+
+    // Ensure logo is not accidentally cleared (if it exists in DB but is empty string, log it)
+    if (salon.logo === '' || salon.logo === null || salon.logo === undefined) {
+      console.warn('getSalonAccount - WARNING: Salon logo is empty/null/undefined for salon:', salon._id);
+    }
 
     // Get workers count
     const workersCount = await User.countDocuments({
