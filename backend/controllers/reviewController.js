@@ -115,7 +115,7 @@ const getWorkerReviews = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .limit(50);
 
-    // Get average ratings
+    // Get average ratings (includes unique client count)
     const stats = await Review.getWorkerAverageRating(workerId);
 
     res.json({

@@ -109,7 +109,19 @@ reviewSchema.statics.getWorkerAverageRating = async function(workerId) {
         totalReviews: { $sum: 1 },
         recommendCount: {
           $sum: { $cond: ['$wouldRecommend', 1, 0] }
-        }
+        },
+        uniqueClients: { $addToSet: '$clientId' }
+      }
+    },
+    {
+      $project: {
+        averageOverall: 1,
+        averageQuality: 1,
+        averagePunctuality: 1,
+        averageFriendliness: 1,
+        totalReviews: 1,
+        recommendCount: 1,
+        uniqueClientCount: { $size: '$uniqueClients' }
       }
     }
   ]);
@@ -121,7 +133,8 @@ reviewSchema.statics.getWorkerAverageRating = async function(workerId) {
       averagePunctuality: 0,
       averageFriendliness: 0,
       totalReviews: 0,
-      recommendPercentage: 0
+      recommendPercentage: 0,
+      uniqueClientCount: 0
     };
   }
 
@@ -132,7 +145,8 @@ reviewSchema.statics.getWorkerAverageRating = async function(workerId) {
     averagePunctuality: Math.round(data.averagePunctuality * 10) / 10,
     averageFriendliness: Math.round(data.averageFriendliness * 10) / 10,
     totalReviews: data.totalReviews,
-    recommendPercentage: Math.round((data.recommendCount / data.totalReviews) * 100)
+    recommendPercentage: Math.round((data.recommendCount / data.totalReviews) * 100),
+    uniqueClientCount: data.uniqueClientCount || 0
   };
 };
 

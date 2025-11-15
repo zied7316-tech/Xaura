@@ -43,6 +43,11 @@ const ReviewDisplay = ({ reviews, stats }) => {
               <p className="text-sm text-gray-600">
                 {stats.totalReviews} {stats.totalReviews === 1 ? 'review' : 'reviews'}
               </p>
+              {stats.uniqueClientCount > 0 && (
+                <p className="text-xs text-gray-500">
+                  from {stats.uniqueClientCount} {stats.uniqueClientCount === 1 ? 'client' : 'clients'}
+                </p>
+              )}
               {stats.recommendPercentage > 0 && (
                 <p className="text-xs text-gray-500">
                   {stats.recommendPercentage}% recommend

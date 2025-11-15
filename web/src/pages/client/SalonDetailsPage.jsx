@@ -353,9 +353,16 @@ const SalonDetailsPage = () => {
                             Reviews
                           </h4>
                           {workerReviewData?.stats && workerReviewData.stats.totalReviews > 0 && (
-                            <span className="text-xs text-gray-500">
-                              {workerReviewData.stats.totalReviews} {workerReviewData.stats.totalReviews === 1 ? 'review' : 'reviews'}
-                            </span>
+                            <div className="text-right">
+                              <span className="text-xs text-gray-500 block">
+                                {workerReviewData.stats.totalReviews} {workerReviewData.stats.totalReviews === 1 ? 'review' : 'reviews'}
+                              </span>
+                              {workerReviewData.stats.uniqueClientCount > 0 && (
+                                <span className="text-xs text-gray-400">
+                                  from {workerReviewData.stats.uniqueClientCount} {workerReviewData.stats.uniqueClientCount === 1 ? 'client' : 'clients'}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                         
