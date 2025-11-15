@@ -62,6 +62,47 @@ const salonSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Worker Availability Tracking Settings
+  workerTracking: {
+    method: {
+      type: String,
+      enum: ['manual', 'wifi', 'gps'],
+      default: 'manual'
+    },
+    // WiFi Tracking Settings
+    wifi: {
+      ssid: {
+        type: String,
+        default: '',
+        trim: true
+      },
+      enabled: {
+        type: Boolean,
+        default: false
+      }
+    },
+    // GPS Tracking Settings
+    gps: {
+      latitude: {
+        type: Number,
+        default: null
+      },
+      longitude: {
+        type: Number,
+        default: null
+      },
+      radius: {
+        type: Number,
+        default: 100, // meters
+        min: 10,
+        max: 1000
+      },
+      enabled: {
+        type: Boolean,
+        default: false
+      }
+    }
   }
 }, {
   timestamps: true

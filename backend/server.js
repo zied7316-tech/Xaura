@@ -82,6 +82,7 @@ app.use('/api/worker-finance', require('./routes/workerFinanceRoutes'));
 app.use('/api/salon-search', require('./routes/salonSearchRoutes'));
 app.use('/api/availability', require('./routes/availabilityRoutes'));
 app.use('/api/worker-status', require('./routes/workerStatusRoutes'));
+app.use('/api/worker-tracking', require('./routes/workerTrackingRoutes'));
 app.use('/api/salon-clients', require('./routes/salonClientRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
 app.use('/api/loyalty', require('./routes/loyaltyRoutes'));

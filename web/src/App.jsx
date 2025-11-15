@@ -29,6 +29,7 @@ import WorkerAnalyticsPage from './pages/owner/WorkerAnalyticsPage'
 import SalonClientsPage from './pages/owner/SalonClientsPage'
 import ReminderSettingsPage from './pages/owner/ReminderSettingsPage'
 import LoyaltySettingsPage from './pages/owner/LoyaltySettingsPage'
+import WorkerTrackingSettingsPage from './pages/owner/WorkerTrackingSettingsPage'
 import MySalonsPage from './pages/owner/MySalonsPage'
 
 // Super Admin pages
@@ -135,6 +136,7 @@ function App() {
             <Route path="/owner/salon-clients" element={<ProtectedRoute roles={['Owner']}><SalonClientsPage /></ProtectedRoute>} />
             <Route path="/owner/reminders" element={<ProtectedRoute roles={['Owner']}><ReminderSettingsPage /></ProtectedRoute>} />
             <Route path="/owner/loyalty" element={<ProtectedRoute roles={['Owner']}><LoyaltySettingsPage /></ProtectedRoute>} />
+            <Route path="/owner/worker-tracking" element={<ProtectedRoute roles={['Owner']}><WorkerTrackingSettingsPage /></ProtectedRoute>} />
             
             {/* Worker Routes */}
             <Route path="/worker/finances" element={<ProtectedRoute roles={['Worker']}><WorkerFinancePage /></ProtectedRoute>} />

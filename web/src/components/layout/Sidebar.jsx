@@ -18,7 +18,9 @@ import {
   Activity,
   CreditCard,
   FileText,
-  MessageSquare
+  MessageSquare,
+  MapPin,
+  Wifi
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -54,6 +56,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/owner/reports', icon: TrendingUp, label: t('owner.reports', 'Reports'), badge: 'NEW' },
     { to: '/owner/reminders', icon: Bell, label: t('owner.reminders', 'SMS/Email Reminders'), badge: 'NEW' },
     { to: '/owner/loyalty', icon: Store, label: t('owner.loyalty', 'Loyalty & Rewards'), badge: 'NEW' },
+    { to: '/owner/worker-tracking', icon: MapPin, label: 'Worker Tracking', badge: 'NEW' },
   ]
 
   const workerLinks = [

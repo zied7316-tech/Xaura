@@ -41,6 +41,15 @@ const workerStatusLogSchema = new mongoose.Schema({
     type: Date,
     required: true,
     index: true
+  },
+  // Auto-tracking fields
+  autoTracked: {
+    type: Boolean,
+    default: false
+  },
+  trackingReason: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: true
