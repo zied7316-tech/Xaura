@@ -25,6 +25,13 @@ const createAppointment = async (req, res, next) => {
 
     const { workerId, serviceId, dateTime, notes } = req.body;
 
+    console.log('Creating appointment:', {
+      workerId,
+      serviceId,
+      dateTime,
+      clientId: req.user.id
+    });
+
     // Validate date is in the future
     if (!isDateInFuture(dateTime)) {
       return res.status(400).json({
@@ -51,8 +58,33 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
+    // Check if worker has salonId
+    if (!worker.salonId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Worker is not assigned to a salon'
+      });
+    }
+
+    // Check if service has salonId
+    if (!service.salonId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service is not assigned to a salon'
+      });
+    }
+
     // Verify worker belongs to the same salon as the service
-    if (worker.salonId.toString() !== service.salonId.toString()) {
+    const workerSalonId = worker.salonId.toString();
+    const serviceSalonId = service.salonId.toString();
+    
+    if (workerSalonId !== serviceSalonId) {
+      console.error('Salon mismatch:', {
+        workerId: worker._id,
+        workerSalonId,
+        serviceId: service._id,
+        serviceSalonId
+      });
       return res.status(400).json({
         success: false,
         message: 'Worker does not belong to the salon offering this service'
@@ -78,7 +110,17 @@ const createAppointment = async (req, res, next) => {
       notes: notes || '',
       servicePriceAtBooking: service.price,
       serviceDurationAtBooking: service.duration,
-      status: 'Pending'
+      status: 'Pending' // Use capitalized to match enum
+    });
+
+    console.log('Appointment created:', {
+      id: appointment._id,
+      clientId: appointment.clientId,
+      workerId: appointment.workerId,
+      serviceId: appointment.serviceId,
+      salonId: appointment.salonId,
+      dateTime: appointment.dateTime,
+      status: appointment.status
     });
 
     // Populate appointment details
@@ -134,6 +176,12 @@ const createAppointment = async (req, res, next) => {
       data: { appointment }
     });
   } catch (error) {
+    console.error('Error creating appointment:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     next(error);
   }
 };

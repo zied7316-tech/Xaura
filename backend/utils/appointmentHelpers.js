@@ -21,7 +21,7 @@ const isSlotAvailable = async (workerId, dateTime, duration, excludeAppointmentI
   const query = {
     workerId,
     dateTime: { $gte: startOfDay, $lte: endOfDay },
-    status: { $in: ['pending', 'confirmed'] }
+    status: { $in: ['Pending', 'Confirmed'] } // Match enum capitalization
   };
 
   if (excludeAppointmentId) {
