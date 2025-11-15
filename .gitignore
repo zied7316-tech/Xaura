@@ -52,3 +52,7 @@ backend/exports/
 *.pdf
 *.csv
 *.xlsx
+
+# APK files (large binary files)
+*.apk
+backend/downloads/*.apk

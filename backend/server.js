@@ -51,6 +51,9 @@ app.use(express.urlencoded({ extended: true }));
 // Serve uploaded files as static
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve APK downloads
+app.use('/downloads', express.static(path.join(__dirname, 'downloads')));
+
 // Basic health check route
 app.get('/', (req, res) => {
   res.json({

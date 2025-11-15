@@ -1,0 +1,5 @@
+# This directory is for storing APK files for direct download
+# Place your xaura.apk file here after building the Flutter app
+# Build command: cd mobile && flutter build apk --release
+# Then copy: cp mobile/build/app/outputs/flutter-apk/app-release.apk backend/downloads/xaura.apk
+

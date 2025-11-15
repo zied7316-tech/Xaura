@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useLanguage } from '../../context/LanguageContext'
+import DownloadAppButton from '../download/DownloadAppButton'
 import {  
   LayoutDashboard, 
   Store, 
@@ -134,6 +135,11 @@ const Sidebar = ({ isOpen, onClose }) => {
               ))}
             </div>
           </nav>
+
+          {/* Download App Button (Android only) */}
+          <div className="px-4 pb-4 border-t pt-4">
+            <DownloadAppButton />
+          </div>
 
           {/* User info */}
           <div className="p-4 border-t">
