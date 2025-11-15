@@ -3,6 +3,7 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const Service = require('../models/Service');
 const WorkerEarning = require('../models/WorkerEarning');
+const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
  * @desc    Get comprehensive business reports
@@ -14,16 +15,16 @@ const getBusinessReports = async (req, res, next) => {
     const { startDate, endDate } = req.query;
     const ownerId = req.user.id;
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Date range (default: last 30 days)
     const end = endDate ? new Date(endDate) : new Date();

@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Appointment = require('../models/Appointment');
 const Payment = require('../models/Payment');
 const CustomerProfile = require('../models/CustomerProfile');
+const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
  * @desc    Get all customers for salon with analytics
@@ -12,16 +13,16 @@ const getCustomers = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Get all clients who have booked at this salon
     const appointments = await Appointment.find({ salonId })
@@ -148,16 +149,16 @@ const getCustomerDetails = async (req, res, next) => {
     const ownerId = req.user.id;
     const customerId = req.params.id;
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Get customer
     const customer = await User.findById(customerId);
@@ -208,16 +209,16 @@ const updateCustomerProfile = async (req, res, next) => {
     const ownerId = req.user.id;
     const customerId = req.params.id;
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Find or create profile
     let profile = await CustomerProfile.findOne({ userId: customerId, salonId });
@@ -266,16 +267,16 @@ const addCustomerNote = async (req, res, next) => {
       });
     }
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Find or create profile
     let profile = await CustomerProfile.findOne({ userId: customerId, salonId });
@@ -317,16 +318,16 @@ const getBirthdayReminders = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Get all profiles with birthdays
     const profiles = await CustomerProfile.find({

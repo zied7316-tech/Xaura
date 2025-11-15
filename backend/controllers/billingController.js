@@ -5,6 +5,7 @@ const Salon = require('../models/Salon');
 const billingService = require('../services/billingService');
 const { createActivityLog } = require('../middleware/activityLogger');
 const { formatCurrency } = require('../config/subscriptionPlans');
+const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 // Stripe is optional
 let stripeService = null;
@@ -313,16 +314,16 @@ exports.getSalonBillingHistory = async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     
-    const salon = await Salon.findOne({
-      _id: req.user.salonId,
-    });
-
-    if (!salon) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(req.user.id);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found',
       });
     }
+
+    const salon = salonData.salon;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -365,14 +366,16 @@ exports.addPaymentMethod = async (req, res) => {
   try {
     const { stripePaymentMethodId } = req.body;
 
-    const salon = await Salon.findById(req.user.salonId);
-
-    if (!salon) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(req.user.id);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found',
       });
     }
+
+    const salon = salonData.salon;
 
     // Check if customer exists, create if not
     let stripeCustomerId = salon.stripeCustomerId;
@@ -434,8 +437,17 @@ exports.addPaymentMethod = async (req, res) => {
  */
 exports.getPaymentMethods = async (req, res) => {
   try {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(req.user.id);
+    if (!salonData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found',
+      });
+    }
+
     const paymentMethods = await PaymentMethod.find({
-      salon: req.user.salonId,
+      salon: salonData.salonId,
       isActive: true,
     }).sort({ isDefault: -1, createdAt: -1 });
 
@@ -460,9 +472,18 @@ exports.getPaymentMethods = async (req, res) => {
  */
 exports.deletePaymentMethod = async (req, res) => {
   try {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(req.user.id);
+    if (!salonData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found',
+      });
+    }
+
     const paymentMethod = await PaymentMethod.findOne({
       _id: req.params.id,
-      salon: req.user.salonId,
+      salon: salonData.salonId,
     });
 
     if (!paymentMethod) {

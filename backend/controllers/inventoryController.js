@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const User = require('../models/User');
+const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
  * @desc    Get all products for salon
@@ -10,16 +11,16 @@ const getProducts = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Get all products
     const products = await Product.find({ salonId, isActive: true })
@@ -82,16 +83,16 @@ const createProduct = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Create product
     const product = await Product.create({
@@ -270,16 +271,16 @@ const getLowStockProducts = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    // Get owner's salon
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Find products where quantity <= lowStockThreshold
     const products = await Product.find({ 

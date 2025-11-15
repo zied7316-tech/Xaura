@@ -3,6 +3,7 @@ const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const SMSService = require('../services/smsService');
 const EmailService = require('../services/emailService');
+const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
  * @desc    Get reminder settings for salon
@@ -13,20 +14,21 @@ const getReminderSettings = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    let settings = await ReminderSettings.findOne({ salonId: owner.salonId._id });
+    let settings = await ReminderSettings.findOne({ salonId: salonData.salonId });
 
     if (!settings) {
       // Create default settings
       settings = await ReminderSettings.create({
-        salonId: owner.salonId._id
+        salonId: salonData.salonId
       });
     }
 
@@ -56,19 +58,20 @@ const updateReminderSettings = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    let settings = await ReminderSettings.findOne({ salonId: owner.salonId._id });
+    let settings = await ReminderSettings.findOne({ salonId: salonData.salonId });
 
     if (!settings) {
       settings = await ReminderSettings.create({
-        salonId: owner.salonId._id,
+        salonId: salonData.salonId,
         ...req.body
       });
     } else {
@@ -170,15 +173,16 @@ const getPendingReminders = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const salonId = owner.salonId._id;
+    const salonId = salonData.salonId;
 
     // Get appointments in next 24-48 hours that are confirmed
     const now = new Date();
@@ -215,15 +219,16 @@ const testReminderConfig = async (req, res, next) => {
     const { method, testPhone, testEmail } = req.body;
     const ownerId = req.user.id;
 
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    const settings = await ReminderSettings.findOne({ salonId: owner.salonId._id });
+    const settings = await ReminderSettings.findOne({ salonId: salonData.salonId });
 
     if (!settings) {
       return res.status(400).json({
@@ -243,7 +248,7 @@ const testReminderConfig = async (req, res, next) => {
       );
       results.sms = await smsService.sendSMS(
         testPhone,
-        `Test message from ${owner.salonId.name}. Your SMS reminders are configured correctly!`
+        `Test message from ${salonData.salon.name}. Your SMS reminders are configured correctly!`
       );
     }
 
@@ -259,7 +264,7 @@ const testReminderConfig = async (req, res, next) => {
       });
       results.email = await emailService.sendEmail(
         testEmail,
-        `Test Email from ${owner.salonId.name}`,
+        `Test Email from ${salonData.salon.name}`,
         `This is a test email to verify your email configuration is working correctly.\n\nIf you received this, your reminders are set up properly!`
       );
     }

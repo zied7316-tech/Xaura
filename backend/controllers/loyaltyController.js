@@ -3,6 +3,7 @@ const LoyaltyTransaction = require('../models/LoyaltyTransaction');
 const CustomerProfile = require('../models/CustomerProfile');
 const User = require('../models/User');
 const Appointment = require('../models/Appointment');
+const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
  * @desc    Get loyalty program settings
@@ -13,20 +14,21 @@ const getLoyaltyProgram = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    let program = await LoyaltyProgram.findOne({ salonId: owner.salonId._id });
+    let program = await LoyaltyProgram.findOne({ salonId: salonData.salonId });
 
     if (!program) {
       // Create default program
       program = await LoyaltyProgram.create({
-        salonId: owner.salonId._id,
+        salonId: salonData.salonId,
         tiers: {
           bronze: {
             name: 'Bronze',
@@ -80,19 +82,20 @@ const updateLoyaltyProgram = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    const owner = await User.findById(ownerId).populate('salonId');
-    if (!owner || !owner.salonId) {
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
       });
     }
 
-    let program = await LoyaltyProgram.findOne({ salonId: owner.salonId._id });
+    let program = await LoyaltyProgram.findOne({ salonId: salonData.salonId });
 
     if (!program) {
       program = await LoyaltyProgram.create({
-        salonId: owner.salonId._id,
+        salonId: salonData.salonId,
         ...req.body
       });
     } else {
