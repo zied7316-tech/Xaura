@@ -9,6 +9,7 @@ const User = require('../models/User');
  */
 exports.getMySalons = async (req, res) => {
   try {
+    // Get salons from SalonOwnership (new system)
     const ownerships = await SalonOwnership.find({
       user: req.user._id,
       isActive: true,
@@ -17,7 +18,7 @@ exports.getMySalons = async (req, res) => {
       .sort({ isPrimary: -1, createdAt: 1 })
       .lean();
 
-    const salonsWithDetails = ownerships.map((ownership) => ({
+    const salonsFromOwnership = ownerships.map((ownership) => ({
       ...ownership.salon,
       ownershipId: ownership._id,
       role: ownership.role,
@@ -25,10 +26,69 @@ exports.getMySalons = async (req, res) => {
       isPrimary: ownership.isPrimary,
     }));
 
+    // Also get salons with direct ownerId (backward compatibility for old salons)
+    const directSalons = await Salon.find({
+      ownerId: req.user._id,
+    }).lean();
+
+    // Get salon IDs that already have ownership records
+    const ownedSalonIds = new Set(salonsFromOwnership.map(s => s._id.toString()));
+
+    // For salons without ownership records, create them on-the-fly
+    const salonsToAdd = [];
+    for (const salon of directSalons) {
+      if (!ownedSalonIds.has(salon._id.toString())) {
+        // Check if this is the first salon
+        const isFirstSalon = salonsFromOwnership.length === 0 && salonsToAdd.length === 0;
+        
+        // Create ownership record for backward compatibility
+        try {
+          const ownership = await SalonOwnership.create({
+            user: req.user._id,
+            salon: salon._id,
+            role: 'owner',
+            isPrimary: isFirstSalon,
+            isActive: true,
+            permissions: {
+              canManageServices: true,
+              canManageWorkers: true,
+              canManageFinances: true,
+              canManageSettings: true,
+              canViewReports: true,
+            }
+          });
+
+          salonsToAdd.push({
+            ...salon,
+            ownershipId: ownership._id,
+            role: 'owner',
+            permissions: ownership.permissions,
+            isPrimary: ownership.isPrimary,
+          });
+        } catch (error) {
+          // If ownership already exists (race condition), just add the salon
+          console.log('Ownership might already exist, adding salon anyway');
+          salonsToAdd.push({
+            ...salon,
+            role: 'owner',
+            isPrimary: false,
+          });
+        }
+      }
+    }
+
+    // Combine both lists
+    const allSalons = [...salonsFromOwnership, ...salonsToAdd].sort((a, b) => {
+      // Sort by isPrimary first, then by creation date
+      if (a.isPrimary && !b.isPrimary) return -1;
+      if (!a.isPrimary && b.isPrimary) return 1;
+      return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+    });
+
     res.json({
       success: true,
-      count: salonsWithDetails.length,
-      data: salonsWithDetails,
+      count: allSalons.length,
+      data: allSalons,
     });
   } catch (error) {
     console.error('Error fetching owned salons:', error);

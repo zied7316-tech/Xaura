@@ -1,5 +1,6 @@
 const Salon = require('../models/Salon');
 const User = require('../models/User');
+const SalonOwnership = require('../models/SalonOwnership');
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 const { validationResult } = require('express-validator');
@@ -53,6 +54,33 @@ const createSalon = async (req, res, next) => {
       ...req.body,
       ownerId: req.user.id,
       qrCode: qrCodeString
+    });
+
+    // Check if this is user's first salon (check both ownership and direct ownerId)
+    const existingOwnerships = await SalonOwnership.countDocuments({
+      user: req.user.id,
+      isActive: true,
+    });
+    const existingDirectSalons = await Salon.countDocuments({
+      ownerId: req.user.id,
+      _id: { $ne: salon._id }
+    });
+    const isFirstSalon = existingOwnerships === 0 && existingDirectSalons === 0;
+
+    // Create SalonOwnership record so it appears in "My Salons"
+    await SalonOwnership.create({
+      user: req.user.id,
+      salon: salon._id,
+      role: 'owner',
+      isPrimary: isFirstSalon,
+      isActive: true,
+      permissions: {
+        canManageServices: true,
+        canManageWorkers: true,
+        canManageFinances: true,
+        canManageSettings: true,
+        canViewReports: true,
+      }
     });
 
     res.status(201).json({
