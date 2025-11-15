@@ -29,10 +29,13 @@ const AppointmentsPage = () => {
 
   useEffect(() => {
     loadAppointments()
+  }, [filter])
+
+  useEffect(() => {
     if (isOwner && salon) {
       loadWorkers()
     }
-  }, [filter, isOwner, salon])
+  }, [isOwner, salon])
 
   const loadWorkers = async () => {
     try {
