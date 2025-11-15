@@ -65,11 +65,24 @@ export const uploadService = {
   // Get image URL (for display)
   getImageUrl: (imagePath) => {
     if (!imagePath) return null
-    if (imagePath.startsWith('http')) return imagePath
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath
+    }
     
     // Extract base URL from API_URL (remove /api)
-    const baseUrl = API_URL.replace('/api', '')
-    return `${baseUrl}${imagePath}`
+    // Handle cases like: https://api.xaura.pro/api -> https://api.xaura.pro
+    // or http://localhost:5000/api -> http://localhost:5000
+    let baseUrl = API_URL
+    if (baseUrl.endsWith('/api')) {
+      baseUrl = baseUrl.slice(0, -4) // Remove '/api'
+    } else if (baseUrl.includes('/api')) {
+      baseUrl = baseUrl.replace('/api', '')
+    }
+    
+    // Ensure imagePath starts with /
+    const path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`
+    
+    return `${baseUrl}${path}`
   }
 }
 

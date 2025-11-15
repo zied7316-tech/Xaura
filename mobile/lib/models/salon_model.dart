@@ -1,3 +1,5 @@
+import '../utils/image_utils.dart';
+
 class SalonModel {
   final String id;
   final String name;
@@ -24,6 +26,9 @@ class SalonModel {
     this.workingHours,
     this.isActive = true,
   });
+  
+  /// Get full logo URL
+  String? get logoUrl => ImageUtils.getImageUrl(logo);
 
   factory SalonModel.fromJson(Map<String, dynamic> json) {
     Map<String, WorkingHours>? hours;
