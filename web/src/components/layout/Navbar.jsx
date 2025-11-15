@@ -1,4 +1,4 @@
-import { Menu, User, LogOut } from 'lucide-react'
+import { Menu, User, LogOut, Globe } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
@@ -6,17 +6,24 @@ import WorkerStatusToggle from './WorkerStatusToggle'
 import NotificationBell from '../notifications/NotificationBell'
 import SalonSwitcher from '../owner/SalonSwitcher'
 import LanguageSwitcher from './LanguageSwitcher'
+import { useLanguage } from '../../context/LanguageContext'
 
 const Navbar = ({ onMenuClick }) => {
   const { user, logout, isWorker, isOwner } = useAuth()
   const navigate = useNavigate()
+  const { language, changeLanguage } = useLanguage()
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false)
   const dropdownRef = useRef(null)
+  const languageRef = useRef(null)
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false)
+      }
+      if (languageRef.current && !languageRef.current.contains(event.target)) {
+        setShowLanguageMenu(false)
       }
     }
 
@@ -55,8 +62,52 @@ const Navbar = ({ onMenuClick }) => {
             {/* Worker Status Toggle - Hidden on very small mobile */}
             {isWorker && <div className="hidden sm:block"><WorkerStatusToggle /></div>}
             
-            {/* Language Switcher - Compact on mobile */}
+            {/* Language Switcher - Desktop only */}
             <div className="hidden sm:block"><LanguageSwitcher /></div>
+            
+            {/* Mobile Language Switcher - In user menu */}
+            <div className="sm:hidden relative" ref={languageRef}>
+              <button
+                onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                aria-label="Change Language"
+              >
+                <Globe size={20} />
+              </button>
+              {showLanguageMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 border border-gray-200 z-50">
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                    Language / Langue
+                  </div>
+                  <button
+                    onClick={() => {
+                      changeLanguage('en')
+                      setShowLanguageMenu(false)
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2 text-sm text-left ${
+                      language === 'en' ? 'bg-primary-50 text-primary-600' : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="text-lg">🇬🇧</span>
+                    <span>English</span>
+                    {language === 'en' && <span className="ml-auto text-primary-600">✓</span>}
+                  </button>
+                  <button
+                    onClick={() => {
+                      changeLanguage('fr')
+                      setShowLanguageMenu(false)
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2 text-sm text-left ${
+                      language === 'fr' ? 'bg-primary-50 text-primary-600' : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="text-lg">🇫🇷</span>
+                    <span>Français</span>
+                    {language === 'fr' && <span className="ml-auto text-primary-600">✓</span>}
+                  </button>
+                </div>
+              )}
+            </div>
             
             {/* Notifications - Always visible but compact */}
             <NotificationBell />
