@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 const connectDB = require('./config/database');
 
 // Load environment variables
@@ -53,6 +54,32 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve APK downloads
 app.use('/downloads', express.static(path.join(__dirname, 'downloads')));
+
+// Specific handler for APK download with better error handling
+app.get('/downloads/xaura.apk', (req, res) => {
+  const filePath = path.join(__dirname, 'downloads', 'xaura.apk');
+  
+  // Check if file exists
+  if (fs.existsSync(filePath)) {
+    res.download(filePath, 'xaura.apk', (err) => {
+      if (err) {
+        console.error('Error downloading APK:', err);
+        if (!res.headersSent) {
+          res.status(500).json({
+            success: false,
+            message: 'Error downloading file'
+          });
+        }
+      }
+    });
+  } else {
+    res.status(404).json({
+      success: false,
+      message: 'APK file not found. Please contact support or build the app first.',
+      instructions: 'To build the APK, run: cd mobile && flutter build apk --release'
+    });
+  }
+});
 
 // Basic health check route
 app.get('/', (req, res) => {
