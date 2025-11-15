@@ -196,20 +196,27 @@ const getAppointments = async (req, res, next) => {
     const { status, date, salonId } = req.query;
     let filter = {};
 
+    console.log('getAppointments - User role:', req.user.role, 'User ID:', req.user.id);
+
     // Filter based on user role
     if (req.user.role === 'Client') {
       filter.clientId = req.user.id;
+      console.log('Client filter:', filter);
     } else if (req.user.role === 'Worker') {
       filter.workerId = req.user.id;
+      console.log('Worker filter:', filter);
     } else if (req.user.role === 'Owner') {
       // Owner can see all appointments for their salon(s)
       // Support multi-salon system
       const { getOwnerSalon } = require('../utils/getOwnerSalon');
       const salonData = await getOwnerSalon(req.user.id);
+      console.log('Owner salon data:', salonData);
       if (salonData && salonData.salonId) {
         filter.salonId = salonData.salonId;
+        console.log('Owner filter:', filter);
       } else {
         // No salon yet - return empty array
+        console.log('Owner has no salon, returning empty array');
         return res.json({
           success: true,
           count: 0,
@@ -236,6 +243,8 @@ const getAppointments = async (req, res, next) => {
       .populate('serviceId', 'name duration price category')
       .populate('salonId', 'name address phone')
       .sort({ dateTime: -1 });
+
+    console.log('Found appointments:', appointments.length, 'with filter:', filter);
 
     res.json({
       success: true,

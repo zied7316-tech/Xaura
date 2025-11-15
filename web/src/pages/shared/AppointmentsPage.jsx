@@ -44,14 +44,19 @@ const AppointmentsPage = () => {
   }
 
   const loadAppointments = async () => {
+    setLoading(true)
     try {
       const data = await appointmentService.getAppointments(
         filter !== 'all' ? { status: filter } : {}
       )
-      setAppointments(data)
+      console.log('Loaded appointments:', data)
+      // Ensure data is an array
+      const appointmentsArray = Array.isArray(data) ? data : (data?.data || [])
+      setAppointments(appointmentsArray)
     } catch (error) {
       console.error('Error loading appointments:', error)
-      toast.error('Failed to load appointments')
+      toast.error(error.message || 'Failed to load appointments')
+      setAppointments([])
     } finally {
       setLoading(false)
     }

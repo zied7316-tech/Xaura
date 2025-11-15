@@ -10,12 +10,18 @@ export const appointmentService = {
 
   // Get appointments
   getAppointments: async (params = {}) => {
-    const queryString = new URLSearchParams(params).toString()
-    const response = await api.get(`/appointments${queryString ? `?${queryString}` : ''}`)
-    // Note: api interceptor returns response.data, so response IS the JSON object
-    // Backend sends: { success, count, data: [...] }
-    // After interceptor: response = { success, count, data: [...] }
-    return response.data || []
+    try {
+      const queryString = new URLSearchParams(params).toString()
+      const response = await api.get(`/appointments${queryString ? `?${queryString}` : ''}`)
+      // Note: api interceptor returns response.data, so response IS the JSON object
+      // Backend sends: { success, count, data: [...] }
+      // After interceptor: response = { success, count, data: [...] }
+      console.log('Appointments API response:', response)
+      return response.data || response || []
+    } catch (error) {
+      console.error('Error fetching appointments:', error)
+      throw error
+    }
   },
 
   // Get appointment by ID
