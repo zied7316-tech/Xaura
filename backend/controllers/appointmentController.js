@@ -202,10 +202,12 @@ const getAppointments = async (req, res, next) => {
     } else if (req.user.role === 'Worker') {
       filter.workerId = req.user.id;
     } else if (req.user.role === 'Owner') {
-      // Owner can see all appointments for their salon
-      const salon = await Salon.findOne({ ownerId: req.user.id });
-      if (salon) {
-        filter.salonId = salon._id;
+      // Owner can see all appointments for their salon(s)
+      // Support multi-salon system
+      const { getOwnerSalon } = require('../utils/getOwnerSalon');
+      const salonData = await getOwnerSalon(req.user.id);
+      if (salonData && salonData.salonId) {
+        filter.salonId = salonData.salonId;
       } else {
         // No salon yet - return empty array
         return res.json({

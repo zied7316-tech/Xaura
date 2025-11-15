@@ -111,6 +111,16 @@ const AppointmentsPage = () => {
     }
   }
 
+  const handleReviewClick = (appointment) => {
+    setSelectedAppointment(appointment)
+    setShowReviewModal(true)
+  }
+
+  const handleReviewSubmitted = () => {
+    loadAppointments()
+    celebrateSuccess()
+  }
+
   const getStatusBadge = (status) => {
     const config = {
       'Pending': { variant: 'warning', label: 'Pending' },
