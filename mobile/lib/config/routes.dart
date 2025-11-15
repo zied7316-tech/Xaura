@@ -9,13 +9,21 @@ import '../screens/owner/owner_dashboard.dart';
 import '../screens/owner/salon_settings_screen.dart';
 import '../screens/owner/services_screen.dart';
 import '../screens/owner/workers_screen.dart';
+import '../screens/owner/finances_screen.dart';
+import '../screens/owner/customers_screen.dart';
+import '../screens/owner/inventory_screen.dart';
+import '../screens/owner/reports_screen.dart';
+import '../screens/owner/my_salons_screen.dart';
 import '../screens/worker/worker_dashboard.dart';
 import '../screens/worker/worker_availability_screen.dart';
 import '../screens/worker/worker_appointments_screen.dart';
+import '../screens/worker/worker_finance_screen.dart';
 import '../screens/client/client_dashboard.dart';
 import '../screens/client/qr_scanner_screen.dart';
 import '../screens/client/salon_search_screen.dart';
 import '../screens/client/salon_details_screen.dart';
+import '../screens/client/book_appointment_screen.dart';
+import '../screens/client/join_salon_screen.dart';
 import '../screens/shared/appointments_screen.dart';
 import '../screens/shared/profile_screen.dart';
 
@@ -74,6 +82,26 @@ class AppRouter {
         path: '/owner/workers',
         builder: (context, state) => const WorkersScreen(),
       ),
+      GoRoute(
+        path: '/owner/finances',
+        builder: (context, state) => const FinancesScreen(),
+      ),
+      GoRoute(
+        path: '/owner/customers',
+        builder: (context, state) => const CustomersScreen(),
+      ),
+      GoRoute(
+        path: '/owner/inventory',
+        builder: (context, state) => const InventoryScreen(),
+      ),
+      GoRoute(
+        path: '/owner/reports',
+        builder: (context, state) => const ReportsScreen(),
+      ),
+      GoRoute(
+        path: '/owner/salons',
+        builder: (context, state) => const MySalonsScreen(),
+      ),
       
       // Worker Routes
       GoRoute(
@@ -88,6 +116,10 @@ class AppRouter {
         path: '/worker/appointments',
         builder: (context, state) => const WorkerAppointmentsScreen(),
       ),
+      GoRoute(
+        path: '/worker/finances',
+        builder: (context, state) => const WorkerFinanceScreen(),
+      ),
       
       // Client Routes
       GoRoute(
@@ -99,6 +131,10 @@ class AppRouter {
         builder: (context, state) => const QRScannerScreen(),
       ),
       GoRoute(
+        path: '/join-salon',
+        builder: (context, state) => const JoinSalonScreen(),
+      ),
+      GoRoute(
         path: '/search-salons',
         builder: (context, state) => const SalonSearchScreen(),
       ),
@@ -107,6 +143,14 @@ class AppRouter {
         builder: (context, state) {
           final salonId = state.pathParameters['salonId']!;
           return SalonDetailsScreen(salonId: salonId);
+        },
+      ),
+      GoRoute(
+        path: '/book',
+        builder: (context, state) {
+          final salonId = state.uri.queryParameters['salon'];
+          final serviceId = state.uri.queryParameters['service'];
+          return BookAppointmentScreen(salonId: salonId, serviceId: serviceId);
         },
       ),
       

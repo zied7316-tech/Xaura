@@ -60,6 +60,15 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                 onTap: () => context.push('/worker/appointments'),
               ),
             ),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                title: const Text('My Finances'),
+                subtitle: const Text('View earnings'),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () => context.push('/worker/finances'),
+              ),
+            ),
           ],
         ),
       ),

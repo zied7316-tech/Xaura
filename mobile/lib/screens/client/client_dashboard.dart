@@ -64,6 +64,19 @@ class ClientDashboard extends StatelessWidget {
             
             const SizedBox(height: 16),
             
+            // Join Salon Card
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.qr_code, color: AppTheme.primaryColor),
+                title: const Text('Join Salon'),
+                subtitle: const Text('Join via QR code'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => context.push('/join-salon'),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
             // Find Salons Card
             Card(
               child: ListTile(
