@@ -107,6 +107,20 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(updatedUser))
   }
 
+  // Refresh salon data
+  const refreshSalon = async () => {
+    if (user?.role === 'Owner') {
+      try {
+        const { salonAccountService } = await import('../services/salonAccountService')
+        const salonData = await salonAccountService.getSalonAccount()
+        setSalon(salonData.salon)
+        localStorage.setItem('salon', JSON.stringify(salonData.salon))
+      } catch (error) {
+        console.log('Failed to refresh salon data:', error)
+      }
+    }
+  }
+
   const value = {
     user,
     salon,
@@ -115,6 +129,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
+    refreshSalon,
     isAuthenticated: !!user,
     isSuperAdmin: user?.role === 'SuperAdmin' || user?.role === 'super-admin',
     isOwner: user?.role === 'Owner',

@@ -153,9 +153,9 @@ const getSalonByQRCode = async (req, res, next) => {
 const updateSalon = async (req, res, next) => {
   try {
     // checkSalonOwnership middleware already verified ownership
-    const { qrCode, ownerId, ...updateData } = req.body;
+    const { qrCode, ownerId, logo, ...updateData } = req.body;
 
-    // Don't allow updating QR code or owner
+    // Don't allow updating QR code, owner, or logo (logo should be updated via upload endpoint)
     const salon = await Salon.findByIdAndUpdate(
       req.params.id,
       updateData,

@@ -13,7 +13,7 @@ import toast from 'react-hot-toast'
 import { DAYS_OF_WEEK } from '../../utils/constants'
 
 const SalonSettings = () => {
-  const { user, salon } = useAuth() // Get salon from account!
+  const { user, salon, refreshSalon } = useAuth() // Get salon from account!
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedLogo, setSelectedLogo] = useState(null)
@@ -48,12 +48,17 @@ const SalonSettings = () => {
           try {
             await uploadService.uploadSalonImage(salon._id, selectedLogo)
             toast.success('Salon logo updated!')
+            // Refresh salon data to get the updated logo
+            await refreshSalon()
           } catch (error) {
             console.error('Logo upload failed:', error)
+            toast.error('Failed to upload logo')
           }
         }
         
         toast.success('Salon updated successfully!')
+        // Refresh salon data to ensure everything is up to date
+        await refreshSalon()
       } else {
         // Create new salon
         const newSalon = await salonService.createSalon(data)
@@ -78,6 +83,7 @@ const SalonSettings = () => {
       toast.error(error.message || 'Failed to save salon')
     } finally {
       setSaving(false)
+      setSelectedLogo(null) // Clear selected logo after save
     }
   }
 
