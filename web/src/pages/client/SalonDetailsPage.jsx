@@ -5,6 +5,7 @@ import { uploadService } from '../../services/uploadService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
+import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import { 
   MapPin, Phone, Mail, Clock, Calendar, ArrowLeft, 
   Scissors, DollarSign, Users, User, Store 
@@ -20,6 +21,8 @@ const SalonDetailsPage = () => {
 
   const [salonData, setSalonData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [selectedWorkerForDetails, setSelectedWorkerForDetails] = useState(null)
+  const [showWorkerModal, setShowWorkerModal] = useState(false)
 
   useEffect(() => {
     loadSalonDetails()
@@ -245,25 +248,43 @@ const SalonDetailsPage = () => {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {workers.map((worker) => (
-                <div key={worker._id} className="text-center">
+                <div 
+                  key={worker._id} 
+                  className="text-center cursor-pointer group"
+                  onClick={() => {
+                    setSelectedWorkerForDetails(worker)
+                    setShowWorkerModal(true)
+                  }}
+                >
                   {worker.avatar ? (
                     <img
                       src={uploadService.getImageUrl(worker.avatar)}
                       alt={worker.name}
-                      className="w-20 h-20 rounded-full mx-auto mb-2 object-cover border-2 border-primary-200"
+                      className="w-20 h-20 rounded-full mx-auto mb-2 object-cover border-2 border-primary-200 group-hover:border-primary-400 group-hover:ring-2 group-hover:ring-primary-200 transition-all"
+                      title="Click to view details"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-full mx-auto mb-2 bg-primary-100 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full mx-auto mb-2 bg-primary-100 flex items-center justify-center group-hover:ring-2 group-hover:ring-primary-200 transition-all">
                       <User className="text-primary-600" size={32} />
                     </div>
                   )}
-                  <p className="font-medium text-gray-900 text-sm">{worker.name}</p>
+                  <p className="font-medium text-gray-900 text-sm group-hover:text-primary-600 transition-colors">{worker.name}</p>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Worker Details Modal */}
+      <WorkerDetailsModal
+        isOpen={showWorkerModal}
+        onClose={() => {
+          setShowWorkerModal(false)
+          setSelectedWorkerForDetails(null)
+        }}
+        worker={selectedWorkerForDetails}
+      />
     </div>
   )
 }

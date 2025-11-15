@@ -118,13 +118,13 @@ const getSalonDetails = async (req, res, next) => {
       isActive: true
     }).select('name description image category duration price');
 
-    // Get salon's workers (basic info only)
+    // Get salon's workers (with full profile info)
     const User = require('../models/User');
     const workers = await User.find({
       salonId: salon._id,
       role: 'Worker',
       isActive: true
-    }).select('name avatar');
+    }).select('name avatar bio skills experience education certifications currentStatus');
 
     res.json({
       success: true,

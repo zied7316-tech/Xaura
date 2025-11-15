@@ -8,6 +8,7 @@ import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Badge from '../../components/ui/Badge'
+import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import { 
   Calendar, Clock, User, Scissors, DollarSign, 
   ArrowLeft, CheckCircle 
@@ -36,6 +37,8 @@ const BookAppointmentPage = () => {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [loading, setLoading] = useState(true)
   const [booking, setBooking] = useState(false)
+  const [selectedWorkerForDetails, setSelectedWorkerForDetails] = useState(null)
+  const [showWorkerModal, setShowWorkerModal] = useState(false)
 
   useEffect(() => {
     if (salonIdParam) {
@@ -282,10 +285,24 @@ const BookAppointmentPage = () => {
                             <img
                               src={uploadService.getImageUrl(worker.avatar)}
                               alt={worker.name}
-                              className="w-16 h-16 rounded-full object-cover"
+                              className="w-16 h-16 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-primary-400 transition-all"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedWorkerForDetails(worker)
+                                setShowWorkerModal(true)
+                              }}
+                              title="Click to view details"
                             />
                           ) : (
-                            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
+                            <div 
+                              className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary-400 transition-all"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedWorkerForDetails(worker)
+                                setShowWorkerModal(true)
+                              }}
+                              title="Click to view details"
+                            >
                               <User className="text-primary-600" size={28} />
                             </div>
                           )}
@@ -456,6 +473,16 @@ const BookAppointmentPage = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Worker Details Modal */}
+      <WorkerDetailsModal
+        isOpen={showWorkerModal}
+        onClose={() => {
+          setShowWorkerModal(false)
+          setSelectedWorkerForDetails(null)
+        }}
+        worker={selectedWorkerForDetails}
+      />
 
       {/* Booking Summary */}
       {(step >= 2) && (
