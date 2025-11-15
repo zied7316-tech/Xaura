@@ -1,9 +1,42 @@
+import { useState, useEffect } from 'react'
 import Modal from '../ui/Modal'
 import Badge from '../ui/Badge'
+import ReviewDisplay from '../reviews/ReviewDisplay'
 import { uploadService } from '../../services/uploadService'
+import { reviewService } from '../../services/reviewService'
 import { User, X, Award, Briefcase, GraduationCap, Star } from 'lucide-react'
 
 const WorkerDetailsModal = ({ isOpen, onClose, worker }) => {
+  const [reviews, setReviews] = useState([])
+  const [reviewStats, setReviewStats] = useState(null)
+  const [loadingReviews, setLoadingReviews] = useState(false)
+
+  useEffect(() => {
+    if (isOpen && worker?._id) {
+      loadReviews()
+    } else {
+      setReviews([])
+      setReviewStats(null)
+    }
+  }, [isOpen, worker?._id])
+
+  const loadReviews = async () => {
+    if (!worker?._id) return
+    
+    setLoadingReviews(true)
+    try {
+      const data = await reviewService.getWorkerReviews(worker._id)
+      setReviews(data.data || [])
+      setReviewStats(data.stats || null)
+    } catch (error) {
+      console.error('Error loading reviews:', error)
+      setReviews([])
+      setReviewStats(null)
+    } finally {
+      setLoadingReviews(false)
+    }
+  }
+
   if (!worker) return null
 
   return (
@@ -121,13 +154,20 @@ const WorkerDetailsModal = ({ isOpen, onClose, worker }) => {
           </div>
         )}
 
-        {/* Empty State if no additional info */}
-        {!worker.bio && (!worker.skills || worker.skills.length === 0) && !worker.experience && !worker.education && (!worker.certifications || worker.certifications.length === 0) && (
-          <div className="text-center py-8 text-gray-500">
-            <User className="mx-auto mb-2 text-gray-400" size={32} />
-            <p>No additional information available</p>
-          </div>
-        )}
+        {/* Reviews Section */}
+        <div className="pt-4 border-t">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Star className="text-primary-600" size={20} />
+            Reviews
+          </h3>
+          {loadingReviews ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : (
+            <ReviewDisplay reviews={reviews} stats={reviewStats} />
+          )}
+        </div>
       </div>
     </Modal>
   )

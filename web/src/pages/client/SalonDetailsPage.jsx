@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { salonSearchService } from '../../services/salonSearchService'
 import { uploadService } from '../../services/uploadService'
+import { reviewService } from '../../services/reviewService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
+import ReviewDisplay from '../../components/reviews/ReviewDisplay'
 import { 
   MapPin, Phone, Mail, Clock, Calendar, ArrowLeft, 
-  Scissors, DollarSign, Users, User, Store 
+  Scissors, DollarSign, Users, User, Store, Star 
 } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -23,6 +25,8 @@ const SalonDetailsPage = () => {
   const [loading, setLoading] = useState(true)
   const [selectedWorkerForDetails, setSelectedWorkerForDetails] = useState(null)
   const [showWorkerModal, setShowWorkerModal] = useState(false)
+  const [workerReviews, setWorkerReviews] = useState({}) // { workerId: { reviews, stats } }
+  const [loadingReviews, setLoadingReviews] = useState({})
 
   useEffect(() => {
     loadSalonDetails()
@@ -32,6 +36,11 @@ const SalonDetailsPage = () => {
     try {
       const data = await salonSearchService.getSalonDetails(salonId)
       setSalonData(data)
+      
+      // Load reviews for all workers
+      if (data.workers && data.workers.length > 0) {
+        loadWorkerReviews(data.workers)
+      }
     } catch (error) {
       console.error('Error loading salon details:', error)
       toast.error('Failed to load salon details')
@@ -39,6 +48,52 @@ const SalonDetailsPage = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadWorkerReviews = async (workers) => {
+    const reviewsData = {}
+    
+    // Set all workers as loading
+    const initialLoading = {}
+    workers.forEach(worker => {
+      initialLoading[worker._id] = true
+    })
+    setLoadingReviews(initialLoading)
+    
+    // Load reviews for all workers in parallel
+    const reviewPromises = workers.map(async (worker) => {
+      try {
+        const data = await reviewService.getWorkerReviews(worker._id)
+        return {
+          workerId: worker._id,
+          data: {
+            reviews: data.data || [],
+            stats: data.stats || null
+          }
+        }
+      } catch (error) {
+        console.error(`Error loading reviews for worker ${worker._id}:`, error)
+        return {
+          workerId: worker._id,
+          data: {
+            reviews: [],
+            stats: null
+          }
+        }
+      }
+    })
+    
+    const results = await Promise.all(reviewPromises)
+    
+    // Build reviews data object
+    results.forEach(({ workerId, data }) => {
+      reviewsData[workerId] = data
+    })
+    
+    setWorkerReviews(reviewsData)
+    
+    // Clear loading state
+    setLoadingReviews({})
   }
 
   const handleBookService = (serviceId) => {
@@ -246,31 +301,101 @@ const SalonDetailsPage = () => {
             <CardTitle>Our Team</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {workers.map((worker) => (
-                <div 
-                  key={worker._id} 
-                  className="text-center cursor-pointer group"
-                  onClick={() => {
-                    setSelectedWorkerForDetails(worker)
-                    setShowWorkerModal(true)
-                  }}
-                >
-                  {worker.avatar ? (
-                    <img
-                      src={uploadService.getImageUrl(worker.avatar)}
-                      alt={worker.name}
-                      className="w-20 h-20 rounded-full mx-auto mb-2 object-cover border-2 border-primary-200 group-hover:border-primary-400 group-hover:ring-2 group-hover:ring-primary-200 transition-all"
-                      title="Click to view details"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-full mx-auto mb-2 bg-primary-100 flex items-center justify-center group-hover:ring-2 group-hover:ring-primary-200 transition-all">
-                      <User className="text-primary-600" size={32} />
-                    </div>
-                  )}
-                  <p className="font-medium text-gray-900 text-sm group-hover:text-primary-600 transition-colors">{worker.name}</p>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {workers.map((worker) => {
+                const workerReviewData = workerReviews[worker._id]
+                const isLoading = loadingReviews[worker._id]
+                
+                return (
+                  <Card key={worker._id} className="border border-gray-200 hover:border-primary-300 transition-colors">
+                    <CardContent className="p-4">
+                      {/* Worker Info */}
+                      <div 
+                        className="text-center cursor-pointer group mb-4"
+                        onClick={() => {
+                          setSelectedWorkerForDetails(worker)
+                          setShowWorkerModal(true)
+                        }}
+                      >
+                        {worker.avatar ? (
+                          <img
+                            src={uploadService.getImageUrl(worker.avatar)}
+                            alt={worker.name}
+                            className="w-20 h-20 rounded-full mx-auto mb-2 object-cover border-2 border-primary-200 group-hover:border-primary-400 group-hover:ring-2 group-hover:ring-primary-200 transition-all"
+                            title="Click to view details"
+                          />
+                        ) : (
+                          <div className="w-20 h-20 rounded-full mx-auto mb-2 bg-primary-100 flex items-center justify-center group-hover:ring-2 group-hover:ring-primary-200 transition-all">
+                            <User className="text-primary-600" size={32} />
+                          </div>
+                        )}
+                        <p className="font-medium text-gray-900 text-sm group-hover:text-primary-600 transition-colors">{worker.name}</p>
+                        
+                        {/* Rating Summary */}
+                        {workerReviewData?.stats && workerReviewData.stats.totalReviews > 0 && (
+                          <div className="flex items-center justify-center gap-1 mt-2">
+                            <Star className="text-yellow-400 fill-yellow-400" size={14} />
+                            <span className="text-sm font-semibold text-gray-900">
+                              {workerReviewData.stats.averageOverall?.toFixed(1)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({workerReviewData.stats.totalReviews})
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Reviews Preview */}
+                      <div className="border-t pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                            <Star className="text-primary-600" size={16} />
+                            Reviews
+                          </h4>
+                          {workerReviewData?.stats && workerReviewData.stats.totalReviews > 0 && (
+                            <span className="text-xs text-gray-500">
+                              {workerReviewData.stats.totalReviews} {workerReviewData.stats.totalReviews === 1 ? 'review' : 'reviews'}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {isLoading ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                          </div>
+                        ) : workerReviewData?.reviews && workerReviewData.reviews.length > 0 ? (
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {workerReviewData.reviews.slice(0, 2).map((review) => (
+                              <div key={review._id} className="text-xs">
+                                <div className="flex items-center gap-1 mb-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      size={10}
+                                      className={star <= review.overallRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}
+                                    />
+                                  ))}
+                                </div>
+                                {review.comment && (
+                                  <p className="text-gray-600 line-clamp-2">{review.comment}</p>
+                                )}
+                                <p className="text-gray-400 mt-1">- {review.clientId?.name || 'Anonymous'}</p>
+                              </div>
+                            ))}
+                            {workerReviewData.reviews.length > 2 && (
+                              <p className="text-xs text-primary-600 text-center pt-2">
+                                +{workerReviewData.reviews.length - 2} more reviews
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 text-center py-2">No reviews yet</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </CardContent>
         </Card>
