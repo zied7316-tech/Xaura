@@ -64,8 +64,12 @@ export const uploadService = {
 
   // Get image URL (for display)
   getImageUrl: (imagePath) => {
-    if (!imagePath) return null
+    if (!imagePath) {
+      console.log('[getImageUrl] No image path provided')
+      return null
+    }
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      console.log('[getImageUrl] Already full URL:', imagePath)
       return imagePath
     }
     
@@ -81,8 +85,16 @@ export const uploadService = {
     
     // Ensure imagePath starts with /
     const path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`
+    const fullUrl = `${baseUrl}${path}`
     
-    return `${baseUrl}${path}`
+    console.log('[getImageUrl]', {
+      originalPath: imagePath,
+      baseUrl: baseUrl,
+      finalUrl: fullUrl,
+      API_URL: API_URL
+    })
+    
+    return fullUrl
   }
 }
 

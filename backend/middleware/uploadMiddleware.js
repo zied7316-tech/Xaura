@@ -23,16 +23,20 @@ const storage = multer.diskStorage({
     let uploadPath = uploadsDir;
     
     // Determine subdirectory based on route
-    if (req.baseUrl.includes('salons')) {
+    // Check both baseUrl and path since routes use singular forms
+    const routePath = req.path || req.originalUrl || req.baseUrl || '';
+    
+    if (routePath.includes('/salon') || routePath.includes('salons')) {
       uploadPath = path.join(uploadsDir, 'salons');
-    } else if (req.baseUrl.includes('services')) {
+    } else if (routePath.includes('/service') || routePath.includes('services')) {
       uploadPath = path.join(uploadsDir, 'services');
-    } else if (req.baseUrl.includes('workers') || req.baseUrl.includes('users')) {
+    } else if (routePath.includes('/worker') || routePath.includes('workers') || routePath.includes('/user') || routePath.includes('users')) {
       uploadPath = path.join(uploadsDir, 'workers');
     } else {
       uploadPath = path.join(uploadsDir, 'profiles');
     }
     
+    console.log('Upload destination:', uploadPath, 'Route path:', routePath);
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
