@@ -1,8 +1,13 @@
 class AppConstants {
   // API Configuration
-  static const String apiUrl = 'http://10.0.2.2:5000/api'; // Android emulator
-  // static const String apiUrl = 'http://localhost:5000/api'; // iOS simulator
-  // static const String apiUrl = 'https://your-api.com/api'; // Production
+  // For production, use: https://api.xaura.pro/api
+  // For local development (Android emulator): http://10.0.2.2:5000/api
+  // For local development (iOS simulator): http://localhost:5000/api
+  // For local development (physical device): http://YOUR_COMPUTER_IP:5000/api
+  
+  static const String apiUrl = 'https://api.xaura.pro/api'; // Production
+  // static const String apiUrl = 'http://10.0.2.2:5000/api'; // Android emulator (local)
+  // static const String apiUrl = 'http://localhost:5000/api'; // iOS simulator (local)
   
   // Storage Keys
   static const String tokenKey = 'auth_token';
