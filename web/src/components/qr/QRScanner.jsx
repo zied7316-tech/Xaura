@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { Camera, X } from 'lucide-react'
 import Button from '../ui/Button'
@@ -7,81 +7,114 @@ import toast from 'react-hot-toast'
 const QRScanner = ({ onScan, onClose }) => {
   const [scanning, setScanning] = useState(false)
   const [html5QrCode, setHtml5QrCode] = useState(null)
+  const scannerRef = useRef(null)
+  const html5QrCodeRef = useRef(null)
 
-  const startCamera = async () => {
-    try {
-      const html5QrCodeInstance = new Html5Qrcode('qr-reader')
-      setHtml5QrCode(html5QrCodeInstance)
-
-      await html5QrCodeInstance.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-          // QR code detected!
-          // Extract QR code from URL if it's a full URL (e.g., http://localhost:5173/scan/ABC123)
-          let qrCode = decodedText
-          try {
-            // If it's a URL, extract the QR code from the path
-            if (decodedText.includes('/scan/')) {
-              const urlParts = decodedText.split('/scan/')
-              if (urlParts.length > 1) {
-                qrCode = urlParts[1].split('?')[0].split('#')[0] // Remove query params and hash
-              }
-            } else if (decodedText.startsWith('http') || decodedText.startsWith('https')) {
-              // If it's a URL but different format, try to extract from pathname
-              const url = new URL(decodedText)
-              const pathParts = url.pathname.split('/')
-              qrCode = pathParts[pathParts.length - 1] || decodedText
-            }
-          } catch (error) {
-            // If URL parsing fails, use the original decoded text
-            console.log('Using original QR code:', decodedText)
-          }
-
-          if (onScan) {
-            onScan(qrCode)
-          }
-          stopCamera()
-          toast.success('QR code scanned successfully!')
-        },
-        (errorMessage) => {
-          // Ignore scanning errors (they're normal while scanning)
-        }
-      )
-
-      setScanning(true)
-    } catch (error) {
-      console.error('Camera error:', error)
-      toast.error('Unable to access camera. Please use manual code entry.')
-      if (html5QrCode) {
-        stopCamera()
-      }
-    }
-  }
-
-  const stopCamera = async () => {
-    if (html5QrCode) {
+  const stopCamera = useCallback(async () => {
+    if (html5QrCodeRef.current) {
       try {
-        await html5QrCode.stop()
-        await html5QrCode.clear()
+        await html5QrCodeRef.current.stop()
+        await html5QrCodeRef.current.clear()
       } catch (error) {
         console.error('Error stopping camera:', error)
       }
+      html5QrCodeRef.current = null
       setHtml5QrCode(null)
     }
     setScanning(false)
+  }, [])
+
+  const startCamera = () => {
+    // Just set scanning to true - useEffect will handle initialization
+    setScanning(true)
   }
 
+  // Initialize camera when scanning becomes true and element is available
+  useEffect(() => {
+    if (scanning && !html5QrCode) {
+      const initCamera = async () => {
+        try {
+          // Wait a bit for DOM to update
+          await new Promise(resolve => setTimeout(resolve, 200))
+          
+          const element = document.getElementById('qr-reader')
+          if (!element) {
+            console.error('QR reader element not found')
+            setScanning(false)
+            toast.error('Failed to initialize camera. Please try again.')
+            return
+          }
+
+          const html5QrCodeInstance = new Html5Qrcode('qr-reader')
+          html5QrCodeRef.current = html5QrCodeInstance
+          setHtml5QrCode(html5QrCodeInstance)
+
+          await html5QrCodeInstance.start(
+            { facingMode: 'environment' },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 }
+            },
+            (decodedText) => {
+              // QR code detected!
+              // Extract QR code from URL if it's a full URL
+              let qrCode = decodedText
+              try {
+                if (decodedText.includes('/scan/')) {
+                  const urlParts = decodedText.split('/scan/')
+                  if (urlParts.length > 1) {
+                    qrCode = urlParts[1].split('?')[0].split('#')[0]
+                  }
+                } else if (decodedText.startsWith('http') || decodedText.startsWith('https')) {
+                  const url = new URL(decodedText)
+                  const pathParts = url.pathname.split('/')
+                  qrCode = pathParts[pathParts.length - 1] || decodedText
+                }
+              } catch (error) {
+                console.log('Using original QR code:', decodedText)
+              }
+
+              if (onScan) {
+                onScan(qrCode)
+              }
+              // Stop camera after successful scan
+              if (html5QrCodeRef.current) {
+                try {
+                  await html5QrCodeRef.current.stop()
+                  await html5QrCodeRef.current.clear()
+                } catch (error) {
+                  console.error('Error stopping camera:', error)
+                }
+                html5QrCodeRef.current = null
+                setHtml5QrCode(null)
+              }
+              setScanning(false)
+              toast.success('QR code scanned successfully!')
+            },
+            (errorMessage) => {
+              // Ignore scanning errors (they're normal while scanning)
+            }
+          )
+        } catch (error) {
+          console.error('Camera error:', error)
+          toast.error('Unable to access camera. Please use manual code entry.')
+          setScanning(false)
+        }
+      }
+      
+      initCamera()
+    }
+  }, [scanning, html5QrCode, onScan, stopCamera])
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (html5QrCode) {
-        stopCamera()
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.stop().catch(() => {})
+        html5QrCodeRef.current.clear().catch(() => {})
       }
     }
-  }, [html5QrCode])
+  }, [])
 
   return (
     <div className="space-y-4">
@@ -95,8 +128,8 @@ const QRScanner = ({ onScan, onClose }) => {
           </Button>
         </div>
       ) : (
-        <div className="relative">
-          <div id="qr-reader" className="w-full rounded-lg overflow-hidden"></div>
+        <div className="relative" ref={scannerRef}>
+          <div id="qr-reader" className="w-full rounded-lg overflow-hidden" style={{ minHeight: '300px' }}></div>
           <div className="absolute top-2 right-2 z-10">
             <button
               onClick={() => {
