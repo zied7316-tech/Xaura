@@ -146,9 +146,24 @@ const createSalonAccount = async (req, res, next) => {
  */
 const getSalonAccount = async (req, res, next) => {
   try {
-    // Find salon by owner
-    const salon = await Salon.findOne({ ownerId: req.user.id })
+    // Find salon by owner - support both direct ownerId and SalonOwnership
+    let salon = await Salon.findOne({ ownerId: req.user.id })
       .populate('ownerId', 'name email phone');
+
+    // If not found via direct ownerId, try SalonOwnership
+    if (!salon) {
+      const SalonOwnership = require('../models/SalonOwnership');
+      const ownership = await SalonOwnership.findOne({ 
+        user: req.user.id, 
+        isPrimary: true, 
+        isActive: true 
+      }).populate('salon').populate('user', 'name email phone');
+      
+      if (ownership && ownership.salon) {
+        salon = ownership.salon;
+        salon.ownerId = ownership.user;
+      }
+    }
 
     if (!salon) {
       return res.status(404).json({
@@ -156,6 +171,9 @@ const getSalonAccount = async (req, res, next) => {
         message: 'Salon account not found'
       });
     }
+
+    // Log logo to verify it's being returned
+    console.log('getSalonAccount - Salon logo:', salon.logo);
 
     // Get workers count
     const workersCount = await User.countDocuments({

@@ -32,6 +32,9 @@ const SalonSettings = () => {
       setValue('address.state', salon.address?.state || '')
       setValue('address.zipCode', salon.address?.zipCode || '')
       setValue('address.country', salon.address?.country || '')
+      
+      // Log salon logo to track it
+      console.log('SalonSettings - Salon logo:', salon.logo)
     }
     setLoading(false)
   }, [salon, setValue])

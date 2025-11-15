@@ -27,6 +27,15 @@ export const AuthProvider = ({ children }) => {
             try {
               const { salonAccountService } = await import('../services/salonAccountService')
               const salonData = await salonAccountService.getSalonAccount()
+              
+              // Preserve logo from stored salon if new data doesn't have it
+              const parsedStoredSalon = storedSalon ? JSON.parse(storedSalon) : null
+              if (parsedStoredSalon?.logo && !salonData.salon?.logo) {
+                console.warn('Logo missing in API response, preserving from localStorage')
+                salonData.salon.logo = parsedStoredSalon.logo
+              }
+              
+              console.log('Initial salon load - Logo:', salonData.salon?.logo)
               setSalon(salonData.salon)
               localStorage.setItem('salon', JSON.stringify(salonData.salon))
             } catch (error) {
@@ -64,6 +73,8 @@ export const AuthProvider = ({ children }) => {
         try {
           const { salonAccountService } = await import('../services/salonAccountService')
           const salonData = await salonAccountService.getSalonAccount()
+          
+          console.log('Login - Salon logo from API:', salonData.salon?.logo)
           setSalon(salonData.salon)
           localStorage.setItem('salon', JSON.stringify(salonData.salon))
         } catch (error) {
@@ -113,10 +124,21 @@ export const AuthProvider = ({ children }) => {
       try {
         const { salonAccountService } = await import('../services/salonAccountService')
         const salonData = await salonAccountService.getSalonAccount()
-        console.log('Refreshed salon data:', salonData.salon)
-        console.log('Salon logo:', salonData.salon?.logo)
-        setSalon(salonData.salon)
-        localStorage.setItem('salon', JSON.stringify(salonData.salon))
+        
+        // Preserve logo if it exists in current state but not in new data
+        const currentSalon = salon
+        const newSalon = salonData.salon
+        
+        if (currentSalon?.logo && !newSalon?.logo) {
+          console.warn('Logo missing in refreshed data, preserving current logo')
+          newSalon.logo = currentSalon.logo
+        }
+        
+        console.log('Refreshed salon data:', newSalon)
+        console.log('Salon logo after refresh:', newSalon?.logo)
+        
+        setSalon(newSalon)
+        localStorage.setItem('salon', JSON.stringify(newSalon))
       } catch (error) {
         console.error('Failed to refresh salon data:', error)
       }
