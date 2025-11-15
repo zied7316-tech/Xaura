@@ -40,24 +40,28 @@ const SalonSettings = () => {
     setSaving(true)
     try {
       if (salon) {
-        // Update existing salon
-        await salonService.updateSalon(salon._id, data)
-        
-        // Upload logo if selected
+        // Upload logo FIRST if selected (before updating salon to avoid conflicts)
         if (selectedLogo) {
           try {
-            await uploadService.uploadSalonImage(salon._id, selectedLogo)
+            console.log('Uploading logo for salon:', salon._id)
+            const uploadResult = await uploadService.uploadSalonImage(salon._id, selectedLogo)
+            console.log('Logo upload result:', uploadResult)
             toast.success('Salon logo updated!')
-            // Refresh salon data to get the updated logo
+            // Refresh salon data immediately after logo upload
             await refreshSalon()
           } catch (error) {
             console.error('Logo upload failed:', error)
-            toast.error('Failed to upload logo')
+            toast.error('Failed to upload logo: ' + (error.response?.data?.message || error.message))
+            // Continue with salon update even if logo upload fails
           }
         }
         
+        // Then update salon (this won't touch the logo field)
+        console.log('Updating salon with data:', data)
+        await salonService.updateSalon(salon._id, data)
         toast.success('Salon updated successfully!')
-        // Refresh salon data to ensure everything is up to date
+        
+        // Final refresh to ensure everything is up to date
         await refreshSalon()
       } else {
         // Create new salon
@@ -140,13 +144,38 @@ const SalonSettings = () => {
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Salon Logo Upload */}
-                <ImageUpload
-                  label="Salon Logo"
-                  currentImage={salon?.logo ? uploadService.getImageUrl(salon.logo) : null}
-                  onImageSelect={setSelectedLogo}
-                  accept="image/*"
-                  maxSize={5}
-                />
+                <div>
+                  <ImageUpload
+                    label="Salon Logo"
+                    currentImage={salon?.logo ? uploadService.getImageUrl(salon.logo) : null}
+                    onImageSelect={setSelectedLogo}
+                    accept="image/*"
+                    maxSize={5}
+                  />
+                  {selectedLogo && (
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            console.log('Uploading logo only for salon:', salon._id)
+                            await uploadService.uploadSalonImage(salon._id, selectedLogo)
+                            toast.success('Logo uploaded successfully!')
+                            await refreshSalon()
+                            setSelectedLogo(null)
+                          } catch (error) {
+                            console.error('Logo upload failed:', error)
+                            toast.error('Failed to upload logo')
+                          }
+                        }}
+                      >
+                        Upload Logo Now
+                      </Button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Salon Name - Editable ONLY when creating, read-only after */}
                 {salon ? (

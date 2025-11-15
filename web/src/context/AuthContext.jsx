@@ -113,10 +113,12 @@ export const AuthProvider = ({ children }) => {
       try {
         const { salonAccountService } = await import('../services/salonAccountService')
         const salonData = await salonAccountService.getSalonAccount()
+        console.log('Refreshed salon data:', salonData.salon)
+        console.log('Salon logo:', salonData.salon?.logo)
         setSalon(salonData.salon)
         localStorage.setItem('salon', JSON.stringify(salonData.salon))
       } catch (error) {
-        console.log('Failed to refresh salon data:', error)
+        console.error('Failed to refresh salon data:', error)
       }
     }
   }

@@ -33,10 +33,10 @@ const RegisterPage = () => {
   const onSubmit = async (data) => {
     setLoading(true)
     try {
-      const result = await registerUser(data)
-      setLoading(false)
+    const result = await registerUser(data)
+    setLoading(false)
 
-      if (result.success) {
+    if (result.success) {
         setUserEmail(data.email)
         setEmailSent(true)
         toast.success('Registration successful! Please check your email to verify your account.')
@@ -62,7 +62,7 @@ const RegisterPage = () => {
         {/* Register Form */}
         <div className="bg-white rounded-lg shadow-xl p-8">
           {!emailSent ? (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <Select
               label="I am a..."
               options={roleOptions}
@@ -199,15 +199,15 @@ const RegisterPage = () => {
 
           {!emailSent && (
             <>
-              {/* Divider */}
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
-                  Already have an account?{' '}
-                  <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-                    Sign in
-                  </Link>
-                </p>
-              </div>
+          {/* Divider */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                Sign in
+              </Link>
+            </p>
+          </div>
             </>
           )}
         </div>

@@ -156,11 +156,23 @@ const updateSalon = async (req, res, next) => {
     const { qrCode, ownerId, logo, ...updateData } = req.body;
 
     // Don't allow updating QR code, owner, or logo (logo should be updated via upload endpoint)
+    // Get current salon first to preserve logo
+    const currentSalon = await Salon.findById(req.params.id);
+    if (!currentSalon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    // Preserve logo field - never overwrite it in this endpoint
     const salon = await Salon.findByIdAndUpdate(
       req.params.id,
-      updateData,
+      { ...updateData, logo: currentSalon.logo }, // Explicitly preserve logo
       { new: true, runValidators: true }
     );
+
+    console.log('Salon updated. Logo preserved:', salon.logo);
 
     res.json({
       success: true,

@@ -38,12 +38,16 @@ const uploadSalonImage = async (req, res, next) => {
     salon.logo = imageUrl;
     await salon.save();
 
+    // Verify the save worked
+    const updatedSalon = await Salon.findById(req.params.id);
+    console.log('Salon logo saved:', updatedSalon.logo);
+
     res.json({
       success: true,
       message: 'Image uploaded successfully',
       data: {
         imageUrl,
-        salon
+        salon: updatedSalon
       }
     });
   } catch (error) {
