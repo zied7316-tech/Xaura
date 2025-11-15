@@ -80,6 +80,28 @@ const userSchema = new mongoose.Schema({
   lastStatusChange: {
     type: Date,
     default: Date.now
+  },
+  // Email Verification
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: {
+    type: String,
+    default: null
+  },
+  emailVerificationExpire: {
+    type: Date,
+    default: null
+  },
+  // Password Reset
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpire: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

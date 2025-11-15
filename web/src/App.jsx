@@ -10,6 +10,9 @@ import LandingPage from './pages/public/LandingPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import RegisterSalonPage from './pages/auth/RegisterSalonPage'
+import VerifyEmailPage from './pages/auth/VerifyEmailPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import ScanQRPage from './pages/public/ScanQRPage'
 
 // Owner pages
@@ -98,6 +101,9 @@ function App() {
       <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterPage />} />
       <Route path="/register-salon" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterSalonPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/scan/:qrCode" element={<ScanQRPage />} />
 
       {/* Protected routes */}
