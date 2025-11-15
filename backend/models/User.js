@@ -36,6 +36,30 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // Worker-specific information
+  bio: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  skills: [{
+    type: String,
+    trim: true
+  }],
+  experience: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  education: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  certifications: [{
+    type: String,
+    trim: true
+  }],
   // For Workers - reference to their salon
   salonId: {
     type: mongoose.Schema.Types.ObjectId,

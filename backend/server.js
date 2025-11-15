@@ -62,6 +62,7 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/salon-account', require('./routes/salonAccountRoutes')); // Salon-First Registration
 app.use('/api/salons', require('./routes/salonRoutes'));
 app.use('/api/services', require('./routes/serviceRoutes'));
