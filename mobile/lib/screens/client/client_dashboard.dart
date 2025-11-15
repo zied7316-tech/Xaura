@@ -64,6 +64,19 @@ class ClientDashboard extends StatelessWidget {
             
             const SizedBox(height: 16),
             
+            // Find Salons Card
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.store, color: AppTheme.primaryColor),
+                title: const Text('Find Salons'),
+                subtitle: const Text('Discover and book at salons'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => context.push('/search-salons'),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
             // My Appointments Card
             Card(
               child: ListTile(

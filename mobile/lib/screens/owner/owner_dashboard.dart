@@ -103,6 +103,20 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
               ),
               const SizedBox(height: 12),
               _buildQuickAction(
+                'Services',
+                'Manage your services',
+                Icons.content_cut,
+                () => context.push('/owner/services'),
+              ),
+              const SizedBox(height: 12),
+              _buildQuickAction(
+                'Workers',
+                'Manage your team',
+                Icons.people,
+                () => context.push('/owner/workers'),
+              ),
+              const SizedBox(height: 12),
+              _buildQuickAction(
                 'View Appointments',
                 'See all bookings',
                 Icons.calendar_month,

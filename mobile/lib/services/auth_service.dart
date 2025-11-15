@@ -75,5 +75,60 @@ class AuthService {
   UserModel? getCachedUser() {
     return _storage.getUser();
   }
+
+  // Verify email
+  Future<Map<String, dynamic>> verifyEmail(String token) async {
+    try {
+      final response = await _api.get('/auth/verify-email?token=$token');
+      return {
+        'success': response['success'] == true,
+        'message': response['message'] ?? 'Email verified successfully',
+      };
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // Resend verification email
+  Future<Map<String, dynamic>> resendVerification(String email) async {
+    try {
+      final response = await _api.post('/auth/resend-verification', {'email': email});
+      return {
+        'success': response['success'] == true,
+        'message': response['message'] ?? 'Verification email sent',
+      };
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // Forgot password
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await _api.post('/auth/forgot-password', {'email': email});
+      return {
+        'success': response['success'] == true,
+        'message': response['message'] ?? 'Password reset email sent',
+      };
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // Reset password
+  Future<Map<String, dynamic>> resetPassword(String token, String password) async {
+    try {
+      final response = await _api.post('/auth/reset-password', {
+        'token': token,
+        'password': password,
+      });
+      return {
+        'success': response['success'] == true,
+        'message': response['message'] ?? 'Password reset successfully',
+      };
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
 }
 

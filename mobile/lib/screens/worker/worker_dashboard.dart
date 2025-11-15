@@ -45,10 +45,19 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
             const SizedBox(height: 24),
             Card(
               child: ListTile(
+                title: const Text('My Availability'),
+                subtitle: const Text('Set your working hours'),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () => context.push('/worker/availability'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
                 title: const Text('My Appointments'),
                 subtitle: Text('${appointmentProvider.appointments.length} total'),
                 trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () => context.push('/appointments'),
+                onTap: () => context.push('/worker/appointments'),
               ),
             ),
           ],

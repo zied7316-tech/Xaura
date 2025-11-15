@@ -129,6 +129,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _login,
                   isLoading: authProvider.isLoading,
                 ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.go('/forgot-password'),
+                    child: Text(
+                      'Forgot Password?',
+                      style: TextStyle(color: AppTheme.primaryColor),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () => context.go('/register'),
