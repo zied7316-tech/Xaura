@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Textarea from '../../components/ui/Textarea'
 import ImageUpload from '../../components/ui/ImageUpload'
+import PushNotificationSetup from '../../components/notifications/PushNotificationSetup'
 import { User, Mail, Phone, Briefcase, Edit2, Save, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -378,6 +379,16 @@ const ProfilePage = () => {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Push Notifications Setup */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Push Notifications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PushNotificationSetup />
           </CardContent>
         </Card>
       </div>
