@@ -16,11 +16,21 @@ const getNotifications = async (req, res, next) => {
       query.isRead = false;
     }
 
+    // Use lean() for better performance and handle populate errors gracefully
     const notifications = await Notification.find(query)
-      .populate('relatedUser', 'name avatar')
-      .populate('relatedAppointment', 'dateTime serviceId')
+      .populate({
+        path: 'relatedUser',
+        select: 'name avatar',
+        strictPopulate: false // Don't throw error if user doesn't exist
+      })
+      .populate({
+        path: 'relatedAppointment',
+        select: 'dateTime serviceId',
+        strictPopulate: false // Don't throw error if appointment doesn't exist
+      })
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean(); // Convert to plain objects for better performance
 
     // Get unread count
     const unreadCount = await Notification.countDocuments({
@@ -30,10 +40,17 @@ const getNotifications = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: notifications,
-      unreadCount
+      data: notifications || [],
+      unreadCount: unreadCount || 0
     });
   } catch (error) {
+    console.error('Error in getNotifications:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      userId: req.user?.id
+    });
     next(error);
   }
 };
