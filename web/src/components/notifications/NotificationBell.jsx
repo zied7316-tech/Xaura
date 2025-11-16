@@ -19,6 +19,39 @@ const NotificationBell = () => {
     
     // Poll for new notifications every 30 seconds
     const interval = setInterval(loadNotifications, 30000)
+    
+    // Listen for push notifications (foreground)
+    const setupPushListener = async () => {
+      try {
+        const { setupMessageListener } = await import('../../services/firebaseService')
+        setupMessageListener((payload) => {
+          if (payload) {
+            // Show browser notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification(payload.notification?.title || 'New Notification', {
+                body: payload.notification?.body || payload.data?.message,
+                icon: payload.notification?.icon || '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: payload.data?.notificationId || Date.now().toString()
+              })
+            }
+            
+            // Show toast notification
+            toast.success(payload.notification?.title || 'New notification', {
+              duration: 5000
+            })
+            
+            // Reload notifications
+            loadNotifications()
+          }
+        })
+      } catch (error) {
+        console.error('Error setting up push listener:', error)
+      }
+    }
+    
+    setupPushListener()
+    
     return () => clearInterval(interval)
   }, [])
 

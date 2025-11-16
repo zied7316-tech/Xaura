@@ -5,7 +5,9 @@ const {
   markAsRead,
   markAllAsRead,
   deleteNotification,
-  clearAllNotifications
+  clearAllNotifications,
+  registerPushToken,
+  unregisterPushToken
 } = require('../controllers/notificationController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -19,6 +21,10 @@ router.put('/read-all', protect, markAllAsRead);
 // Delete
 router.delete('/:id', protect, deleteNotification);
 router.delete('/clear-all', protect, clearAllNotifications);
+
+// Push notification tokens
+router.post('/register-push-token', protect, registerPushToken);
+router.delete('/unregister-push-token', protect, unregisterPushToken);
 
 module.exports = router;
 

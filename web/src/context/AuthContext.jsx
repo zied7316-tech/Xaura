@@ -70,6 +70,33 @@ export const AuthProvider = ({ children }) => {
     initAuth()
   }, [])
 
+  // Initialize push notifications after login
+  useEffect(() => {
+    if (user) {
+      // Initialize push notifications in background
+      const initPushNotifications = async () => {
+        try {
+          const { pushNotificationService } = await import('../services/pushNotificationService')
+          const { getNotificationPermission } = await import('../services/firebaseService')
+          
+          // Only initialize if permission is already granted
+          const permission = getNotificationPermission()
+          if (permission === 'granted') {
+            const token = localStorage.getItem('fcm_token')
+            if (!token) {
+              // Try to get and register token
+              await pushNotificationService.initialize()
+            }
+          }
+        } catch (error) {
+          console.log('Push notifications not available:', error)
+        }
+      }
+      
+      initPushNotifications()
+    }
+  }, [user])
+
   // Login function
   const login = async (credentials) => {
     try {

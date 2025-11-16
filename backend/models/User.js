@@ -126,7 +126,23 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpire: {
     type: Date,
     default: null
-  }
+  },
+  // Push Notification Tokens (for web and mobile)
+  pushTokens: [{
+    token: {
+      type: String,
+      required: true
+    },
+    platform: {
+      type: String,
+      enum: ['web', 'android', 'ios'],
+      default: 'web'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, {
   timestamps: true
 });
