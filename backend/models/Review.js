@@ -95,9 +95,12 @@ reviewSchema.index({ clientId: 1, createdAt: -1 });
 
 // Calculate worker's average rating (static method)
 reviewSchema.statics.getWorkerAverageRating = async function(workerId) {
+  // Ensure we use 'new' with ObjectId to be compatible with newer drivers
+  const workerObjectId = new mongoose.Types.ObjectId(workerId);
+
   const result = await this.aggregate([
     {
-      $match: { workerId: mongoose.Types.ObjectId(workerId), isApproved: true }
+      $match: { workerId: workerObjectId, isApproved: true }
     },
     {
       $group: {

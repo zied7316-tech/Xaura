@@ -43,10 +43,27 @@ const initFirebase = async () => {
 export const getFCMToken = async () => {
   try {
     await initFirebase()
-    
+
     if (!messaging) {
       console.warn('Messaging not available')
       return null
+    }
+
+    // Ensure service worker is registered for push notifications
+    if (!('serviceWorker' in navigator)) {
+      console.warn('Service workers are not supported in this browser')
+      return null
+    }
+
+    // Try to get existing registration, or register if not present
+    let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
+    if (!registration) {
+      try {
+        registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      } catch (swError) {
+        console.error('Error registering Firebase Messaging service worker:', swError)
+        return null
+      }
     }
 
     // Request notification permission
@@ -58,7 +75,8 @@ export const getFCMToken = async () => {
 
     // Get FCM token
     const token = await getToken(messaging, {
-      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || ''
+      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || '',
+      serviceWorkerRegistration: registration
     })
 
     if (token) {
