@@ -15,10 +15,14 @@ const NotificationBell = () => {
   const dropdownRef = useRef(null)
 
   useEffect(() => {
+    console.log('NotificationBell: Component mounted, loading notifications...')
     loadNotifications()
     
     // Poll for new notifications every 30 seconds
-    const interval = setInterval(loadNotifications, 30000)
+    const interval = setInterval(() => {
+      console.log('NotificationBell: Polling for new notifications...')
+      loadNotifications()
+    }, 30000)
     
     // Listen for push notifications (foreground)
     const setupPushListener = async () => {
@@ -53,6 +57,7 @@ const NotificationBell = () => {
     setupPushListener()
     
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -68,15 +73,21 @@ const NotificationBell = () => {
 
   const loadNotifications = async () => {
     try {
+      console.log('NotificationBell: loadNotifications called')
       setLoading(true)
+      console.log('NotificationBell: Calling notificationService.getNotifications...')
       const data = await notificationService.getNotifications(20, false)
-      console.log('Notifications loaded:', data)
+      console.log('NotificationBell: Notifications loaded successfully:', data)
+      console.log('NotificationBell: Data.data:', data.data)
+      console.log('NotificationBell: Unread count:', data.unreadCount)
       setNotifications(data.data || [])
       setUnreadCount(data.unreadCount || 0)
     } catch (error) {
-      console.error('Error loading notifications:', error)
-      console.error('Error response:', error.response?.data)
-      console.error('Error status:', error.response?.status)
+      console.error('NotificationBell: Error loading notifications:', error)
+      console.error('NotificationBell: Error message:', error.message)
+      console.error('NotificationBell: Error response:', error.response?.data)
+      console.error('NotificationBell: Error status:', error.response?.status)
+      console.error('NotificationBell: Full error:', JSON.stringify(error, null, 2))
       // Set empty arrays on error to prevent UI issues
       setNotifications([])
       setUnreadCount(0)
@@ -162,7 +173,16 @@ const NotificationBell = () => {
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
-        onClick={() => setShowDropdown(!showDropdown)}
+        onClick={() => {
+          console.log('NotificationBell: Bell clicked, showDropdown:', !showDropdown)
+          const newState = !showDropdown
+          setShowDropdown(newState)
+          // Reload notifications when opening dropdown
+          if (newState) {
+            console.log('NotificationBell: Opening dropdown, reloading notifications...')
+            loadNotifications()
+          }
+        }}
         className="p-2 rounded-md text-gray-600 hover:bg-gray-100 relative"
       >
         <Bell size={20} />
