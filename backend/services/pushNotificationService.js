@@ -63,6 +63,13 @@ const sendPushNotification = async (userId, notification) => {
 
     const { title, body, data = {} } = notification;
 
+    // FCM requires that all values in the `data` payload are strings
+    const safeData = {};
+    Object.entries(data).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      safeData[key] = String(value);
+    });
+
     // Prepare FCM message
     const message = {
       notification: {
@@ -70,8 +77,8 @@ const sendPushNotification = async (userId, notification) => {
         body
       },
       data: {
-        ...data,
-        notificationId: data.notificationId || Date.now().toString(),
+        ...safeData,
+        notificationId: safeData.notificationId || Date.now().toString(),
         click_action: 'FLUTTER_NOTIFICATION_CLICK'
       },
       // Web push specific
