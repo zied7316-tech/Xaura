@@ -73,26 +73,34 @@ const NotificationBell = () => {
 
   const loadNotifications = async () => {
     try {
-      console.log('NotificationBell: loadNotifications called')
+      console.log('🔔 NotificationBell: loadNotifications called')
       setLoading(true)
-      console.log('NotificationBell: Calling notificationService.getNotifications...')
-      const data = await notificationService.getNotifications(20, false)
-      console.log('NotificationBell: Notifications loaded successfully:', data)
-      console.log('NotificationBell: Data.data:', data.data)
-      console.log('NotificationBell: Unread count:', data.unreadCount)
-      setNotifications(data.data || [])
-      setUnreadCount(data.unreadCount || 0)
+      console.log('🔔 NotificationBell: Calling notificationService.getNotifications...')
+      const response = await notificationService.getNotifications(20, false)
+      console.log('🔔 NotificationBell: Response received:', response)
+      console.log('🔔 NotificationBell: Response.data:', response?.data)
+      console.log('🔔 NotificationBell: Response.success:', response?.success)
+      console.log('🔔 NotificationBell: Unread count:', response?.unreadCount)
+      
+      // Handle response structure
+      const notifications = response?.data || []
+      const unreadCount = response?.unreadCount || 0
+      
+      console.log('🔔 NotificationBell: Setting notifications:', notifications.length, 'items')
+      console.log('🔔 NotificationBell: Setting unread count:', unreadCount)
+      
+      setNotifications(notifications)
+      setUnreadCount(unreadCount)
     } catch (error) {
-      console.error('NotificationBell: Error loading notifications:', error)
-      console.error('NotificationBell: Error message:', error.message)
-      console.error('NotificationBell: Error response:', error.response?.data)
-      console.error('NotificationBell: Error status:', error.response?.status)
-      console.error('NotificationBell: Full error:', JSON.stringify(error, null, 2))
+      console.error('❌ NotificationBell: Error loading notifications:', error)
+      console.error('❌ NotificationBell: Error message:', error.message)
+      console.error('❌ NotificationBell: Error stack:', error.stack)
       // Set empty arrays on error to prevent UI issues
       setNotifications([])
       setUnreadCount(0)
     } finally {
       setLoading(false)
+      console.log('🔔 NotificationBell: loadNotifications finished')
     }
   }
 
