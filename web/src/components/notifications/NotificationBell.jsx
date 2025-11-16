@@ -68,11 +68,20 @@ const NotificationBell = () => {
 
   const loadNotifications = async () => {
     try {
+      setLoading(true)
       const data = await notificationService.getNotifications(20, false)
+      console.log('Notifications loaded:', data)
       setNotifications(data.data || [])
       setUnreadCount(data.unreadCount || 0)
     } catch (error) {
       console.error('Error loading notifications:', error)
+      console.error('Error response:', error.response?.data)
+      console.error('Error status:', error.response?.status)
+      // Set empty arrays on error to prevent UI issues
+      setNotifications([])
+      setUnreadCount(0)
+    } finally {
+      setLoading(false)
     }
   }
 

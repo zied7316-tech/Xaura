@@ -16,7 +16,10 @@ const { awardPoints } = require('./loyaltyController');
 const acceptAppointment = async (req, res, next) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
-      .populate('salonId', 'ownerId');
+      .populate('salonId', 'ownerId')
+      .populate('serviceId', 'name duration price')
+      .populate('workerId', 'name')
+      .populate('clientId', 'name email phone');
 
     if (!appointment) {
       return res.status(404).json({
@@ -46,11 +49,6 @@ const acceptAppointment = async (req, res, next) => {
     appointment.status = 'Confirmed';
     appointment.acceptedAt = new Date(); // Track when accepted
     await appointment.save();
-
-    // Populate for response
-    await appointment.populate('clientId', 'name email phone');
-    await appointment.populate('serviceId', 'name duration price');
-    await appointment.populate('workerId', 'name');
 
     // Notify client that appointment was confirmed
     await createNotification({
