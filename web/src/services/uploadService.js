@@ -62,6 +62,26 @@ export const uploadService = {
     return response.data.data
   },
 
+  // Upload user profile picture (works for all roles: Client, Owner, Worker)
+  uploadUserImage: async (userId, file) => {
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const token = localStorage.getItem('token')
+    const response = await axios.post(
+      `${API_URL}/upload/user/${userId}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+
+    return response.data.data
+  },
+
   // Delete salon logo
   deleteSalonImage: async (salonId) => {
     const token = localStorage.getItem('token')
@@ -95,6 +115,20 @@ export const uploadService = {
     const token = localStorage.getItem('token')
     const response = await axios.delete(
       `${API_URL}/upload/worker/${workerId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+    return response.data
+  },
+
+  // Delete user profile picture (works for all roles: Client, Owner, Worker)
+  deleteUserImage: async (userId) => {
+    const token = localStorage.getItem('token')
+    const response = await axios.delete(
+      `${API_URL}/upload/user/${userId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`

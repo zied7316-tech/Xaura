@@ -8,7 +8,7 @@ import Input from '../../components/ui/Input'
 import Textarea from '../../components/ui/Textarea'
 import ImageUpload from '../../components/ui/ImageUpload'
 import PushNotificationSetup from '../../components/notifications/PushNotificationSetup'
-import { User, Mail, Phone, Briefcase, Edit2, Save, X } from 'lucide-react'
+import { User, Mail, Phone, Briefcase, Edit2, Save, X, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const ProfilePage = () => {
@@ -47,18 +47,24 @@ const ProfilePage = () => {
   const handleSave = async () => {
     setLoading(true)
     try {
-      // Upload avatar if selected
+      // Upload avatar FIRST if selected (before updating profile to avoid conflicts)
       if (selectedAvatar && user?._id) {
         try {
-          await uploadService.uploadWorkerImage(user._id, selectedAvatar)
+          console.log('📤 Uploading user avatar for:', user._id, 'Role:', user.role)
+          const uploadResult = await uploadService.uploadUserImage(user._id, selectedAvatar)
+          console.log('✅ Avatar upload result:', uploadResult)
           toast.success('Profile picture updated!')
+          // Refresh user data immediately after upload
+          const refreshedUser = await profileService.getProfile()
+          updateUser(refreshedUser)
         } catch (error) {
-          console.error('Avatar upload failed:', error)
-          toast.error('Failed to upload profile picture')
+          console.error('❌ Avatar upload failed:', error)
+          toast.error('Failed to upload profile picture: ' + (error.response?.data?.message || error.message))
+          return // Stop here if upload fails
         }
       }
-
-      // Update profile data
+      
+      // Then update profile data
       const updatedUser = await profileService.updateProfile(formData)
       updateUser(updatedUser)
       
@@ -66,10 +72,27 @@ const ProfilePage = () => {
       setIsEditing(false)
       setSelectedAvatar(null)
     } catch (error) {
-      console.error('Profile update failed:', error)
+      console.error('❌ Profile update failed:', error)
       toast.error(error.response?.data?.message || 'Failed to update profile')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteAvatar = async () => {
+    if (!confirm('Are you sure you want to delete your profile picture?')) return
+    
+    try {
+      console.log('🗑️ Deleting user avatar for:', user._id)
+      await uploadService.deleteUserImage(user._id)
+      toast.success('Profile picture deleted!')
+      setSelectedAvatar(null)
+      // Refresh user data
+      const refreshedUser = await profileService.getProfile()
+      updateUser(refreshedUser)
+    } catch (error) {
+      console.error('❌ Delete avatar failed:', error)
+      toast.error('Failed to delete profile picture: ' + (error.response?.data?.message || error.message))
     }
   }
 
@@ -130,7 +153,7 @@ const ProfilePage = () => {
             {/* Profile Picture */}
             <div className="flex items-center gap-6">
               {isEditing ? (
-                <div className="flex-1">
+                <div className="flex-1 space-y-2">
                   <ImageUpload
                     label="Profile Picture"
                     currentImage={user?.avatar ? uploadService.getImageUrl(user.avatar) : null}
@@ -138,6 +161,17 @@ const ProfilePage = () => {
                     accept="image/*"
                     maxSize={5}
                   />
+                  {user?.avatar && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDeleteAvatar}
+                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 size={16} />
+                      Delete Current Picture
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">

@@ -20,8 +20,10 @@ const storage = new CloudinaryStorage({
       folder = 'xaura/salons';
     } else if (routePath.includes('/service') || routePath.includes('services')) {
       folder = 'xaura/services';
-    } else if (routePath.includes('/worker') || routePath.includes('workers') || routePath.includes('/user') || routePath.includes('users')) {
+    } else if (routePath.includes('/worker') || routePath.includes('workers')) {
       folder = 'xaura/workers';
+    } else if (routePath.includes('/user') || routePath.includes('users') || routePath.includes('/profile')) {
+      folder = 'xaura/profiles';
     } else {
       folder = 'xaura/profiles';
     }
