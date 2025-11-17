@@ -63,16 +63,18 @@ export const uploadService = {
   },
 
   // Get image URL (for display)
+  // Handles both Cloudinary URLs (https://) and local storage paths (/uploads/...)
   getImageUrl: (imagePath) => {
     if (!imagePath) {
-      console.log('[getImageUrl] No image path provided')
       return null
     }
+    
+    // If it's already a full URL (Cloudinary or external), return as-is
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      console.log('[getImageUrl] Already full URL:', imagePath)
       return imagePath
     }
     
+    // For local storage paths, construct full URL
     // Extract base URL from API_URL (remove /api)
     // Handle cases like: https://api.xaura.pro/api -> https://api.xaura.pro
     // or http://localhost:5000/api -> http://localhost:5000
@@ -86,13 +88,6 @@ export const uploadService = {
     // Ensure imagePath starts with /
     const path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`
     const fullUrl = `${baseUrl}${path}`
-    
-    console.log('[getImageUrl]', {
-      originalPath: imagePath,
-      baseUrl: baseUrl,
-      finalUrl: fullUrl,
-      API_URL: API_URL
-    })
     
     return fullUrl
   }

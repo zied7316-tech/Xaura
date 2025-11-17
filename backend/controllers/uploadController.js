@@ -33,8 +33,18 @@ const uploadSalonImage = async (req, res, next) => {
       });
     }
 
-    // Save image URL
-    const imageUrl = `/uploads/salons/${req.file.filename}`;
+    // Get image URL
+    // Cloudinary: req.file.path contains the full URL
+    // Local storage: req.file.filename contains just the filename
+    let imageUrl;
+    if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+      // Cloudinary URL
+      imageUrl = req.file.path;
+    } else {
+      // Local storage path
+      imageUrl = `/uploads/salons/${req.file.filename}`;
+    }
+    
     salon.logo = imageUrl;
     await salon.save();
 
@@ -86,8 +96,17 @@ const uploadServiceImage = async (req, res, next) => {
       });
     }
 
-    // Add image field to service model if not exists
-    const imageUrl = `/uploads/services/${req.file.filename}`;
+    // Get image URL
+    // Cloudinary: req.file.path contains the full URL
+    // Local storage: req.file.filename contains just the filename
+    let imageUrl;
+    if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+      // Cloudinary URL
+      imageUrl = req.file.path;
+    } else {
+      // Local storage path
+      imageUrl = `/uploads/services/${req.file.filename}`;
+    }
     
     // Update service with image
     await Service.findByIdAndUpdate(req.params.id, {
@@ -144,8 +163,18 @@ const uploadWorkerImage = async (req, res, next) => {
       });
     }
 
-    // Save image URL
-    const imageUrl = `/uploads/workers/${req.file.filename}`;
+    // Get image URL
+    // Cloudinary: req.file.path contains the full URL
+    // Local storage: req.file.filename contains just the filename
+    let imageUrl;
+    if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+      // Cloudinary URL
+      imageUrl = req.file.path;
+    } else {
+      // Local storage path
+      imageUrl = `/uploads/workers/${req.file.filename}`;
+    }
+    
     worker.avatar = imageUrl;
     await worker.save();
 
