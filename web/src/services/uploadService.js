@@ -172,14 +172,24 @@ export const uploadService = {
           // Build new transformation
           const newTransform = `w_${width},h_${height},c_fill`
           
+          let transformedUrl
           if (hasTransform) {
             // Replace existing transformation
             parts[0] = newTransform
-            return `${baseUrl}/${parts.join('/')}`
+            transformedUrl = `${baseUrl}/${parts.join('/')}`
           } else {
             // Insert new transformation before version/public_id
-            return `${baseUrl}/${newTransform}/${afterUpload}`
+            transformedUrl = `${baseUrl}/${newTransform}/${afterUpload}`
           }
+          
+          console.log('🖼️ Cloudinary URL transformation:', {
+            original: imagePath,
+            transformed: transformedUrl,
+            width,
+            height
+          })
+          
+          return transformedUrl
         }
       }
       return imagePath
