@@ -8,6 +8,7 @@ import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import SafeImage from '../../components/ui/SafeImage'
 import Modal from '../../components/ui/Modal'
+import ThreeDImageCarousel from '../../components/ui/ThreeDImageCarousel'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import ReviewDisplay from '../../components/reviews/ReviewDisplay'
 import { 
@@ -252,97 +253,112 @@ const SalonDetailsPage = () => {
             </div>
           ) : (
             <>
-              {/* Services Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {services.map((service) => (
-                  <Card key={service._id} className="border border-gray-200">
-                    <CardContent className="p-4">
-                      {/* Service Image */}
-                      <div 
-                        className="h-64 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity relative group"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          if (service.image) {
-                            setSelectedServiceImage(service.image)
-                            setShowImageModal(true)
-                          }
-                        }}
-                        title="Click to view full size"
-                        style={{ pointerEvents: 'auto' }}
-                      >
-                        <div 
-                          className="w-full h-full"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                          }}
-                        >
-                          <SafeImage
-                            src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
-                            alt={service.name}
-                            className="w-full h-full object-cover pointer-events-none"
-                            fallbackType="service"
-                          />
-                        </div>
-                        <div 
-                          className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none"
-                        >
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
-                            Click to enlarge
-                          </div>
-                        </div>
-                      </div>
+              {/* 3D Image Carousel - Replace service cards with carousel */}
+              {(() => {
+                if (!services || !Array.isArray(services) || services.length === 0) {
+                  return null;
+                }
 
-                      <div className="mb-2 text-center">
-                        <h4 className="mb-2">
-                          <ShinyText
-                            size="2xl"
-                            weight="bold"
-                            baseColor="#667eea"
-                            shineColor="#764ba2"
-                            speed={3}
-                            intensity={1}
-                            direction="left-to-right"
-                            shineWidth={30}
-                            className="tracking-wide"
-                          >
-                            {capitalizeFirst(service.name)}
-                          </ShinyText>
-                        </h4>
-                        <div className="flex justify-center">
-                          <Badge variant="default" size="sm">{service.category}</Badge>
-                        </div>
-                      </div>
+                // Get all services with images and convert to carousel slides
+                const slides = services
+                  .filter(service => {
+                    if (!service) return false;
+                    const hasImage = service.image && 
+                                     String(service.image).trim() !== '' && 
+                                     String(service.image).trim() !== 'null' &&
+                                     String(service.image).trim() !== 'undefined';
+                    return hasImage;
+                  })
+                  .map((service, index) => {
+                    try {
+                      const imageUrl = uploadService.getImageUrl(service.image, { width: 1080, height: 1080 });
+                      return {
+                        id: service._id || index,
+                        src: imageUrl,
+                        href: `#service-${service._id}`,
+                        service: service // Keep service data for reference
+                      };
+                    } catch (error) {
+                      console.error(`Error getting image URL for ${service.name}:`, error);
+                      return null;
+                    }
+                  })
+                  .filter(slide => slide !== null);
 
-                      {service.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                          {service.description}
-                        </p>
-                      )}
+                // Show 3D carousel if we have services with images, otherwise show grid
+                if (slides.length > 0) {
+                  return (
+                    <div className="w-full mb-8">
+                      <ThreeDImageCarousel
+                        slides={slides}
+                        itemCount={slides.length >= 5 ? 5 : 3}
+                        autoplay={true}
+                        delay={3}
+                        pauseOnHover={true}
+                        className="w-full"
+                      />
+                    </div>
+                  );
+                } else {
+                  // Fallback to grid if no services with images
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {services.map((service) => (
+                        <Card key={service._id} className="border border-gray-200">
+                          <CardContent className="p-4">
+                            <div className="mb-2 text-center">
+                              <h4 className="mb-2">
+                                <ShinyText
+                                  size="2xl"
+                                  weight="bold"
+                                  baseColor="#667eea"
+                                  shineColor="#764ba2"
+                                  speed={3}
+                                  intensity={1}
+                                  direction="left-to-right"
+                                  shineWidth={30}
+                                  className="tracking-wide"
+                                >
+                                  {capitalizeFirst(service.name)}
+                                </ShinyText>
+                              </h4>
+                              <div className="flex justify-center">
+                                <Badge variant="default" size="sm">{service.category}</Badge>
+                              </div>
+                            </div>
 
-                      <div className="flex items-center justify-between mb-3 text-sm">
-                        <div className="flex items-center gap-1 text-gray-600">
-                          <Clock size={16} />
-                          <span>{formatDuration(service.duration)}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-green-600 font-semibold">
-                          <DollarSign size={16} />
-                          <span>{formatCurrency(service.price)}</span>
-                        </div>
-                      </div>
+                            {service.description && (
+                              <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                                {service.description}
+                              </p>
+                            )}
 
-                      <Button
-                        size="sm"
-                        onClick={() => handleBookService(service._id)}
-                        fullWidth
-                      >
-                        <Calendar size={16} />
-                        Book Now
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                            <div className="flex items-center justify-between mb-3 text-sm">
+                              <div className="flex items-center gap-1 text-gray-600">
+                                <Clock size={16} />
+                                <span>{formatDuration(service.duration)}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-green-600 font-semibold">
+                                <DollarSign size={16} />
+                                <span>{formatCurrency(service.price)}</span>
+                              </div>
+                            </div>
+
+                            <Button
+                              size="sm"
+                              onClick={() => handleBookService(service._id)}
+                              fullWidth
+                            >
+                              <Calendar size={16} />
+                              Book Now
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  );
+                }
+              })()}
             </>
           )}
         </CardContent>
