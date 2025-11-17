@@ -23,6 +23,12 @@ export function ThreeDImageRing({
   inertiaTimeConstant = 300,
   inertiaVelocityMultiplier = 20,
 }) {
+  console.log('🎨 ThreeDImageRing component rendered:', {
+    imagesCount: images?.length,
+    images: images,
+    width,
+    perspective
+  });
   const containerRef = useRef(null);
   const ringRef = useRef(null);
   const rotationY = useMotionValue(initialRotation);
@@ -157,9 +163,12 @@ export function ThreeDImageRing({
     },
   };
 
-  if (images.length === 0) {
+  if (!images || images.length === 0) {
+    console.log('❌ ThreeDImageRing: No images provided');
     return null;
   }
+
+  console.log('✅ ThreeDImageRing: Rendering with', images.length, 'images');
 
   return (
     <div
@@ -169,9 +178,10 @@ export function ThreeDImageRing({
         containerClassName
       )}
       style={{
-        backgroundColor,
+        backgroundColor: backgroundColor || 'transparent',
         transform: `scale(${currentScale})`,
         transformOrigin: "center center",
+        minHeight: '384px', // Ensure minimum height
       }}
       onMouseDown={draggable ? handleDragStart : undefined}
       onTouchStart={draggable ? handleDragStart : undefined}

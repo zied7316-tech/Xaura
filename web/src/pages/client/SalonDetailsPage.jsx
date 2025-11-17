@@ -237,38 +237,60 @@ const SalonDetailsPage = () => {
             <>
               {/* 3D Image Ring - Show when there are services with images */}
               {useMemo(() => {
+                console.log('🔍 Checking services for 3D ring:', {
+                  totalServices: services.length,
+                  services: services.map(s => ({ id: s._id, name: s.name, hasImage: !!s.image, image: s.image }))
+                });
+                
                 const servicesWithImages = services
-                  .filter(service => service && service.image)
-                  .map(service => uploadService.getImageUrl(service.image))
-                  .filter(url => url && url !== null);
+                  .filter(service => {
+                    const hasImage = service && service.image && service.image.trim() !== '';
+                    console.log(`Service ${service?.name}: hasImage=${hasImage}, image="${service?.image}"`);
+                    return hasImage;
+                  })
+                  .map(service => {
+                    const url = uploadService.getImageUrl(service.image);
+                    console.log(`Service ${service.name}: imageUrl="${url}"`);
+                    return url;
+                  })
+                  .filter(url => url && url !== null && url !== '');
                 
-                console.log('🎨 3D Ring - Services with images:', servicesWithImages.length, servicesWithImages);
+                console.log('🎨 3D Ring - Final filtered images:', {
+                  count: servicesWithImages.length,
+                  urls: servicesWithImages
+                });
                 
-                return servicesWithImages.length >= 2 ? (
-                  <div className="mb-8">
-                    <div className="w-full h-96 relative bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg overflow-hidden">
-                      <ThreeDImageRing
-                        images={servicesWithImages}
-                        width={280}
-                        perspective={2000}
-                        imageDistance={400}
-                        initialRotation={180}
-                        animationDuration={1.2}
-                        staggerDelay={0.08}
-                        hoverOpacity={0.4}
-                        draggable={true}
-                        mobileBreakpoint={768}
-                        mobileScaleFactor={0.7}
-                        containerClassName="w-full h-full"
-                      />
-                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-                        <p className="text-sm text-gray-600 text-center">
-                          <span className="font-semibold text-primary-600">Drag to rotate</span> • {servicesWithImages.length} services
-                        </p>
+                if (servicesWithImages.length >= 2) {
+                  console.log('✅ Rendering 3D ring with', servicesWithImages.length, 'images');
+                  return (
+                    <div className="mb-8">
+                      <div className="w-full h-96 relative bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg overflow-hidden">
+                        <ThreeDImageRing
+                          images={servicesWithImages}
+                          width={280}
+                          perspective={2000}
+                          imageDistance={400}
+                          initialRotation={180}
+                          animationDuration={1.2}
+                          staggerDelay={0.08}
+                          hoverOpacity={0.4}
+                          draggable={true}
+                          mobileBreakpoint={768}
+                          mobileScaleFactor={0.7}
+                          containerClassName="w-full h-full"
+                        />
+                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg z-20">
+                          <p className="text-sm text-gray-600 text-center">
+                            <span className="font-semibold text-primary-600">Drag to rotate</span> • {servicesWithImages.length} services
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : null;
+                  );
+                } else {
+                  console.log('❌ Not rendering 3D ring - need 2+ images, got:', servicesWithImages.length);
+                  return null;
+                }
               }, [services])}
 
               {/* Services Grid */}
