@@ -3,27 +3,39 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, easeOut, animate } from "framer-motion";
 import { cn } from "../../utils/cn";
+import Card, { CardContent } from "./Card";
+import Button from "./Button";
+import Badge from "./Badge";
+import SafeImage from "./SafeImage";
+import { Clock, DollarSign, Calendar } from "lucide-react";
 
 export function ThreeDImageRing({
-  images,
-  width = 300,
-  perspective = 2000,
+  services = [],
+  width = 320,
+  perspective = 3000,
   imageDistance = 500,
-  initialRotation = 180,
+  initialRotation = 0,
   animationDuration = 1.5,
   staggerDelay = 0.1,
   hoverOpacity = 0.5,
   containerClassName,
   ringClassName,
-  imageClassName,
+  cardClassName,
   backgroundColor,
   draggable = true,
   ease = "easeOut",
   mobileBreakpoint = 768,
-  mobileScaleFactor = 0.8,
+  mobileScaleFactor = 0.7,
   inertiaPower = 0.8,
   inertiaTimeConstant = 300,
   inertiaVelocityMultiplier = 20,
+  onBookService,
+  uploadService,
+  formatDuration,
+  formatCurrency,
+  capitalizeFirst,
+  ShinyText,
+  onImageClick,
 }) {
   const containerRef = useRef(null);
   const ringRef = useRef(null);
@@ -33,35 +45,9 @@ export function ThreeDImageRing({
   const isDragging = useRef(false);
   const velocity = useRef(0);
   const [currentScale, setCurrentScale] = useState(1);
-  const [showImages, setShowImages] = useState(false);
+  const [showCards, setShowCards] = useState(false);
 
-  const angle = useMemo(() => 360 / images.length, [images.length]);
-
-  const getBgPos = (imageIndex, currentRot, scale) => {
-    const scaledImageDistance = imageDistance * scale;
-    const effectiveRotation = currentRot - 180 - imageIndex * angle;
-    const parallaxOffset = ((effectiveRotation % 360 + 360) % 360) / 360;
-    return `${-(parallaxOffset * (scaledImageDistance / 1.5))}px 0px`;
-  };
-
-  useEffect(() => {
-    const unsubscribe = rotationY.on("change", (latestRotation) => {
-      if (ringRef.current) {
-        Array.from(ringRef.current.children).forEach((imgElement, i) => {
-          if (imgElement && imgElement.style) {
-            imgElement.style.backgroundPosition = getBgPos(
-              i,
-              latestRotation,
-              currentScale
-            );
-          }
-        });
-      }
-      currentRotationY.current = latestRotation;
-    });
-
-    return () => unsubscribe();
-  }, [rotationY, images.length, imageDistance, currentScale, angle]);
+  const angle = useMemo(() => 360 / services.length, [services.length]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -77,7 +63,7 @@ export function ThreeDImageRing({
   }, [mobileBreakpoint, mobileScaleFactor]);
 
   useEffect(() => {
-    setShowImages(true);
+    setShowCards(true);
   }, []);
 
   const handleDragStart = (event) => {
@@ -143,7 +129,7 @@ export function ThreeDImageRing({
     velocity.current = 0;
   };
 
-  const imageVariants = {
+  const cardVariants = {
     hidden: { y: 200, opacity: 0 },
     visible: {
       y: 0,
@@ -151,7 +137,7 @@ export function ThreeDImageRing({
     },
   };
 
-  if (!images || images.length === 0) {
+  if (!services || services.length === 0) {
     return null;
   }
 
@@ -173,8 +159,8 @@ export function ThreeDImageRing({
       <div
         style={{
           perspective: `${perspective}px`,
-          width: `${width}px`,
-          height: `${width * 1.33}px`,
+          width: "100%",
+          height: "100%",
           position: "absolute",
           left: "50%",
           top: "50%",
@@ -194,50 +180,47 @@ export function ThreeDImageRing({
           }}
         >
           <AnimatePresence>
-            {showImages && images.map((imageUrl, index) => {
+            {showCards && services.map((service, index) => {
               const translateZ = imageDistance * currentScale;
               const rotationAngle = index * -angle;
               
               return (
                 <motion.div
-                  key={index}
+                  key={service._id || index}
                   className={cn(
                     "absolute",
-                    imageClassName
+                    cardClassName
                   )}
                   style={{
                     width: `${width}px`,
-                    height: `${width * 1.33}px`,
                     transformStyle: "preserve-3d",
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundSize: "cover",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "center",
-                    backfaceVisibility: "hidden",
                     left: "50%",
                     top: "50%",
                     marginLeft: `-${width / 2}px`,
-                    marginTop: `-${width * 1.33 / 2}px`,
+                    marginTop: `-200px`,
                     transform: `rotateY(${rotationAngle}deg) translateZ(${translateZ}px)`,
-                    backgroundPosition: getBgPos(index, currentRotationY.current, currentScale),
+                    pointerEvents: isDragging.current ? "none" : "auto",
                   }}
                   initial="hidden"
                   animate="visible"
                   exit="hidden"
-                  variants={imageVariants}
+                  variants={cardVariants}
                   custom={index}
                   transition={{
                     delay: index * staggerDelay,
                     duration: animationDuration,
                     ease: easeOut,
                   }}
-                  whileHover={{ opacity: 1, transition: { duration: 0.15 } }}
+                  whileHover={{ 
+                    scale: 1.05,
+                    transition: { duration: 0.2 } 
+                  }}
                   onHoverStart={() => {
                     if (isDragging.current) return;
                     if (ringRef.current) {
-                      Array.from(ringRef.current.children).forEach((imgEl, i) => {
-                        if (i !== index && imgEl && imgEl.style) {
-                          imgEl.style.opacity = `${hoverOpacity}`;
+                      Array.from(ringRef.current.children).forEach((cardEl, i) => {
+                        if (i !== index && cardEl && cardEl.style) {
+                          cardEl.style.opacity = `${hoverOpacity}`;
                         }
                       });
                     }
@@ -245,14 +228,98 @@ export function ThreeDImageRing({
                   onHoverEnd={() => {
                     if (isDragging.current) return;
                     if (ringRef.current) {
-                      Array.from(ringRef.current.children).forEach((imgEl) => {
-                        if (imgEl && imgEl.style) {
-                          imgEl.style.opacity = `1`;
+                      Array.from(ringRef.current.children).forEach((cardEl) => {
+                        if (cardEl && cardEl.style) {
+                          cardEl.style.opacity = `1`;
                         }
                       });
                     }
                   }}
-                />
+                >
+                  <Card className="border border-gray-200 shadow-lg bg-white">
+                    <CardContent className="p-4">
+                      {/* Service Image */}
+                      <div 
+                        className="h-64 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity relative group"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onImageClick && service.image) {
+                            onImageClick(service.image);
+                          }
+                        }}
+                        title="Click to view full size"
+                      >
+                        <SafeImage
+                          src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                          fallbackType="service"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
+                            Click to enlarge
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mb-2 text-center">
+                        <h4 className="mb-2">
+                          {ShinyText ? (
+                            <ShinyText
+                              size="2xl"
+                              weight="bold"
+                              baseColor="#667eea"
+                              shineColor="#764ba2"
+                              speed={3}
+                              intensity={1}
+                              direction="left-to-right"
+                              shineWidth={30}
+                              className="tracking-wide"
+                            >
+                              {capitalizeFirst ? capitalizeFirst(service.name) : service.name}
+                            </ShinyText>
+                          ) : (
+                            <span className="text-xl font-bold">{service.name}</span>
+                          )}
+                        </h4>
+                        <div className="flex justify-center">
+                          <Badge variant="default" size="sm">{service.category}</Badge>
+                        </div>
+                      </div>
+
+                      {service.description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2 text-center">
+                          {service.description}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between mb-3 text-sm">
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <Clock size={16} />
+                          <span>{formatDuration ? formatDuration(service.duration) : `${service.duration} min`}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-green-600 font-semibold">
+                          <DollarSign size={16} />
+                          <span>{formatCurrency ? formatCurrency(service.price) : `$${service.price}`}</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onBookService) {
+                            onBookService(service._id);
+                          }
+                        }}
+                        fullWidth
+                      >
+                        <Calendar size={16} />
+                        Book Now
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
           </AnimatePresence>

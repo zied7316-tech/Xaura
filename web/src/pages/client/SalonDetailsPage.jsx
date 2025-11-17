@@ -253,13 +253,13 @@ const SalonDetailsPage = () => {
             </div>
           ) : (
             <>
-              {/* 3D Image Ring - Replace service cards with 3D ring when 2+ services have images */}
+              {/* 3D Service Cards Ring - Replace service cards with 3D ring when 2+ services have images */}
               {(() => {
                 if (!services || !Array.isArray(services) || services.length === 0) {
                   return null;
                 }
 
-                // Get all service images
+                // Get all services with images
                 const servicesWithImages = services
                   .filter(service => {
                     if (!service) return false;
@@ -268,36 +268,37 @@ const SalonDetailsPage = () => {
                                      String(service.image).trim() !== 'null' &&
                                      String(service.image).trim() !== 'undefined';
                     return hasImage;
-                  })
-                  .map(service => {
-                    try {
-                      return uploadService.getImageUrl(service.image, { width: 1080, height: 1080 });
-                    } catch (error) {
-                      console.error(`Error getting image URL for ${service.name}:`, error);
-                      return null;
-                    }
-                  })
-                  .filter(url => url && url !== null && url !== '' && url !== 'null' && url !== 'undefined');
+                  });
 
                 // Show 3D ring if we have 2+ services with images, otherwise show grid
                 if (servicesWithImages.length >= 2) {
                   return (
                     <div className="w-full mb-8">
-                      <div className="w-full h-[600px] relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-2xl">
+                      <div className="w-full h-[700px] relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-2xl">
                         <ThreeDImageRing
-                          images={servicesWithImages}
-                          width={280}
-                          perspective={3000}
-                          imageDistance={400}
+                          services={servicesWithImages}
+                          width={320}
+                          perspective={3500}
+                          imageDistance={550}
                           initialRotation={0}
                           animationDuration={1.5}
                           staggerDelay={0.1}
-                          hoverOpacity={0.4}
+                          hoverOpacity={0.5}
                           draggable={true}
                           mobileBreakpoint={768}
                           mobileScaleFactor={0.7}
                           containerClassName="w-full h-full"
                           backgroundColor="transparent"
+                          onBookService={handleBookService}
+                          uploadService={uploadService}
+                          formatDuration={formatDuration}
+                          formatCurrency={formatCurrency}
+                          capitalizeFirst={capitalizeFirst}
+                          ShinyText={ShinyText}
+                          onImageClick={(image) => {
+                            setSelectedServiceImage(image);
+                            setShowImageModal(true);
+                          }}
                         />
                         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-xl z-20 border border-gray-200">
                           <p className="text-sm text-gray-700 text-center font-medium">
