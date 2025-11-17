@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Badge from '../../components/ui/Badge'
 import SafeImage from '../../components/ui/SafeImage'
+import Modal from '../../components/ui/Modal'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import { 
   Calendar, Clock, User, Scissors, DollarSign, 
@@ -40,6 +41,8 @@ const BookAppointmentPage = () => {
   const [booking, setBooking] = useState(false)
   const [selectedWorkerForDetails, setSelectedWorkerForDetails] = useState(null)
   const [showWorkerModal, setShowWorkerModal] = useState(false)
+  const [selectedServiceImage, setSelectedServiceImage] = useState(null)
+  const [showImageModal, setShowImageModal] = useState(false)
 
   useEffect(() => {
     if (salonIdParam) {
@@ -208,12 +211,23 @@ const BookAppointmentPage = () => {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <SafeImage
-                      src={service.image ? uploadService.getImageUrl(service.image) : null}
-                      alt={service.name}
-                      className="w-16 h-16 rounded-lg object-cover"
-                      fallbackType="service"
-                    />
+                    <div
+                      className="w-16 h-16 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (service.image) {
+                          setSelectedServiceImage(service.image)
+                          setShowImageModal(true)
+                        }
+                      }}
+                    >
+                      <SafeImage
+                        src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
+                        alt={service.name}
+                        className="w-full h-full object-cover"
+                        fallbackType="service"
+                      />
+                    </div>
                     
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{service.name}</h3>
@@ -462,6 +476,30 @@ const BookAppointmentPage = () => {
         }}
         worker={selectedWorkerForDetails}
       />
+
+      {/* Service Image Modal */}
+      <Modal
+        isOpen={showImageModal}
+        onClose={() => {
+          setShowImageModal(false)
+          setSelectedServiceImage(null)
+        }}
+        size="xl"
+        title=""
+      >
+        <div className="p-0">
+          {selectedServiceImage && (
+            <img
+              src={uploadService.getImageUrl(selectedServiceImage, { width: 1080, height: 1080 })}
+              alt="Service"
+              className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+              onError={(e) => {
+                e.target.src = uploadService.getImageUrl(selectedServiceImage)
+              }}
+            />
+          )}
+        </div>
+      </Modal>
 
       {/* Booking Summary */}
       {(step >= 2) && (
