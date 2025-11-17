@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { serviceService } from '../../services/serviceService'
 import { uploadService } from '../../services/uploadService'
@@ -11,6 +11,7 @@ import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import ImageUpload from '../../components/ui/ImageUpload'
 import SafeImage from '../../components/ui/SafeImage'
+import ThreeDImageRing from '../../components/ui/ThreeDImageRing'
 import { Plus, Edit, Trash2, Scissors, Clock, DollarSign, Tag } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import { SERVICE_CATEGORIES } from '../../utils/constants'
@@ -208,8 +209,49 @@ const ServicesPage = () => {
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service) => (
+        <>
+          {/* 3D Image Ring - Show when there are services with images */}
+          {useMemo(() => {
+            const servicesWithImages = services
+              .filter(service => service.image)
+              .map(service => uploadService.getImageUrl(service.image))
+              .filter(url => url);
+            
+            return servicesWithImages.length >= 2 ? (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>Your Services Gallery</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="w-full h-96 relative bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg overflow-hidden">
+                    <ThreeDImageRing
+                      images={servicesWithImages}
+                      width={280}
+                      perspective={2000}
+                      imageDistance={400}
+                      initialRotation={180}
+                      animationDuration={1.2}
+                      staggerDelay={0.08}
+                      hoverOpacity={0.4}
+                      draggable={true}
+                      mobileBreakpoint={768}
+                      mobileScaleFactor={0.7}
+                      containerClassName="w-full h-full"
+                    />
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
+                      <p className="text-sm text-gray-600 text-center">
+                        <span className="font-semibold text-primary-600">Drag to rotate</span> • {servicesWithImages.length} services
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null;
+          }, [services])}
+
+          {/* Services Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map((service) => (
             <Card key={service._id}>
               <CardContent className="p-0">
                 {/* Service Image */}
@@ -280,7 +322,8 @@ const ServicesPage = () => {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       {/* Add Service Modal */}
