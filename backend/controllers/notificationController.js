@@ -324,12 +324,24 @@ const createNotification = async (notificationData) => {
       
       // Ensure ObjectId conversion for proper comparison
       const mongoose = require('mongoose');
-      const userId = mongoose.Types.ObjectId.isValid(notificationData.userId) 
-        ? new mongoose.Types.ObjectId(notificationData.userId)
-        : notificationData.userId;
-      const appointmentId = mongoose.Types.ObjectId.isValid(notificationData.relatedAppointment)
-        ? new mongoose.Types.ObjectId(notificationData.relatedAppointment)
-        : notificationData.relatedAppointment;
+      
+      // Handle userId - could be ObjectId, string, or object with _id
+      let userId = notificationData.userId;
+      if (userId && typeof userId === 'object' && userId._id) {
+        userId = userId._id;
+      }
+      userId = mongoose.Types.ObjectId.isValid(userId) 
+        ? new mongoose.Types.ObjectId(userId)
+        : userId;
+      
+      // Handle appointmentId - could be ObjectId, string, or object with _id
+      let appointmentId = notificationData.relatedAppointment;
+      if (appointmentId && typeof appointmentId === 'object' && appointmentId._id) {
+        appointmentId = appointmentId._id;
+      }
+      appointmentId = mongoose.Types.ObjectId.isValid(appointmentId)
+        ? new mongoose.Types.ObjectId(appointmentId)
+        : appointmentId;
       
       const query = {
         userId: userId,
@@ -343,28 +355,64 @@ const createNotification = async (notificationData) => {
         query.isRead = false;
       }
 
-      const existingNotification = await Notification.findOne(query);
-
-      if (existingNotification) {
-        // Return existing notification instead of creating duplicate
-        console.log('✅ Duplicate notification prevented:', {
-          userId: userId.toString(),
-          type: notificationData.type,
-          appointmentId: appointmentId.toString(),
-          isClientNotification,
-          wasRead: existingNotification.isRead,
-          existingNotificationId: existingNotification._id.toString()
-        });
+      // For clients: Also check if there are any duplicates and delete them
+      if (isClientNotification) {
+        const allClientNotifications = await Notification.find(query).sort({ createdAt: 1 }); // Sort ascending (oldest first)
         
-        return existingNotification;
+        if (allClientNotifications.length > 0) {
+          // Keep the first (oldest) notification, delete any duplicates
+          const oldestNotification = allClientNotifications[0];
+          
+          if (allClientNotifications.length > 1) {
+            // Delete duplicates (keep only the oldest one)
+            const duplicateIds = allClientNotifications
+              .slice(1) // All except the first (oldest)
+              .map(n => n._id);
+            
+            await Notification.deleteMany({ _id: { $in: duplicateIds } });
+            
+            console.log('🧹 Cleaned up duplicate client notifications:', {
+              userId: userId.toString(),
+              type: notificationData.type,
+              appointmentId: appointmentId.toString(),
+              deletedCount: duplicateIds.length,
+              keptNotificationId: oldestNotification._id.toString()
+            });
+          }
+          
+          console.log('✅ Duplicate notification prevented (client - only one ever):', {
+            userId: userId.toString(),
+            type: notificationData.type,
+            appointmentId: appointmentId.toString(),
+            wasRead: oldestNotification.isRead,
+            existingNotificationId: oldestNotification._id.toString()
+          });
+          
+          return oldestNotification;
+        }
       } else {
-        console.log('📝 Creating new notification:', {
-          userId: userId.toString(),
-          type: notificationData.type,
-          appointmentId: appointmentId.toString(),
-          isClientNotification
-        });
+        // For workers/owners: just check for unread
+        const existingNotification = await Notification.findOne(query);
+        
+        if (existingNotification) {
+          console.log('✅ Duplicate notification prevented (worker/owner - unread check):', {
+            userId: userId.toString(),
+            type: notificationData.type,
+            appointmentId: appointmentId.toString(),
+            wasRead: existingNotification.isRead,
+            existingNotificationId: existingNotification._id.toString()
+          });
+          
+          return existingNotification;
+        }
       }
+      
+      console.log('📝 Creating new notification:', {
+        userId: userId.toString(),
+        type: notificationData.type,
+        appointmentId: appointmentId.toString(),
+        isClientNotification
+      });
     }
 
     // Create new notification if no duplicate found
