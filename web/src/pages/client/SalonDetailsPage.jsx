@@ -286,16 +286,16 @@ const SalonDetailsPage = () => {
                       <div className="w-full h-[600px] relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-2xl">
                         <ThreeDImageRing
                           images={servicesWithImages}
-                          width={400}
-                          perspective={2500}
-                          imageDistance={600}
-                          initialRotation={180}
+                          width={280}
+                          perspective={3000}
+                          imageDistance={400}
+                          initialRotation={0}
                           animationDuration={1.5}
                           staggerDelay={0.1}
-                          hoverOpacity={0.3}
+                          hoverOpacity={0.4}
                           draggable={true}
                           mobileBreakpoint={768}
-                          mobileScaleFactor={0.6}
+                          mobileScaleFactor={0.7}
                           containerClassName="w-full h-full"
                           backgroundColor="transparent"
                         />

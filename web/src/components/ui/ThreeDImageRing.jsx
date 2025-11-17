@@ -194,57 +194,67 @@ export function ThreeDImageRing({
           }}
         >
           <AnimatePresence>
-            {showImages && images.map((imageUrl, index) => (
-              <motion.div
-                key={index}
-                className={cn(
-                  "w-full h-full absolute",
-                  imageClassName
-                )}
-                style={{
-                  transformStyle: "preserve-3d",
-                  backgroundImage: `url(${imageUrl})`,
-                  backgroundSize: "cover",
-                  backgroundRepeat: "no-repeat",
-                  backfaceVisibility: "hidden",
-                  rotateY: index * -angle,
-                  z: -imageDistance * currentScale,
-                  transformOrigin: `50% 50% ${imageDistance * currentScale}px`,
-                  backgroundPosition: getBgPos(index, currentRotationY.current, currentScale),
-                }}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                variants={imageVariants}
-                custom={index}
-                transition={{
-                  delay: index * staggerDelay,
-                  duration: animationDuration,
-                  ease: easeOut,
-                }}
-                whileHover={{ opacity: 1, transition: { duration: 0.15 } }}
-                onHoverStart={() => {
-                  if (isDragging.current) return;
-                  if (ringRef.current) {
-                    Array.from(ringRef.current.children).forEach((imgEl, i) => {
-                      if (i !== index && imgEl && imgEl.style) {
-                        imgEl.style.opacity = `${hoverOpacity}`;
-                      }
-                    });
-                  }
-                }}
-                onHoverEnd={() => {
-                  if (isDragging.current) return;
-                  if (ringRef.current) {
-                    Array.from(ringRef.current.children).forEach((imgEl) => {
-                      if (imgEl && imgEl.style) {
-                        imgEl.style.opacity = `1`;
-                      }
-                    });
-                  }
-                }}
-              />
-            ))}
+            {showImages && images.map((imageUrl, index) => {
+              const translateZ = imageDistance * currentScale;
+              const rotationAngle = index * -angle;
+              
+              return (
+                <motion.div
+                  key={index}
+                  className={cn(
+                    "absolute",
+                    imageClassName
+                  )}
+                  style={{
+                    width: `${width}px`,
+                    height: `${width * 1.33}px`,
+                    transformStyle: "preserve-3d",
+                    backgroundImage: `url(${imageUrl})`,
+                    backgroundSize: "cover",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center",
+                    backfaceVisibility: "hidden",
+                    left: "50%",
+                    top: "50%",
+                    marginLeft: `-${width / 2}px`,
+                    marginTop: `-${width * 1.33 / 2}px`,
+                    transform: `rotateY(${rotationAngle}deg) translateZ(${translateZ}px)`,
+                    backgroundPosition: getBgPos(index, currentRotationY.current, currentScale),
+                  }}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  variants={imageVariants}
+                  custom={index}
+                  transition={{
+                    delay: index * staggerDelay,
+                    duration: animationDuration,
+                    ease: easeOut,
+                  }}
+                  whileHover={{ opacity: 1, transition: { duration: 0.15 } }}
+                  onHoverStart={() => {
+                    if (isDragging.current) return;
+                    if (ringRef.current) {
+                      Array.from(ringRef.current.children).forEach((imgEl, i) => {
+                        if (i !== index && imgEl && imgEl.style) {
+                          imgEl.style.opacity = `${hoverOpacity}`;
+                        }
+                      });
+                    }
+                  }}
+                  onHoverEnd={() => {
+                    if (isDragging.current) return;
+                    if (ringRef.current) {
+                      Array.from(ringRef.current.children).forEach((imgEl) => {
+                        if (imgEl && imgEl.style) {
+                          imgEl.style.opacity = `1`;
+                        }
+                      });
+                    }
+                  }}
+                />
+              );
+            })}
           </AnimatePresence>
         </motion.div>
       </div>
