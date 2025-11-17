@@ -71,7 +71,7 @@ function App() {
   const { user, loading } = useAuth()
 
   // Don't block Test3D page with loading state
-  const isTest3DPage = window.location.pathname === '/'
+  const isTest3DPage = window.location.pathname === '/test-3d'
   
   if (loading && !isTest3DPage) {
     return (
@@ -169,8 +169,12 @@ function App() {
         <Route path="/messages" element={<ChatPage />} />
       </Route>
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to={getDashboardRoute()} />} />
+      {/* Catch all - but don't redirect test-3d */}
+      <Route path="*" element={
+        window.location.pathname === '/test-3d' ? 
+          <Test3D /> : 
+          <Navigate to={getDashboardRoute()} />
+      } />
     </Routes>
   )
 }
