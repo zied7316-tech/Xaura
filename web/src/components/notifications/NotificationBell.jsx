@@ -34,6 +34,7 @@ const NotificationBell = () => {
     try {
       const soundFile = getNotificationSound()
       console.log('🔊 Attempting to play sound:', soundFile)
+      console.log('🔊 User role - Owner:', isOwner, 'Worker:', isWorker, 'Client:', isClient)
       
       // Create new audio instance
       const audio = new Audio(soundFile)
@@ -41,19 +42,34 @@ const NotificationBell = () => {
       // Set volume (0.0 to 1.0)
       audio.volume = 0.7
       
-      // Handle audio events
-      audio.onloadeddata = () => {
-        console.log('🔊 Audio loaded successfully')
-      }
+      // Preload the audio
+      audio.preload = 'auto'
       
-      audio.onerror = (error) => {
+      // Handle audio events
+      audio.addEventListener('loadeddata', () => {
+        console.log('🔊 Audio loaded successfully')
+      })
+      
+      audio.addEventListener('error', (error) => {
         console.error('🔊 Error loading audio:', error)
         console.error('🔊 Audio file path:', soundFile)
-      }
+        console.error('🔊 Audio error details:', audio.error)
+      })
       
-      audio.oncanplaythrough = () => {
+      audio.addEventListener('canplaythrough', () => {
         console.log('🔊 Audio can play through')
-      }
+      })
+      
+      audio.addEventListener('play', () => {
+        console.log('🔊 Sound started playing')
+      })
+      
+      audio.addEventListener('ended', () => {
+        console.log('🔊 Sound finished playing')
+      })
+      
+      // Try to load first, then play
+      audio.load()
       
       // Play the sound
       const playPromise = audio.play()
@@ -65,7 +81,10 @@ const NotificationBell = () => {
           })
           .catch((error) => {
             console.error('🔊 Error playing sound:', error)
+            console.error('🔊 Error name:', error.name)
+            console.error('🔊 Error message:', error.message)
             console.error('🔊 This might be due to browser autoplay policy. User interaction may be required.')
+            console.error('🔊 Try clicking anywhere on the page first, then trigger a notification.')
           })
       }
       
@@ -73,6 +92,7 @@ const NotificationBell = () => {
       audioRef.current = audio
     } catch (error) {
       console.error('🔊 Error creating audio:', error)
+      console.error('🔊 Error stack:', error.stack)
     }
   }
 
@@ -151,29 +171,30 @@ const NotificationBell = () => {
       
       // Handle different response structures
       let notifications = []
-      let unreadCount = 0
+      let newUnreadCount = 0
       
       if (Array.isArray(response)) {
         // Response is directly an array
         notifications = response
-        unreadCount = response.filter(n => !n.isRead).length
+        newUnreadCount = response.filter(n => !n.isRead).length
       } else if (response?.data && Array.isArray(response.data)) {
         // Response has data property
         notifications = response.data
-        unreadCount = response.unreadCount || 0
+        newUnreadCount = response.unreadCount || 0
       } else if (response?.success && Array.isArray(response.data)) {
         // Standard API response
         notifications = response.data
-        unreadCount = response.unreadCount || 0
+        newUnreadCount = response.unreadCount || 0
       }
       
       // Play sound if new unread notifications arrived
-      if (playSoundOnNew && unreadCount > previousUnreadCount) {
+      if (playSoundOnNew && newUnreadCount > previousUnreadCount) {
+        console.log('🔔 New notifications detected! Previous:', previousUnreadCount, 'New:', newUnreadCount)
         playNotificationSound()
       }
       
       setNotifications(notifications)
-      setUnreadCount(unreadCount)
+      setUnreadCount(newUnreadCount)
     } catch (error) {
       console.error('Error loading notifications:', error)
       // Set empty arrays on error to prevent UI issues
