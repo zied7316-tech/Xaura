@@ -58,11 +58,13 @@ export function ThreeDImageRing({
     const unsubscribe = rotationY.on("change", (latestRotation) => {
       if (ringRef.current) {
         Array.from(ringRef.current.children).forEach((imgElement, i) => {
-          (imgElement as HTMLElement).style.backgroundPosition = getBgPos(
-            i,
-            latestRotation,
-            currentScale
-          );
+          if (imgElement && imgElement.style) {
+            imgElement.style.backgroundPosition = getBgPos(
+              i,
+              latestRotation,
+              currentScale
+            );
+          }
         });
       }
       currentRotationY.current = latestRotation;
@@ -98,8 +100,8 @@ export function ThreeDImageRing({
     rotationY.stop();
     velocity.current = 0;
 
-    if (ringRef.current) {
-      (ringRef.current as HTMLElement).style.cursor = "grabbing";
+    if (ringRef.current && ringRef.current.style) {
+      ringRef.current.style.cursor = "grabbing";
     }
 
     document.addEventListener("mousemove", handleDrag);
@@ -111,7 +113,7 @@ export function ThreeDImageRing({
   const handleDrag = (event) => {
     if (!draggable || !isDragging.current) return;
 
-    const clientX = "touches" in event ? (event as TouchEvent).touches[0].clientX : (event as MouseEvent).clientX;
+    const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
     const deltaX = clientX - startX.current;
 
     velocity.current = -deltaX * 0.5;
@@ -122,8 +124,8 @@ export function ThreeDImageRing({
   const handleDragEnd = () => {
     isDragging.current = false;
 
-    if (ringRef.current) {
-      (ringRef.current as HTMLElement).style.cursor = "grab";
+    if (ringRef.current && ringRef.current.style) {
+      ringRef.current.style.cursor = "grab";
       currentRotationY.current = rotationY.get();
     }
 
@@ -243,8 +245,8 @@ export function ThreeDImageRing({
                   if (isDragging.current) return;
                   if (ringRef.current) {
                     Array.from(ringRef.current.children).forEach((imgEl, i) => {
-                      if (i !== index) {
-                        (imgEl as HTMLElement).style.opacity = `${hoverOpacity}`;
+                      if (i !== index && imgEl && imgEl.style) {
+                        imgEl.style.opacity = `${hoverOpacity}`;
                       }
                     });
                   }
@@ -253,7 +255,9 @@ export function ThreeDImageRing({
                   if (isDragging.current) return;
                   if (ringRef.current) {
                     Array.from(ringRef.current.children).forEach((imgEl) => {
-                      (imgEl as HTMLElement).style.opacity = `1`;
+                      if (imgEl && imgEl.style) {
+                        imgEl.style.opacity = `1`;
+                      }
                     });
                   }
                 }}
