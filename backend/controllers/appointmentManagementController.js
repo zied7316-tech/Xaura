@@ -112,13 +112,30 @@ const rejectAppointment = async (req, res, next) => {
     }
 
     // Allow both worker and owner to reject
-    const isWorker = appointment.workerId.toString() === req.user.id;
-    const isOwner = appointment.salonId.ownerId.toString() === req.user.id;
+    const isWorker = appointment.workerId && appointment.workerId.toString() === req.user.id;
+    
+    // Check if user is owner - handle both populated and non-populated salonId
+    let isOwner = false;
+    if (appointment.salonId) {
+      if (appointment.salonId.ownerId) {
+        // salonId is populated with ownerId
+        const ownerId = appointment.salonId.ownerId.toString ? appointment.salonId.ownerId.toString() : appointment.salonId.ownerId;
+        isOwner = ownerId === req.user.id;
+      } else {
+        // salonId is just an ObjectId, need to fetch salon
+        const Salon = require('../models/Salon');
+        const salon = await Salon.findById(appointment.salonId).select('ownerId');
+        if (salon && salon.ownerId) {
+          const ownerId = salon.ownerId.toString ? salon.ownerId.toString() : salon.ownerId;
+          isOwner = ownerId === req.user.id;
+        }
+      }
+    }
 
     if (!isWorker && !isOwner) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized'
+        message: 'Not authorized to reject this appointment'
       });
     }
 
