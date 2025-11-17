@@ -343,7 +343,7 @@ const createNotification = async (notificationData) => {
         ? new mongoose.Types.ObjectId(appointmentId)
         : appointmentId;
       
-      // For clients: Use atomic findOneAndUpdate to prevent duplicates
+      // For clients: ONLY ONE notification ever (no reminders, even if read)
       if (isClientNotification) {
         // First, clean up any existing duplicates (keep only the oldest)
         const allClientNotifications = await Notification.find({
@@ -368,23 +368,15 @@ const createNotification = async (notificationData) => {
           });
         }
         
-        // Use findOneAndUpdate to atomically check and return existing notification
-        const existingNotification = await Notification.findOneAndUpdate(
-          {
-            userId: userId,
-            relatedAppointment: appointmentId,
-            type: notificationData.type
-          },
-          { $setOnInsert: notificationData }, // Only set if inserting (upsert)
-          { 
-            upsert: false, // Don't create if not found
-            new: true,
-            setDefaultsOnInsert: true
-          }
-        );
+        // Check for ANY existing notification (read or unread) - clients get only ONE ever
+        const existingNotification = await Notification.findOne({
+          userId: userId,
+          relatedAppointment: appointmentId,
+          type: notificationData.type
+        });
         
         if (existingNotification) {
-          console.log('✅ Client notification already exists (only one ever):', {
+          console.log('✅ Client notification already exists (only one ever, no reminders):', {
             userId: userId.toString(),
             type: notificationData.type,
             appointmentId: appointmentId.toString(),
@@ -396,27 +388,37 @@ const createNotification = async (notificationData) => {
           return existingNotification;
         }
       } else {
-        // For workers/owners: check only unread notifications
+        // For workers/owners: ONLY prevent duplicates if they have an UNREAD notification
+        // If they read it but haven't acted, they should get a REMINDER (new notification)
         const query = {
           userId: userId,
           relatedAppointment: appointmentId,
           type: notificationData.type,
-          isRead: false
+          isRead: false // Only check unread - if read, create new reminder
         };
         
-        const existingNotification = await Notification.findOne(query);
+        const existingUnreadNotification = await Notification.findOne(query);
         
-        if (existingNotification) {
-          console.log('✅ Duplicate notification prevented (worker/owner - unread check):', {
+        if (existingUnreadNotification) {
+          console.log('✅ Worker/Owner already has unread notification (no duplicate):', {
             userId: userId.toString(),
             type: notificationData.type,
             appointmentId: appointmentId.toString(),
-            wasRead: existingNotification.isRead,
-            existingNotificationId: existingNotification._id.toString()
+            notificationId: existingUnreadNotification._id.toString()
           });
           
-          return existingNotification;
+          // Return existing unread - they haven't seen it yet, no need for duplicate
+          return existingUnreadNotification;
         }
+        
+        // If they read the notification but haven't acted, create a REMINDER
+        // (This will create a new notification, which is what we want for reminders)
+        console.log('📢 Creating reminder notification for worker/owner:', {
+          userId: userId.toString(),
+          type: notificationData.type,
+          appointmentId: appointmentId.toString(),
+          reason: 'Previous notification was read but no action taken'
+        });
       }
       
       console.log('📝 Creating new notification:', {
