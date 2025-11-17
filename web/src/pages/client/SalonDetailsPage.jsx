@@ -359,7 +359,7 @@ const SalonDetailsPage = () => {
                     <CardContent className="p-4">
                       {/* Service Image */}
                       <div 
-                        className="h-32 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity relative group"
+                        className="h-64 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity relative group"
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()

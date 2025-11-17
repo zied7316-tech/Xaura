@@ -212,7 +212,7 @@ const BookAppointmentPage = () => {
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className="w-16 h-16 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0"
+                      className="w-32 h-32 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0"
                       onClick={(e) => {
                         e.stopPropagation()
                         if (service.image) {
