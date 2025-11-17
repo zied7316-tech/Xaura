@@ -15,6 +15,7 @@ const NotificationBell = () => {
   const [showDropdown, setShowDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
   const dropdownRef = useRef(null)
+  const audioRef = useRef(null)
 
   // Helper function to get notification sound based on user role
   const getNotificationSound = () => {
@@ -28,12 +29,59 @@ const NotificationBell = () => {
     return '/sounds/notification.mp3' // Default fallback
   }
 
+  // Function to play notification sound
+  const playNotificationSound = () => {
+    try {
+      const soundFile = getNotificationSound()
+      console.log('🔊 Attempting to play sound:', soundFile)
+      
+      // Create new audio instance
+      const audio = new Audio(soundFile)
+      
+      // Set volume (0.0 to 1.0)
+      audio.volume = 0.7
+      
+      // Handle audio events
+      audio.onloadeddata = () => {
+        console.log('🔊 Audio loaded successfully')
+      }
+      
+      audio.onerror = (error) => {
+        console.error('🔊 Error loading audio:', error)
+        console.error('🔊 Audio file path:', soundFile)
+      }
+      
+      audio.oncanplaythrough = () => {
+        console.log('🔊 Audio can play through')
+      }
+      
+      // Play the sound
+      const playPromise = audio.play()
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('🔊 Sound playing successfully')
+          })
+          .catch((error) => {
+            console.error('🔊 Error playing sound:', error)
+            console.error('🔊 This might be due to browser autoplay policy. User interaction may be required.')
+          })
+      }
+      
+      // Store reference for cleanup if needed
+      audioRef.current = audio
+    } catch (error) {
+      console.error('🔊 Error creating audio:', error)
+    }
+  }
+
   useEffect(() => {
     loadNotifications()
     
     // Poll for new notifications every 30 seconds
     const interval = setInterval(() => {
-      loadNotifications()
+      loadNotifications(true) // Play sound if new notifications
     }, 30000)
     
     // Listen for push notifications (foreground)
@@ -42,18 +90,12 @@ const NotificationBell = () => {
         const { setupMessageListener } = await import('../../services/firebaseService')
         setupMessageListener((payload) => {
           if (payload) {
-            const soundFile = getNotificationSound()
-            
             // Play notification sound
-            try {
-              const audio = new Audio(soundFile)
-              audio.play().catch(err => console.log('Could not play notification sound:', err))
-            } catch (error) {
-              console.log('Error playing notification sound:', error)
-            }
+            playNotificationSound()
             
             // Show browser notification
             if ('Notification' in window && Notification.permission === 'granted') {
+              const soundFile = getNotificationSound()
               new Notification(payload.notification?.title || 'New Notification', {
                 body: payload.notification?.body || payload.data?.message,
                 icon: payload.notification?.icon || '/favicon.ico',
@@ -79,7 +121,14 @@ const NotificationBell = () => {
     
     setupPushListener()
     
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      // Cleanup audio if it exists
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -94,9 +143,10 @@ const NotificationBell = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (playSoundOnNew = false) => {
     try {
       setLoading(true)
+      const previousUnreadCount = unreadCount
       const response = await notificationService.getNotifications(20, false)
       
       // Handle different response structures
@@ -115,6 +165,11 @@ const NotificationBell = () => {
         // Standard API response
         notifications = response.data
         unreadCount = response.unreadCount || 0
+      }
+      
+      // Play sound if new unread notifications arrived
+      if (playSoundOnNew && unreadCount > previousUnreadCount) {
+        playNotificationSound()
       }
       
       setNotifications(notifications)
