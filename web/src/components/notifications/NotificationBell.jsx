@@ -17,6 +17,7 @@ const NotificationBell = () => {
   const [seenNotificationIds, setSeenNotificationIds] = useState(new Set())
   const dropdownRef = useRef(null)
   const audioRef = useRef(null)
+  const audioUnlockedRef = useRef(false)
 
   // Helper function to get notification sound based on user role
   const getNotificationSound = () => {
@@ -30,47 +31,63 @@ const NotificationBell = () => {
     return '/sounds/notification.mp3' // Default fallback
   }
 
-  // Function to play notification sound
-  const playNotificationSound = () => {
+  // Unlock audio on first user interaction
+  const unlockAudio = async () => {
+    if (audioUnlockedRef.current) return true
+    
     try {
       const soundFile = getNotificationSound()
-      console.log('🔊 Attempting to play sound:', soundFile)
-      console.log('🔊 User role - Owner:', isOwner, 'Worker:', isWorker, 'Client:', isClient)
-      
-      // Create new audio instance
       const audio = new Audio(soundFile)
-      
-      // Set volume (0.0 to 1.0)
       audio.volume = 0.7
-      
-      // Preload the audio
       audio.preload = 'auto'
       
-      // Handle audio events
-      audio.addEventListener('loadeddata', () => {
-        console.log('🔊 Audio loaded successfully')
-      })
+      // Try to play and immediately pause to unlock
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        await playPromise
+        audio.pause()
+        audio.currentTime = 0
+        audioRef.current = audio
+        audioUnlockedRef.current = true
+        console.log('🔊 Audio unlocked successfully')
+        return true
+      }
+    } catch (error) {
+      console.log('🔊 Audio unlock failed (will retry on next interaction):', error.message)
+      return false
+    }
+    return false
+  }
+
+  // Function to play notification sound
+  const playNotificationSound = async () => {
+    try {
+      const soundFile = getNotificationSound()
       
-      audio.addEventListener('error', (error) => {
-        console.error('🔊 Error loading audio:', error)
-        console.error('🔊 Audio file path:', soundFile)
-        console.error('🔊 Audio error details:', audio.error)
-      })
+      // If audio is not unlocked, try to unlock it first
+      if (!audioUnlockedRef.current) {
+        const unlocked = await unlockAudio()
+        if (!unlocked) {
+          console.log('🔊 Audio not unlocked yet, sound will play on next user interaction')
+          return
+        }
+      }
       
-      audio.addEventListener('canplaythrough', () => {
-        console.log('🔊 Audio can play through')
-      })
+      // Use existing unlocked audio or create new one
+      let audio = audioRef.current
       
-      audio.addEventListener('play', () => {
-        console.log('🔊 Sound started playing')
-      })
+      if (!audio || audio.ended || audio.error) {
+        // Create new audio instance if needed
+        audio = new Audio(soundFile)
+        audio.volume = 0.7
+        audio.preload = 'auto'
+        audioRef.current = audio
+      }
       
-      audio.addEventListener('ended', () => {
-        console.log('🔊 Sound finished playing')
-      })
-      
-      // Try to load first, then play
-      audio.load()
+      // Reset to beginning if already played
+      if (audio.currentTime > 0) {
+        audio.currentTime = 0
+      }
       
       // Play the sound
       const playPromise = audio.play()
@@ -82,23 +99,33 @@ const NotificationBell = () => {
           })
           .catch((error) => {
             console.error('🔊 Error playing sound:', error)
-            console.error('🔊 Error name:', error.name)
-            console.error('🔊 Error message:', error.message)
-            console.error('🔊 This might be due to browser autoplay policy. User interaction may be required.')
-            console.error('🔊 Try clicking anywhere on the page first, then trigger a notification.')
+            // If autoplay blocked, try to unlock on next interaction
+            if (error.name === 'NotAllowedError') {
+              audioUnlockedRef.current = false
+              console.log('🔊 Audio needs to be unlocked. User interaction required.')
+            }
           })
       }
-      
-      // Store reference for cleanup if needed
-      audioRef.current = audio
     } catch (error) {
       console.error('🔊 Error creating audio:', error)
-      console.error('🔊 Error stack:', error.stack)
     }
   }
 
   useEffect(() => {
     loadNotifications()
+    
+    // Unlock audio on first user interaction
+    const unlockOnInteraction = () => {
+      unlockAudio().then(() => {
+        // Remove listeners after successful unlock
+        document.removeEventListener('click', unlockOnInteraction)
+        document.removeEventListener('touchstart', unlockOnInteraction)
+      })
+    }
+    
+    // Try to unlock audio on any user interaction
+    document.addEventListener('click', unlockOnInteraction, { once: true })
+    document.addEventListener('touchstart', unlockOnInteraction, { once: true })
     
     // Poll for new notifications every 30 seconds
     const interval = setInterval(() => {
