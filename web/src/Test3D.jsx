@@ -10,14 +10,17 @@ export default function Test3D() {
   ]
 
   return (
-    <div className="w-full h-screen bg-black flex items-center justify-center">
-      <ThreeDImageRing
-        images={images}
-        width={340}
-        imageDistance={600}
-        perspective={2000}
-        draggable={true}
-      />
+    <div className="w-full h-screen bg-black flex items-center justify-center" style={{ minHeight: '100vh' }}>
+      <div style={{ width: '600px', height: '600px', position: 'relative' }}>
+        <ThreeDImageRing
+          images={images}
+          width={340}
+          imageDistance={600}
+          perspective={2000}
+          draggable={true}
+          containerClassName="w-full h-full"
+        />
+      </div>
     </div>
   )
 }
