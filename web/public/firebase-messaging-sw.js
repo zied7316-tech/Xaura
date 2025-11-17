@@ -25,13 +25,26 @@ const messaging = firebase.messaging()
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload)
   
+  // Determine sound based on user role from payload
+  const userRole = payload.data?.userRole
+  let soundFile = '/sounds/notification.mp3' // Default fallback
+  
+  if (userRole === 'Owner') {
+    soundFile = '/sounds/owner-notification.mp3'
+  } else if (userRole === 'Worker') {
+    soundFile = '/sounds/worker-notification.mp3'
+  } else if (userRole === 'Client') {
+    soundFile = '/sounds/client-notification.mp3'
+  }
+  
   const notificationTitle = payload.notification?.title || 'New Notification'
   const notificationOptions = {
     body: payload.notification?.body || payload.data?.message || '',
     icon: payload.notification?.icon || '/favicon.ico',
     badge: '/favicon.ico',
     tag: payload.data?.notificationId || Date.now().toString(),
-    data: payload.data || {}
+    data: payload.data || {},
+    sound: soundFile
   }
 
   self.registration.showNotification(notificationTitle, notificationOptions)

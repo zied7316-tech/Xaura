@@ -55,7 +55,7 @@ const sendPushNotification = async (userId, notification) => {
 
   try {
     const User = require('../models/User');
-    const user = await User.findById(userId).select('pushTokens');
+    const user = await User.findById(userId).select('pushTokens role');
 
     if (!user || !user.pushTokens || user.pushTokens.length === 0) {
       return { success: false, message: 'User has no push tokens registered' };
@@ -70,6 +70,16 @@ const sendPushNotification = async (userId, notification) => {
       safeData[key] = String(value);
     });
 
+    // Determine sound based on user role
+    let soundFile = '/sounds/notification.mp3' // Default fallback
+    if (user.role === 'Owner') {
+      soundFile = '/sounds/owner-notification.mp3'
+    } else if (user.role === 'Worker') {
+      soundFile = '/sounds/worker-notification.mp3'
+    } else if (user.role === 'Client') {
+      soundFile = '/sounds/client-notification.mp3'
+    }
+
     // Prepare FCM message
     const message = {
       notification: {
@@ -79,7 +89,8 @@ const sendPushNotification = async (userId, notification) => {
       data: {
         ...safeData,
         notificationId: safeData.notificationId || Date.now().toString(),
-        click_action: 'FLUTTER_NOTIFICATION_CLICK'
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        userRole: user.role // Include user role in payload for service worker
       },
       // Web push specific
       webpush: {
@@ -87,7 +98,8 @@ const sendPushNotification = async (userId, notification) => {
           title,
           body,
           icon: '/favicon.ico',
-          badge: '/favicon.ico'
+          badge: '/favicon.ico',
+          sound: soundFile
         }
       }
     };

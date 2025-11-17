@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { notificationService } from '../../services/notificationService'
+import { useAuth } from '../../context/AuthContext'
 import { 
   Bell, X, Check, CheckCheck, Trash2, Calendar, 
   DollarSign, Users, Package, AlertCircle, Star 
@@ -8,11 +9,24 @@ import { formatDate, formatTime } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const NotificationBell = () => {
+  const { isOwner, isWorker, isClient } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [showDropdown, setShowDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
   const dropdownRef = useRef(null)
+
+  // Helper function to get notification sound based on user role
+  const getNotificationSound = () => {
+    if (isOwner) {
+      return '/sounds/owner-notification.mp3'
+    } else if (isWorker) {
+      return '/sounds/worker-notification.mp3'
+    } else if (isClient) {
+      return '/sounds/client-notification.mp3'
+    }
+    return '/sounds/notification.mp3' // Default fallback
+  }
 
   useEffect(() => {
     loadNotifications()
@@ -28,13 +42,24 @@ const NotificationBell = () => {
         const { setupMessageListener } = await import('../../services/firebaseService')
         setupMessageListener((payload) => {
           if (payload) {
+            const soundFile = getNotificationSound()
+            
+            // Play notification sound
+            try {
+              const audio = new Audio(soundFile)
+              audio.play().catch(err => console.log('Could not play notification sound:', err))
+            } catch (error) {
+              console.log('Error playing notification sound:', error)
+            }
+            
             // Show browser notification
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification(payload.notification?.title || 'New Notification', {
                 body: payload.notification?.body || payload.data?.message,
                 icon: payload.notification?.icon || '/favicon.ico',
                 badge: '/favicon.ico',
-                tag: payload.data?.notificationId || Date.now().toString()
+                tag: payload.data?.notificationId || Date.now().toString(),
+                sound: soundFile
               })
             }
             
