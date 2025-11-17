@@ -404,6 +404,8 @@ const uploadUserImage = async (req, res, next) => {
   try {
     console.log('🔍 Upload request received:', {
       userId: req.params.id,
+      requestingUserId: req.user?.id,
+      requestingUserRole: req.user?.role,
       hasFile: !!req.file,
       fileInfo: req.file ? {
         keys: Object.keys(req.file),
@@ -417,15 +419,25 @@ const uploadUserImage = async (req, res, next) => {
     });
 
     if (!req.file) {
+      console.error('❌ No file in request');
       return res.status(400).json({
         success: false,
         message: 'No image file provided'
       });
     }
 
+    if (!req.user) {
+      console.error('❌ No user in request (should not happen with protect middleware)');
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated'
+      });
+    }
+
     const user = await User.findById(req.params.id);
     
     if (!user) {
+      console.error('❌ User not found:', req.params.id);
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -440,12 +452,19 @@ const uploadUserImage = async (req, res, next) => {
     });
 
     // Check authorization - user can only update their own avatar
-    if (user._id.toString() !== req.user.id) {
+    if (user._id.toString() !== req.user.id.toString()) {
+      console.error('❌ Authorization failed:', {
+        userId: user._id.toString(),
+        requestingUserId: req.user.id.toString(),
+        match: user._id.toString() === req.user.id.toString()
+      });
       return res.status(403).json({
         success: false,
         message: 'Not authorized - you can only update your own profile picture'
       });
     }
+
+    console.log('✅ Authorization passed - user updating their own profile');
 
     // Get image URL
     // Cloudinary: req.file.url or req.file.secure_url contains the full URL

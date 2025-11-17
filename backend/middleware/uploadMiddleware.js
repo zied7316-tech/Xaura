@@ -50,8 +50,10 @@ if (useCloudinary) {
         uploadPath = path.join(uploadsDir, 'salons');
       } else if (routePath.includes('/service') || routePath.includes('services')) {
         uploadPath = path.join(uploadsDir, 'services');
-      } else if (routePath.includes('/worker') || routePath.includes('workers') || routePath.includes('/user') || routePath.includes('users')) {
+      } else if (routePath.includes('/worker') || routePath.includes('workers')) {
         uploadPath = path.join(uploadsDir, 'workers');
+      } else if (routePath.includes('/user') || routePath.includes('users') || routePath.includes('/profile')) {
+        uploadPath = path.join(uploadsDir, 'profiles');
       } else {
         uploadPath = path.join(uploadsDir, 'profiles');
       }
