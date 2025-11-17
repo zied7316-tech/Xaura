@@ -13,7 +13,7 @@ import Modal from '../../components/ui/Modal'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import { 
   Calendar, Clock, User, Scissors, DollarSign, 
-  ArrowLeft, CheckCircle 
+  ArrowLeft, CheckCircle, X
 } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -484,15 +484,27 @@ const BookAppointmentPage = () => {
           setShowImageModal(false)
           setSelectedServiceImage(null)
         }}
-        size="xl"
-        title=""
+        size="full"
+        showHeader={false}
+        className="bg-transparent shadow-none"
       >
-        <div className="p-0">
+        <div className="relative w-full h-full flex items-center justify-center">
+          <button
+            onClick={() => {
+              setShowImageModal(false)
+              setSelectedServiceImage(null)
+            }}
+            className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+            aria-label="Close"
+          >
+            <X size={24} />
+          </button>
           {selectedServiceImage && (
             <img
               src={uploadService.getImageUrl(selectedServiceImage, { width: 1080, height: 1080 })}
               alt="Service"
-              className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+              className="max-w-full max-h-[95vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
               onError={(e) => {
                 e.target.src = uploadService.getImageUrl(selectedServiceImage)
               }}
