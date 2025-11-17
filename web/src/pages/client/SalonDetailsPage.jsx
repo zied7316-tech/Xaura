@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { salonSearchService } from '../../services/salonSearchService'
 import { uploadService } from '../../services/uploadService'
@@ -7,6 +7,7 @@ import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import SafeImage from '../../components/ui/SafeImage'
+import ThreeDImageRing from '../../components/ui/ThreeDImageRing'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import ReviewDisplay from '../../components/reviews/ReviewDisplay'
 import { 
@@ -233,32 +234,68 @@ const SalonDetailsPage = () => {
               <p className="text-gray-600">No services available</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {services.map((service) => (
-                <Card key={service._id} className="border border-gray-200">
-                  <CardContent className="p-4">
-                    {/* Service Image */}
-                    <div className="h-32 w-full overflow-hidden rounded-lg mb-3">
-                      <SafeImage
-                        src={service.image ? uploadService.getImageUrl(service.image) : null}
-                        alt={service.name}
-                        className="w-full h-full"
-                        fallbackType="service"
+            <>
+              {/* 3D Image Ring - Show when there are services with images */}
+              {useMemo(() => {
+                const servicesWithImages = services
+                  .filter(service => service.image)
+                  .map(service => uploadService.getImageUrl(service.image))
+                  .filter(url => url);
+                
+                return servicesWithImages.length >= 2 ? (
+                  <div className="mb-8">
+                    <div className="w-full h-96 relative bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg overflow-hidden">
+                      <ThreeDImageRing
+                        images={servicesWithImages}
+                        width={280}
+                        perspective={2000}
+                        imageDistance={400}
+                        initialRotation={180}
+                        animationDuration={1.2}
+                        staggerDelay={0.08}
+                        hoverOpacity={0.4}
+                        draggable={true}
+                        mobileBreakpoint={768}
+                        mobileScaleFactor={0.7}
+                        containerClassName="w-full h-full"
                       />
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
+                        <p className="text-sm text-gray-600 text-center">
+                          <span className="font-semibold text-primary-600">Drag to rotate</span> • {servicesWithImages.length} services
+                        </p>
+                      </div>
                     </div>
+                  </div>
+                ) : null;
+              }, [services])}
 
-                    <div className="mb-2">
-                      <h4 className="font-semibold text-gray-900 mb-1">{service.name}</h4>
-                      <Badge variant="default" size="sm">{service.category}</Badge>
-                    </div>
+              {/* Services Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {services.map((service) => (
+                  <Card key={service._id} className="border border-gray-200">
+                    <CardContent className="p-4">
+                      {/* Service Image */}
+                      <div className="h-32 w-full overflow-hidden rounded-lg mb-3">
+                        <SafeImage
+                          src={service.image ? uploadService.getImageUrl(service.image) : null}
+                          alt={service.name}
+                          className="w-full h-full"
+                          fallbackType="service"
+                        />
+                      </div>
 
-                    {service.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {service.description}
-                      </p>
-                    )}
+                      <div className="mb-2">
+                        <h4 className="font-semibold text-gray-900 mb-1">{service.name}</h4>
+                        <Badge variant="default" size="sm">{service.category}</Badge>
+                      </div>
 
-                    <div className="flex items-center justify-between mb-3 text-sm">
+                      {service.description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {service.description}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between mb-3 text-sm">
                       <div className="flex items-center gap-1 text-gray-600">
                         <Clock size={16} />
                         <span>{formatDuration(service.duration)}</span>
@@ -280,7 +317,8 @@ const SalonDetailsPage = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
