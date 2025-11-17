@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import SafeImage from '../../components/ui/SafeImage'
 import Modal from '../../components/ui/Modal'
-// Removed ThreeDImageRing import
+import ThreeDImageRing from '../../components/ui/ThreeDImageRing'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import ReviewDisplay from '../../components/reviews/ReviewDisplay'
 import { 
@@ -324,8 +324,39 @@ const SalonDetailsPage = () => {
                   urls: servicesWithImages
                 });
                 
-                // 3D Ring removed - no longer displaying
-                return null;
+                if (servicesWithImages.length >= 2) {
+                  console.log('✅ RENDERING 3D RING with', servicesWithImages.length, 'images');
+                  console.log('✅ Images array:', servicesWithImages);
+                  return (
+                    <div className="mb-8">
+                      <div className="w-full h-96 relative bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg overflow-hidden">
+                        <ThreeDImageRing
+                          images={servicesWithImages}
+                          width={280}
+                          perspective={2000}
+                          imageDistance={400}
+                          initialRotation={180}
+                          animationDuration={1.2}
+                          staggerDelay={0.08}
+                          hoverOpacity={0.4}
+                          draggable={true}
+                          mobileBreakpoint={768}
+                          mobileScaleFactor={0.7}
+                          containerClassName="w-full h-full"
+                        />
+                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg z-20">
+                          <p className="text-sm text-gray-600 text-center">
+                            <span className="font-semibold text-primary-600">Drag to rotate</span> • {servicesWithImages.length} services
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  console.log('❌ NOT RENDERING 3D RING - need 2+ images, got:', servicesWithImages.length);
+                  console.log('❌ Available images:', servicesWithImages);
+                  return null;
+                }
               })()}
 
               {/* Services Grid */}
