@@ -234,7 +234,7 @@ const SalonDetailsPage = () => {
           <CardTitle>Available Services</CardTitle>
         </CardHeader>
         <CardContent>
-          {services.length === 0 ? (
+          {!services || services.length === 0 ? (
             <div className="text-center py-12">
               <Scissors className="mx-auto text-gray-400 mb-4" size={48} />
               <p className="text-gray-600">No services available</p>
@@ -242,9 +242,14 @@ const SalonDetailsPage = () => {
           ) : (
             <>
               {/* 3D Image Ring - Show when there are services with images */}
-              {useMemo(() => {
+              {(() => {
+                console.log('🚀 3D RING DEBUG START ===========================================');
+                console.log('📋 Services array:', services);
+                console.log('📋 Services length:', services?.length);
+                console.log('📋 Services is array?', Array.isArray(services));
+                
                 if (!services || !Array.isArray(services) || services.length === 0) {
-                  console.log('❌ No services array available');
+                  console.log('❌ No services array available - EXITING');
                   return null;
                 }
 
@@ -260,7 +265,10 @@ const SalonDetailsPage = () => {
                 
                 const servicesWithImages = services
                   .filter(service => {
-                    if (!service) return false;
+                    if (!service) {
+                      console.log('⚠️ Service is null/undefined');
+                      return false;
+                    }
                     const hasImage = service.image && String(service.image).trim() !== '';
                     console.log(`Service "${service?.name}": hasImage=${hasImage}, image="${service?.image}"`);
                     return hasImage;
@@ -275,17 +283,22 @@ const SalonDetailsPage = () => {
                       return null;
                     }
                   })
-                  .filter(url => url && url !== null && url !== '');
-                
+                  .filter(url => {
+                    const isValid = url && url !== null && url !== '';
+                    if (!isValid) console.log('⚠️ Filtered out invalid URL:', url);
+                    return isValid;
+                  });
+
                 console.log('🎨 3D Ring - Final filtered images:', {
                   count: servicesWithImages.length,
                   urls: servicesWithImages
                 });
                 
                 if (servicesWithImages.length >= 2) {
-                  console.log('✅ Rendering 3D ring with', servicesWithImages.length, 'images');
+                  console.log('✅ RENDERING 3D RING with', servicesWithImages.length, 'images');
+                  console.log('✅ Images array:', servicesWithImages);
                   return (
-                    <div className="mb-8">
+                    <div className="mb-8" style={{ border: '2px solid red', padding: '10px' }}>
                       <div className="w-full h-96 relative bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg overflow-hidden">
                         <ThreeDImageRing
                           images={servicesWithImages}
@@ -310,10 +323,11 @@ const SalonDetailsPage = () => {
                     </div>
                   );
                 } else {
-                  console.log('❌ Not rendering 3D ring - need 2+ images, got:', servicesWithImages.length);
+                  console.log('❌ NOT RENDERING 3D RING - need 2+ images, got:', servicesWithImages.length);
+                  console.log('❌ Available images:', servicesWithImages);
                   return null;
                 }
-              }, [services])}
+              })()}
 
               {/* Services Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
