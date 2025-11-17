@@ -18,6 +18,12 @@ import {
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
+// Capitalize first letter of service name
+const capitalizeFirst = (str) => {
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
 const BookAppointmentPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -256,13 +262,23 @@ const BookAppointmentPage = () => {
                     </div>
                     
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900">{service.name}</h3>
+                      <div className="text-center mb-2">
+                        <h3 className="text-2xl font-bold text-gray-900 tracking-wide" style={{
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}>
+                          {capitalizeFirst(service.name)}
+                        </h3>
                         {isSelected && (
-                          <span className="text-primary-600 font-bold">✓</span>
+                          <span className="text-primary-600 font-bold text-xl">✓</span>
                         )}
                       </div>
-                      <Badge variant="default" size="sm">{service.category}</Badge>
+                      <div className="text-center">
+                        <Badge variant="default" size="sm">{service.category}</Badge>
+                      </div>
                       <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
                         <span>⏱️ {formatDuration(service.duration)}</span>
                         <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
@@ -308,8 +324,15 @@ const BookAppointmentPage = () => {
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">Selected Service{(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? 's' : ''}:</p>
                 {(selectedServices.length > 0 ? selectedServices : [selectedService]).map((service, idx) => (
-                  <div key={service._id || idx} className="mb-2">
-                    <p className="font-semibold text-gray-900">{service.name}</p>
+                  <div key={service._id || idx} className="mb-2 text-center">
+                    <p className="text-xl font-bold text-gray-900 mb-1" style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}>
+                      {capitalizeFirst(service.name)}
+                    </p>
                     <p className="text-sm text-gray-600">
                       Duration: {formatDuration(service.duration)} | Price: {formatCurrency(service.price)}
                     </p>
@@ -586,9 +609,16 @@ const BookAppointmentPage = () => {
           <CardContent>
             <div className="space-y-3">
               {(selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])).map((service, idx) => (
-                <div key={service._id || idx} className="flex items-center justify-between">
-                  <span className="text-gray-600">Service {selectedServices.length > 1 ? idx + 1 : ''}:</span>
-                  <span className="font-semibold text-gray-900">{service.name}</span>
+                <div key={service._id || idx} className="text-center py-2">
+                  <span className="text-gray-600 text-sm block mb-1">Service {selectedServices.length > 1 ? idx + 1 : ''}</span>
+                  <span className="text-xl font-bold" style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
+                    {capitalizeFirst(service.name)}
+                  </span>
                 </div>
               ))}
               {selectedServices.length > 1 && (
