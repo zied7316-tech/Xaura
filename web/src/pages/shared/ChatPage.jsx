@@ -1,12 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import chatService from '../../services/chatService';
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton';
 import { MessageSquare, Send, User } from 'lucide-react';
-import Particles from 'react-particles';
-import { loadSlim } from 'tsparticles-slim';
+
+// Declare particlesJS for TypeScript
+declare global {
+  interface Window {
+    particlesJS: any;
+  }
+}
 
 const ChatPage = () => {
   const { user } = useAuth();
@@ -141,10 +146,124 @@ const ChatPage = () => {
     }
   };
 
-  // Initialize particles
-  const particlesInit = useCallback(async (engine) => {
-    await loadSlim(engine);
+  // Initialize particles for a specific chat
+  const initializeParticles = (chatId: string | null) => {
+    if (!chatId) return;
+    const particlesElement = document.getElementById(`js-particles-${chatId}`);
+    if (!particlesElement || !window.particlesJS) return;
+
+    const getParticleCount = () => {
+      const screenWidth = window.innerWidth;
+      if (screenWidth > 1024) return 60;
+      if (screenWidth > 768) return 50;
+      return 40;
+    };
+
+    window.particlesJS(`js-particles-${chatId}`, {
+      particles: {
+        number: {
+          value: getParticleCount(),
+        },
+        color: {
+          value: ['#c920d0', '#e13eef', '#ee75f8'], // Primary color variations
+        },
+        shape: {
+          type: 'circle',
+        },
+        opacity: {
+          value: 0.6,
+          random: true,
+          anim: {
+            enable: true,
+            speed: 1,
+            opacity_min: 0.2,
+            sync: false,
+          },
+        },
+        size: {
+          value: 3,
+          random: true,
+          anim: {
+            enable: true,
+            speed: 2,
+            size_min: 0.5,
+            sync: false,
+          },
+        },
+        line_linked: {
+          enable: false,
+        },
+        move: {
+          enable: true,
+          speed: 2,
+          direction: 'none',
+          random: true,
+          straight: false,
+          out_mode: 'out',
+          bounce: false,
+        },
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: {
+          onhover: {
+            enable: true,
+            mode: 'repulse',
+          },
+          onclick: {
+            enable: true,
+            mode: 'push',
+          },
+          resize: true,
+        },
+        modes: {
+          repulse: {
+            distance: 100,
+            duration: 0.4,
+          },
+          push: {
+            particles_nb: 4,
+          },
+        },
+      },
+      retina_detect: true,
+    });
+  };
+
+  // Load particles.js script
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.particlesJS) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js';
+      script.async = true;
+      document.body.appendChild(script);
+
+      script.onload = () => {
+        // Initialize particles for any expanded chats
+        if (expandedChatId) {
+          setTimeout(() => initializeParticles(expandedChatId), 100);
+        }
+      };
+
+      return () => {
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
+    }
   }, []);
+
+  // Initialize particles when chat expands
+  useEffect(() => {
+    if (expandedChatId && window.particlesJS) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        initializeParticles(expandedChatId);
+      }, 200);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [expandedChatId]);
 
   const getOtherPerson = (chat) => {
     if (user.role === 'Client') {
@@ -286,99 +405,47 @@ const ChatPage = () => {
                     {/* Messages Area with Particles Background */}
                     <div className="relative h-[400px] overflow-hidden">
                       {/* Particles Background */}
-                      <Particles
-                        id={`particles-${chat._id}`}
-                        init={particlesInit}
-                        options={{
-                          particles: {
-                            number: {
-                              value: 30,
-                              density: {
-                                enable: true,
-                                value_area: 800
-                              }
-                            },
-                            color: {
-                              value: '#c920d0' // Primary color
-                            },
-                            shape: {
-                              type: 'circle'
-                            },
-                            opacity: {
-                              value: 0.3,
-                              random: true,
-                              anim: {
-                                enable: true,
-                                speed: 1,
-                                opacity_min: 0.1,
-                                sync: false
-                              }
-                            },
-                            size: {
-                              value: 3,
-                              random: true,
-                              anim: {
-                                enable: true,
-                                speed: 2,
-                                size_min: 0.1,
-                                sync: false
-                              }
-                            },
-                            line_linked: {
-                              enable: true,
-                              distance: 150,
-                              color: '#c920d0',
-                              opacity: 0.2,
-                              width: 1
-                            },
-                            move: {
-                              enable: true,
-                              speed: 1,
-                              direction: 'none',
-                              random: false,
-                              straight: false,
-                              out_mode: 'out',
-                              bounce: false
-                            }
-                          },
-                          interactivity: {
-                            detect_on: 'canvas',
-                            events: {
-                              onhover: {
-                                enable: true,
-                                mode: 'repulse'
-                              },
-                              onclick: {
-                                enable: true,
-                                mode: 'push'
-                              },
-                              resize: true
-                            },
-                            modes: {
-                              repulse: {
-                                distance: 100,
-                                duration: 0.4
-                              },
-                              push: {
-                                particles_nb: 4
-                              }
-                            }
-                          },
-                          retina_detect: true
-                        }}
-                        className="absolute inset-0 z-0"
+                      <div
+                        id={`js-particles-${chat._id}`}
                         style={{
-                          position: 'absolute',
                           width: '100%',
                           height: '100%',
+                          position: 'absolute',
                           top: 0,
                           left: 0,
-                          zIndex: 0
+                          zIndex: 0,
+                          pointerEvents: 'none',
                         }}
-                      />
+                      >
+                        <style>{`
+                          #js-particles-${chat._id} canvas {
+                            position: absolute;
+                            width: 100%;
+                            height: 100%;
+                          }
+                          .particles-js-canvas-el {
+                            position: absolute;
+                          }
+                          .particles-js-canvas-el circle {
+                            fill: currentColor;
+                            filter: url(#glow-${chat._id});
+                          }
+                        `}</style>
+                        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" style={{ position: 'absolute', width: 0, height: 0 }}>
+                          <defs>
+                            <filter id={`glow-${chat._id}`}>
+                              <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
+                              <feMerge>
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="SourceGraphic" />
+                              </feMerge>
+                            </filter>
+                          </defs>
+                        </svg>
+                      </div>
                       
-                      {/* Messages Content */}
-                      <div className="relative z-10 h-full p-4 overflow-y-auto bg-gradient-to-b from-gray-50/80 to-gray-100/80 backdrop-blur-sm">
+                      {/* Messages Content - Particles will move between messages */}
+                      <div className="relative z-10 h-full p-4 overflow-y-auto bg-gradient-to-b from-gray-50/60 to-gray-100/60 backdrop-blur-sm">
                         {messages.length === 0 ? (
                           <div className="text-center text-gray-500 py-8">
                             <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-2" />
@@ -417,12 +484,12 @@ const ChatPage = () => {
                                   </div>
                                 )}
                                 
-                                {/* Message bubble */}
+                                {/* Message bubble - Semi-transparent so particles show through */}
                                 <div
-                                  className={`max-w-[70%] sm:max-w-[75%] p-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                                  className={`max-w-[70%] sm:max-w-[75%] p-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md relative z-10 ${
                                     isMe
-                                      ? 'bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-tr-sm'
-                                      : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100'
+                                      ? 'bg-gradient-to-br from-primary-600/90 to-primary-700/90 text-white rounded-tr-sm backdrop-blur-sm'
+                                      : 'bg-white/90 text-gray-800 rounded-tl-sm border border-gray-100 backdrop-blur-sm'
                                   }`}
                                 >
                                   <p className="text-sm leading-relaxed break-words">{msg.message}</p>
