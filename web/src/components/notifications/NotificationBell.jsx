@@ -1,20 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
 import { notificationService } from '../../services/notificationService'
+import { appointmentManagementService } from '../../services/appointmentManagementService'
 import { useAuth } from '../../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { 
   Bell, X, Check, CheckCheck, Trash2, Calendar, 
-  DollarSign, Users, Package, AlertCircle, Star 
+  DollarSign, Users, Package, AlertCircle, Star, CheckCircle, XCircle
 } from 'lucide-react'
 import { formatDate, formatTime } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const NotificationBell = () => {
   const { isOwner, isWorker, isClient } = useAuth()
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [showDropdown, setShowDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
   const [seenNotificationIds, setSeenNotificationIds] = useState(new Set())
+  const [processingAppointment, setProcessingAppointment] = useState(null)
   const dropdownRef = useRef(null)
   const audioRef = useRef(null)
   const audioUnlockedRef = useRef(false)
@@ -300,6 +304,40 @@ const NotificationBell = () => {
     }
   }
 
+  const handleAcceptAppointment = async (appointmentId, e) => {
+    e.stopPropagation()
+    setProcessingAppointment(appointmentId)
+    try {
+      await appointmentManagementService.acceptAppointment(appointmentId)
+      toast.success('Appointment accepted!')
+      loadNotifications()
+      // Optionally navigate to appointments page
+      // navigate('/worker/appointments')
+    } catch (error) {
+      toast.error(error.message || 'Failed to accept appointment')
+      console.error('Error accepting appointment:', error)
+    } finally {
+      setProcessingAppointment(null)
+    }
+  }
+
+  const handleRejectAppointment = async (appointmentId, e) => {
+    e.stopPropagation()
+    if (!confirm('Are you sure you want to reject this appointment?')) return
+    
+    setProcessingAppointment(appointmentId)
+    try {
+      await appointmentManagementService.rejectAppointment(appointmentId, 'Not available')
+      toast.success('Appointment rejected')
+      loadNotifications()
+    } catch (error) {
+      toast.error(error.message || 'Failed to reject appointment')
+      console.error('Error rejecting appointment:', error)
+    } finally {
+      setProcessingAppointment(null)
+    }
+  }
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'new_appointment':
@@ -420,6 +458,31 @@ const NotificationBell = () => {
                         )}
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                      
+                      {/* Accept/Reject buttons for new appointment notifications */}
+                      {notification.type === 'new_appointment' && 
+                       notification.relatedAppointment && 
+                       (isWorker || isOwner) && (
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={(e) => handleAcceptAppointment(notification.relatedAppointment, e)}
+                            disabled={processingAppointment === notification.relatedAppointment}
+                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                          >
+                            <CheckCircle size={14} />
+                            {processingAppointment === notification.relatedAppointment ? 'Processing...' : 'Accept'}
+                          </button>
+                          <button
+                            onClick={(e) => handleRejectAppointment(notification.relatedAppointment, e)}
+                            disabled={processingAppointment === notification.relatedAppointment}
+                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                          >
+                            <XCircle size={14} />
+                            {processingAppointment === notification.relatedAppointment ? 'Processing...' : 'Reject'}
+                          </button>
+                        </div>
+                      )}
+                      
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xs text-gray-500">
                           {formatDate(notification.createdAt)} at {formatTime(notification.createdAt)}
