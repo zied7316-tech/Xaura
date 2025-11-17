@@ -307,30 +307,44 @@ const unregisterPushToken = async (req, res, next) => {
  * Helper function to create notification (used by other controllers)
  * Also sends push notification if user has registered tokens
  * Prevents duplicate notifications for the same user, appointment, and type
+ * 
+ * Rules:
+ * - Clients: Only ONE notification ever (even if read) for appointment_confirmed/cancelled
+ * - Workers/Owners: Reminders until they accept/reject (only check unread for new_appointment)
  */
 const createNotification = async (notificationData) => {
   try {
-    // Check for existing unread notification (only for appointment-related notifications)
-    // This prevents duplicate notifications for clients and owners
+    // Check for existing notification (only for appointment-related notifications)
     if (notificationData.relatedAppointment && notificationData.type) {
-      const existingNotification = await Notification.findOne({
+      // Client notifications: Check for ANY notification (read or unread) - only one ever
+      // Worker/Owner notifications: Check only unread - they get reminders until action taken
+      const isClientNotification = 
+        notificationData.type === 'appointment_confirmed' || 
+        notificationData.type === 'appointment_cancelled';
+      
+      const query = {
         userId: notificationData.userId,
         relatedAppointment: notificationData.relatedAppointment,
-        type: notificationData.type,
-        isRead: false
-      });
+        type: notificationData.type
+      };
+      
+      // For clients: check ANY notification (read or unread)
+      // For workers/owners: check only unread notifications
+      if (!isClientNotification) {
+        query.isRead = false;
+      }
+
+      const existingNotification = await Notification.findOne(query);
 
       if (existingNotification) {
         // Return existing notification instead of creating duplicate
         console.log('Duplicate notification prevented:', {
           userId: notificationData.userId,
           type: notificationData.type,
-          appointmentId: notificationData.relatedAppointment
+          appointmentId: notificationData.relatedAppointment,
+          isClientNotification,
+          wasRead: existingNotification.isRead
         });
-        
-        // Optionally update createdAt to refresh the notification (uncomment if needed)
-        // existingNotification.createdAt = new Date();
-        // await existingNotification.save();
         
         return existingNotification;
       }
