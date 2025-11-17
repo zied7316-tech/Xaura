@@ -31,7 +31,8 @@ const BookAppointmentPage = () => {
 
   const [step, setStep] = useState(1)
   const [salonDetails, setSalonDetails] = useState(null)
-  const [selectedService, setSelectedService] = useState(null)
+  const [selectedService, setSelectedService] = useState(null) // Keep for backward compatibility
+  const [selectedServices, setSelectedServices] = useState([]) // Array for multiple services
   const [selectedWorker, setSelectedWorker] = useState(null)
   const [selectedDate, setSelectedDate] = useState(defaultDate)
   const [selectedTime, setSelectedTime] = useState('')
@@ -51,10 +52,10 @@ const BookAppointmentPage = () => {
   }, [salonIdParam])
 
   useEffect(() => {
-    if (selectedWorker && selectedDate && selectedService) {
+    if (selectedWorker && selectedDate && (selectedService || selectedServices.length > 0)) {
       loadAvailableSlots()
     }
-  }, [selectedWorker, selectedDate, selectedService])
+  }, [selectedWorker, selectedDate, selectedService, selectedServices])
 
   const loadSalonDetails = async () => {
     try {
@@ -81,9 +82,17 @@ const BookAppointmentPage = () => {
   const loadAvailableSlots = async () => {
     setLoadingSlots(true)
     try {
+      // Calculate total duration for multiple services
+      const servicesToCheck = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])
+      const totalDuration = servicesToCheck.reduce((sum, service) => sum + (service.duration || 0), 0)
+      
+      // Use first service ID for API (or we can update API to accept totalDuration)
+      const serviceId = servicesToCheck.length > 0 ? servicesToCheck[0]._id : selectedService?._id
+      
       const slots = await availabilityService.getWorkerTimeSlots(selectedWorker._id, {
         date: selectedDate,
-        serviceId: selectedService._id
+        serviceId: serviceId,
+        totalDuration: totalDuration // Pass total duration for multiple services
       })
       setAvailableSlots(slots)
     } catch (error) {
@@ -96,7 +105,9 @@ const BookAppointmentPage = () => {
   }
 
   const handleBookAppointment = async () => {
-    if (!selectedService || !selectedWorker || !selectedDate || !selectedTime) {
+    const servicesToBook = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])
+    
+    if (servicesToBook.length === 0 || !selectedWorker || !selectedDate || !selectedTime) {
       toast.error('Please complete all booking steps')
       return
     }
@@ -110,18 +121,24 @@ const BookAppointmentPage = () => {
 
       console.log('Booking appointment:', {
         workerId: selectedWorker._id,
-        serviceId: selectedService._id,
+        services: servicesToBook.map(s => s._id),
         dateTime: appointmentDateTime.toISOString()
       })
 
       await appointmentService.createAppointment({
         workerId: selectedWorker._id,
-        serviceId: selectedService._id,
+        serviceId: servicesToBook[0]._id, // Keep for backward compatibility
+        services: servicesToBook.map(service => ({
+          serviceId: service._id,
+          name: service.name,
+          price: service.price,
+          duration: service.duration
+        })),
         dateTime: appointmentDateTime.toISOString(),
         notes: ''
       })
 
-      toast.success('🎉 Appointment booked successfully!')
+      toast.success(`🎉 Appointment booked successfully for ${servicesToBook.length} service${servicesToBook.length > 1 ? 's' : ''}!`)
       setTimeout(() => {
         navigate('/appointments')
       }, 2000)
@@ -197,15 +214,24 @@ const BookAppointmentPage = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {salonDetails?.services.map((service) => (
+              {salonDetails?.services.map((service) => {
+                const isSelected = selectedServices.some(s => s._id === service._id) || selectedService?._id === service._id
+                return (
                 <div
                   key={service._id}
                   onClick={() => {
-                    setSelectedService(service)
-                    setStep(2)
+                    // Toggle service selection
+                    if (isSelected) {
+                      setSelectedServices(prev => prev.filter(s => s._id !== service._id))
+                      if (selectedService?._id === service._id) {
+                        setSelectedService(null)
+                      }
+                    } else {
+                      setSelectedServices(prev => [...prev, service])
+                    }
                   }}
                   className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    selectedService?._id === service._id
+                    isSelected
                       ? 'border-primary-500 bg-primary-50'
                       : 'border-gray-200 hover:border-primary-300'
                   }`}
@@ -230,7 +256,12 @@ const BookAppointmentPage = () => {
                     </div>
                     
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{service.name}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-gray-900">{service.name}</h3>
+                        {isSelected && (
+                          <span className="text-primary-600 font-bold">✓</span>
+                        )}
+                      </div>
                       <Badge variant="default" size="sm">{service.category}</Badge>
                       <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
                         <span>⏱️ {formatDuration(service.duration)}</span>
@@ -239,14 +270,35 @@ const BookAppointmentPage = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
+            {selectedServices.length > 0 && (
+              <div className="mt-4 p-3 bg-primary-50 rounded-lg">
+                <p className="text-sm font-semibold text-primary-700 mb-2">
+                  Selected: {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <span>Total Duration: {formatDuration(selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0))}</span>
+                  <span>•</span>
+                  <span className="text-green-600 font-semibold">
+                    Total Price: {formatCurrency(selectedServices.reduce((sum, s) => sum + (s.price || 0), 0))}
+                  </span>
+                </div>
+                <Button
+                  onClick={() => setStep(2)}
+                  className="mt-3"
+                  disabled={selectedServices.length === 0}
+                >
+                  Continue with {selectedServices.length} Service{selectedServices.length > 1 ? 's' : ''}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Step 2: Select Worker */}
-      {step === 2 && selectedService && (
+      {step === 2 && (selectedService || selectedServices.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle>Step 2: Choose Your Worker</CardTitle>
@@ -254,11 +306,23 @@ const BookAppointmentPage = () => {
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Selected Service:</p>
-                <p className="font-semibold text-gray-900">{selectedService.name}</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Duration: {formatDuration(selectedService.duration)} | Price: {formatCurrency(selectedService.price)}
-                </p>
+                <p className="text-sm text-gray-600">Selected Service{(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? 's' : ''}:</p>
+                {(selectedServices.length > 0 ? selectedServices : [selectedService]).map((service, idx) => (
+                  <div key={service._id || idx} className="mb-2">
+                    <p className="font-semibold text-gray-900">{service.name}</p>
+                    <p className="text-sm text-gray-600">
+                      Duration: {formatDuration(service.duration)} | Price: {formatCurrency(service.price)}
+                    </p>
+                  </div>
+                ))}
+                {selectedServices.length > 1 && (
+                  <div className="mt-2 pt-2 border-t border-gray-300">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Total: {formatDuration(selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0))} | 
+                      {formatCurrency(selectedServices.reduce((sum, s) => sum + (s.price || 0), 0))}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Status Info */}
@@ -521,10 +585,18 @@ const BookAppointmentPage = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {selectedService && (
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Service:</span>
-                  <span className="font-semibold text-gray-900">{selectedService.name}</span>
+              {(selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])).map((service, idx) => (
+                <div key={service._id || idx} className="flex items-center justify-between">
+                  <span className="text-gray-600">Service {selectedServices.length > 1 ? idx + 1 : ''}:</span>
+                  <span className="font-semibold text-gray-900">{service.name}</span>
+                </div>
+              ))}
+              {selectedServices.length > 1 && (
+                <div className="flex items-center justify-between pt-2 border-t border-primary-300">
+                  <span className="text-gray-700 font-medium">Total:</span>
+                  <span className="text-lg font-bold text-green-600">
+                    {formatCurrency(selectedServices.reduce((sum, s) => sum + (s.price || 0), 0))}
+                  </span>
                 </div>
               )}
               

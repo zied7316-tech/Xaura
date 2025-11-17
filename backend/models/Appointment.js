@@ -14,8 +14,19 @@ const appointmentSchema = new mongoose.Schema({
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Service',
-    required: [true, 'Service is required']
+    required: false // Made optional to support multiple services
   },
+  // Support for multiple services
+  services: [{
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Service',
+      required: true
+    },
+    name: String,
+    price: Number,
+    duration: Number
+  }],
   salonId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Salon',

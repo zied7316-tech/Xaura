@@ -23,11 +23,12 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    const { workerId, serviceId, dateTime, notes } = req.body;
+    const { workerId, serviceId, services, dateTime, notes } = req.body;
 
     console.log('Creating appointment:', {
       workerId,
       serviceId,
+      services,
       dateTime,
       clientId: req.user.id
     });
@@ -40,14 +41,46 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    // Verify service exists
-    const service = await Service.findById(serviceId);
-    if (!service || !service.isActive) {
-      return res.status(404).json({
+    // Support multiple services or single service (backward compatibility)
+    let servicesToBook = [];
+    if (services && Array.isArray(services) && services.length > 0) {
+      // Multiple services
+      servicesToBook = services;
+    } else if (serviceId) {
+      // Single service (backward compatibility)
+      const service = await Service.findById(serviceId);
+      if (!service || !service.isActive) {
+        return res.status(404).json({
+          success: false,
+          message: 'Service not found or inactive'
+        });
+      }
+      servicesToBook = [{
+        serviceId: service._id,
+        name: service.name,
+        price: service.price,
+        duration: service.duration
+      }];
+    } else {
+      return res.status(400).json({
         success: false,
-        message: 'Service not found or inactive'
+        message: 'At least one service is required'
       });
     }
+
+    // Verify all services exist and are active
+    const serviceIds = servicesToBook.map(s => s.serviceId);
+    const verifiedServices = await Service.find({ _id: { $in: serviceIds }, isActive: true });
+    
+    if (verifiedServices.length !== serviceIds.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'One or more services not found or inactive'
+      });
+    }
+
+    // Use first service for validation (all should be from same salon)
+    const firstService = verifiedServices[0];
 
     // Verify worker exists and is active
     const worker = await User.findById(workerId);
@@ -74,25 +107,37 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    // Verify worker belongs to the same salon as the service
+    // Verify all services belong to the same salon and worker belongs to that salon
     const workerSalonId = worker.salonId.toString();
-    const serviceSalonId = service.salonId.toString();
+    const serviceSalonId = firstService.salonId.toString();
+    
+    // Check all services are from the same salon
+    const allSameSalon = verifiedServices.every(s => s.salonId.toString() === serviceSalonId);
+    if (!allSameSalon) {
+      return res.status(400).json({
+        success: false,
+        message: 'All services must be from the same salon'
+      });
+    }
     
     if (workerSalonId !== serviceSalonId) {
       console.error('Salon mismatch:', {
         workerId: worker._id,
         workerSalonId,
-        serviceId: service._id,
         serviceSalonId
       });
       return res.status(400).json({
         success: false,
-        message: 'Worker does not belong to the salon offering this service'
+        message: 'Worker does not belong to the salon offering these services'
       });
     }
 
-    // Check if time slot is available
-    const available = await isSlotAvailable(workerId, dateTime, service.duration);
+    // Calculate total duration for all services
+    const totalDuration = servicesToBook.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const totalPrice = servicesToBook.reduce((sum, s) => sum + (s.price || 0), 0);
+
+    // Check if time slot is available (using total duration)
+    const available = await isSlotAvailable(workerId, dateTime, totalDuration);
     if (!available) {
       return res.status(409).json({
         success: false,
@@ -100,16 +145,17 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    // Create appointment
+    // Create appointment with multiple services
     const appointment = await Appointment.create({
       clientId: req.user.id,
       workerId,
-      serviceId,
-      salonId: service.salonId,
+      serviceId: servicesToBook[0].serviceId, // Keep for backward compatibility
+      services: servicesToBook, // Array of services
+      salonId: firstService.salonId,
       dateTime,
       notes: notes || '',
-      servicePriceAtBooking: service.price,
-      serviceDurationAtBooking: service.duration,
+      servicePriceAtBooking: totalPrice,
+      serviceDurationAtBooking: totalDuration,
       status: 'Pending' // Use capitalized to match enum
     });
 
@@ -132,21 +178,22 @@ const createAppointment = async (req, res, next) => {
     ]);
 
     // Create notifications for worker and owner
-    const salon = await Salon.findById(service.salonId);
+    const salon = await Salon.findById(firstService.salonId);
+    const serviceNames = servicesToBook.map(s => s.name).join(', ');
     
     // Notify worker
     await createNotification({
       userId: workerId,
-      salonId: service.salonId,
+      salonId: firstService.salonId,
       type: 'new_appointment',
       title: 'New Appointment Request',
-      message: `${appointment.clientId.name} wants to book ${service.name}`,
+      message: `${appointment.clientId.name} wants to book ${serviceNames}`,
       relatedAppointment: appointment._id,
       relatedUser: req.user.id,
       priority: 'high',
       data: {
         clientName: appointment.clientId.name,
-        serviceName: service.name,
+        serviceName: serviceNames,
         dateTime: appointment.dateTime
       }
     });
@@ -155,16 +202,16 @@ const createAppointment = async (req, res, next) => {
     if (salon && salon.ownerId) {
       await createNotification({
         userId: salon.ownerId,
-        salonId: service.salonId,
+        salonId: firstService.salonId,
         type: 'new_appointment',
         title: 'New Appointment Request',
-        message: `${appointment.clientId.name} booked ${service.name} with ${worker.name}`,
+        message: `${appointment.clientId.name} booked ${serviceNames} with ${worker.name}`,
         relatedAppointment: appointment._id,
         priority: 'normal',
         data: {
           clientName: appointment.clientId.name,
           workerName: worker.name,
-          serviceName: service.name,
+          serviceName: serviceNames,
           dateTime: appointment.dateTime
         }
       });
