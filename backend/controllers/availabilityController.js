@@ -174,7 +174,7 @@ const getAvailableWorkers = async (req, res, next) => {
 const getWorkerTimeSlots = async (req, res, next) => {
   try {
     const { workerId } = req.params;
-    const { date, serviceId } = req.query;
+    const { date, serviceId, totalDuration } = req.query;
 
     if (!date) {
       return res.status(400).json({
@@ -226,9 +226,12 @@ const getWorkerTimeSlots = async (req, res, next) => {
       }
     }
 
-    // Get service duration
+    // Get service duration - use totalDuration if provided (for multiple services), otherwise get from service
     let serviceDuration = 60; // default 60 minutes
-    if (serviceId) {
+    if (totalDuration) {
+      // Use totalDuration for multiple services
+      serviceDuration = parseInt(totalDuration, 10);
+    } else if (serviceId) {
       const service = await Service.findById(serviceId);
       if (service) {
         serviceDuration = service.duration;
