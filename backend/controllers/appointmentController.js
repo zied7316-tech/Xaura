@@ -33,6 +33,14 @@ const createAppointment = async (req, res, next) => {
       clientId: req.user.id
     });
 
+    // Validate that at least one service is provided
+    if (!serviceId && (!services || !Array.isArray(services) || services.length === 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Either serviceId or services array is required'
+      });
+    }
+
     // Validate date is in the future
     if (!isDateInFuture(dateTime)) {
       return res.status(400).json({
