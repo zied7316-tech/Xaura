@@ -78,19 +78,48 @@ const NotificationBell = () => {
       console.log('🔔 NotificationBell: Calling notificationService.getNotifications...')
       const response = await notificationService.getNotifications(20, false)
       console.log('🔔 NotificationBell: Response received:', response)
+      console.log('🔔 NotificationBell: Response type:', typeof response)
+      console.log('🔔 NotificationBell: Is array?', Array.isArray(response))
       console.log('🔔 NotificationBell: Response.data:', response?.data)
       console.log('🔔 NotificationBell: Response.success:', response?.success)
       console.log('🔔 NotificationBell: Unread count:', response?.unreadCount)
       
-      // Handle response structure
-      const notifications = response?.data || []
-      const unreadCount = response?.unreadCount || 0
+      // Handle different response structures
+      let notifications = []
+      let unreadCount = 0
       
+      if (Array.isArray(response)) {
+        // Response is directly an array
+        console.log('🔔 NotificationBell: Response is an array, using directly')
+        notifications = response
+        // Try to get unread count from array
+        unreadCount = response.filter(n => !n.isRead).length
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Response has data property
+        console.log('🔔 NotificationBell: Response has data property')
+        notifications = response.data
+        unreadCount = response.unreadCount || 0
+      } else if (response?.success && Array.isArray(response.data)) {
+        // Standard API response
+        console.log('🔔 NotificationBell: Standard API response structure')
+        notifications = response.data
+        unreadCount = response.unreadCount || 0
+      } else {
+        console.warn('⚠️ NotificationBell: Unknown response structure:', response)
+        notifications = []
+        unreadCount = 0
+      }
+      
+      console.log('🔔 NotificationBell: Final notifications array:', notifications)
+      console.log('🔔 NotificationBell: Final notifications length:', notifications.length)
       console.log('🔔 NotificationBell: Setting notifications:', notifications.length, 'items')
       console.log('🔔 NotificationBell: Setting unread count:', unreadCount)
       
       setNotifications(notifications)
       setUnreadCount(unreadCount)
+      
+      // Force a re-render check
+      console.log('🔔 NotificationBell: State updated, notifications should render')
     } catch (error) {
       console.error('❌ NotificationBell: Error loading notifications:', error)
       console.error('❌ NotificationBell: Error message:', error.message)
@@ -240,13 +269,22 @@ const NotificationBell = () => {
 
           {/* Notifications List */}
           <div className="max-h-96 overflow-y-auto">
+            {(() => {
+              console.log('🔔 RENDER: notifications.length =', notifications.length)
+              console.log('🔔 RENDER: notifications =', notifications)
+              console.log('🔔 RENDER: loading =', loading)
+              return null
+            })()}
             {notifications.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Bell className="mx-auto mb-2 text-gray-400" size={32} />
                 <p className="text-sm">No notifications</p>
+                <p className="text-xs text-gray-400 mt-2">State: {notifications.length} items, Loading: {loading ? 'Yes' : 'No'}</p>
               </div>
             ) : (
-              notifications.map((notification) => (
+              notifications.map((notification) => {
+                console.log('🔔 RENDER: Mapping notification:', notification._id || notification.id)
+                return (
                 <div
                   key={notification._id}
                   className={`p-4 border-b border-l-4 ${getPriorityColor(notification.priority)} ${
@@ -294,7 +332,8 @@ const NotificationBell = () => {
                     </div>
                   </div>
                 </div>
-              ))
+                )
+              })
             )}
           </div>
 
