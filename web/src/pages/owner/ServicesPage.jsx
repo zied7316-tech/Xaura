@@ -210,46 +210,7 @@ const ServicesPage = () => {
         </Card>
       ) : (
         <>
-          {/* 3D Image Ring - Show when there are services with images */}
-          {useMemo(() => {
-            const servicesWithImages = services
-              .filter(service => service && service.image)
-              .map(service => uploadService.getImageUrl(service.image))
-              .filter(url => url && url !== null);
-            
-            console.log('🎨 3D Ring - Services with images:', servicesWithImages.length, servicesWithImages);
-            
-            return servicesWithImages.length >= 2 ? (
-              <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle>Your Services Gallery</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="w-full h-96 relative bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg overflow-hidden">
-                    <ThreeDImageRing
-                      images={servicesWithImages}
-                      width={280}
-                      perspective={2000}
-                      imageDistance={400}
-                      initialRotation={180}
-                      animationDuration={1.2}
-                      staggerDelay={0.08}
-                      hoverOpacity={0.4}
-                      draggable={true}
-                      mobileBreakpoint={768}
-                      mobileScaleFactor={0.7}
-                      containerClassName="w-full h-full"
-                    />
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-                      <p className="text-sm text-gray-600 text-center">
-                        <span className="font-semibold text-primary-600">Drag to rotate</span> • {servicesWithImages.length} services
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null;
-          }, [services])}
+          {/* 3D Image Ring removed - no longer displaying */}
 
           {/* Services Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
