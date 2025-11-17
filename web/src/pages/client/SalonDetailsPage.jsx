@@ -253,83 +253,37 @@ const SalonDetailsPage = () => {
             </div>
           ) : (
             <>
-              {/* 3D Image Ring - Show when there are services with images */}
+              {/* 3D Image Ring - Replace service cards with 3D ring when 2+ services have images */}
               {(() => {
-                console.log('🚀 3D RING DEBUG START ===========================================');
-                console.log('📋 Services array:', services);
-                console.log('📋 Services length:', services?.length);
-                console.log('📋 Services is array?', Array.isArray(services));
-                
                 if (!services || !Array.isArray(services) || services.length === 0) {
-                  console.log('❌ No services array available - EXITING');
                   return null;
                 }
 
-                console.log('🔍 Checking services for 3D ring:', {
-                  totalServices: services.length,
-                  services: services.map(s => ({ 
-                    id: s?._id, 
-                    name: s?.name, 
-                    hasImage: !!(s?.image), 
-                    image: s?.image 
-                  }))
-                });
-                
+                // Get all service images
                 const servicesWithImages = services
-                  .map((service, index) => {
-                    console.log(`\n🔍 Processing service ${index + 1}:`, {
-                      name: service?.name,
-                      hasService: !!service,
-                      imageRaw: service?.image,
-                      imageType: typeof service?.image,
-                      imageLength: service?.image?.length,
-                      imageTrimmed: service?.image ? String(service.image).trim() : null,
-                      isEmpty: !service?.image || String(service.image).trim() === ''
-                    });
-                    return service;
-                  })
                   .filter(service => {
-                    if (!service) {
-                      console.log('⚠️ Service is null/undefined');
-                      return false;
-                    }
-                    // More lenient check: allow any truthy value that's not just whitespace
+                    if (!service) return false;
                     const hasImage = service.image && 
                                      String(service.image).trim() !== '' && 
                                      String(service.image).trim() !== 'null' &&
                                      String(service.image).trim() !== 'undefined';
-                    console.log(`✅ Service "${service?.name}": hasImage=${hasImage}, image="${service?.image}"`);
                     return hasImage;
                   })
                   .map(service => {
                     try {
-                      const url = uploadService.getImageUrl(service.image);
-                      console.log(`✅ Service "${service.name}": imageUrl="${url}"`);
-                      return url;
+                      return uploadService.getImageUrl(service.image);
                     } catch (error) {
-                      console.error(`❌ Error getting image URL for ${service.name}:`, error);
+                      console.error(`Error getting image URL for ${service.name}:`, error);
                       return null;
                     }
                   })
-                  .filter(url => {
-                    const isValid = url && url !== null && url !== '' && url !== 'null' && url !== 'undefined';
-                    if (!isValid) {
-                      console.log('⚠️ Filtered out invalid URL:', url);
-                    }
-                    return isValid;
-                  });
+                  .filter(url => url && url !== null && url !== '' && url !== 'null' && url !== 'undefined');
 
-                console.log('🎨 3D Ring - Final filtered images:', {
-                  count: servicesWithImages.length,
-                  urls: servicesWithImages
-                });
-                
+                // Show 3D ring if we have 2+ services with images, otherwise show grid
                 if (servicesWithImages.length >= 2) {
-                  console.log('✅ RENDERING 3D RING with', servicesWithImages.length, 'images');
-                  console.log('✅ Images array:', servicesWithImages);
                   return (
-                    <div className="mb-8 w-full">
-                      <div className="w-full h-[500px] relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-2xl">
+                    <div className="w-full mb-8">
+                      <div className="w-full h-[600px] relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-2xl">
                         <ThreeDImageRing
                           images={servicesWithImages}
                           width={400}
@@ -354,111 +308,96 @@ const SalonDetailsPage = () => {
                     </div>
                   );
                 } else {
-                  console.log('❌ NOT RENDERING 3D RING - need 2+ images, got:', servicesWithImages.length);
-                  console.log('❌ Available images:', servicesWithImages);
-                  return null;
-                }
-              })()}
+                  // Fallback to grid if less than 2 services with images
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {services.map((service) => (
+                        <Card key={service._id} className="border border-gray-200">
+                          <CardContent className="p-4">
+                            {/* Service Image */}
+                            <div 
+                              className="h-64 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity relative group"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                if (service.image) {
+                                  setSelectedServiceImage(service.image)
+                                  setShowImageModal(true)
+                                }
+                              }}
+                              title="Click to view full size"
+                              style={{ pointerEvents: 'auto' }}
+                            >
+                              <div 
+                                className="w-full h-full"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                }}
+                              >
+                                <SafeImage
+                                  src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
+                                  alt={service.name}
+                                  className="w-full h-full object-cover pointer-events-none"
+                                  fallbackType="service"
+                                />
+                              </div>
+                              <div 
+                                className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none"
+                              >
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
+                                  Click to enlarge
+                                </div>
+                              </div>
+                            </div>
 
-              {/* Services Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {services.map((service) => (
-                  <Card key={service._id} className="border border-gray-200">
-                    <CardContent className="p-4">
-                      {/* Service Image */}
-                      <div 
-                        className="h-64 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity relative group"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          console.log('🖼️ Image container clicked!', { 
-                            hasImage: !!service.image, 
-                            image: service.image,
-                            serviceName: service.name 
-                          })
-                          if (service.image) {
-                            console.log('🖼️ Setting image modal state')
-                            setSelectedServiceImage(service.image)
-                            setShowImageModal(true)
-                            console.log('🖼️ Modal should now be open')
-                          } else {
-                            console.log('⚠️ No image to display')
-                          }
-                        }}
-                        title="Click to view full size"
-                        style={{ pointerEvents: 'auto' }}
-                      >
-                        <div 
-                          className="w-full h-full"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            console.log('🖼️ Inner div clicked')
-                          }}
-                        >
-                          <SafeImage
-                            src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
-                            alt={service.name}
-                            className="w-full h-full object-cover pointer-events-none"
-                            fallbackType="service"
-                          />
-                        </div>
-                        <div 
-                          className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none"
-                        >
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
-                            Click to enlarge
-                          </div>
-                        </div>
-                      </div>
+                            <div className="mb-2 text-center">
+                              <h4 className="mb-2">
+                                <ShinyText
+                                  size="2xl"
+                                  weight="bold"
+                                  baseColor="#667eea"
+                                  shineColor="#764ba2"
+                                  speed={3}
+                                  intensity={1}
+                                  direction="left-to-right"
+                                  shineWidth={30}
+                                  className="tracking-wide"
+                                >
+                                  {capitalizeFirst(service.name)}
+                                </ShinyText>
+                              </h4>
+                              <div className="flex justify-center">
+                                <Badge variant="default" size="sm">{service.category}</Badge>
+                              </div>
+                            </div>
 
-                      <div className="mb-2 text-center">
-                        <h4 className="mb-2">
-                          <ShinyText
-                            size="2xl"
-                            weight="bold"
-                            baseColor="#667eea"
-                            shineColor="#764ba2"
-                            speed={3}
-                            intensity={1}
-                            direction="left-to-right"
-                            shineWidth={30}
-                            className="tracking-wide"
-                          >
-                            {capitalizeFirst(service.name)}
-                          </ShinyText>
-                        </h4>
-                        <div className="flex justify-center">
-                          <Badge variant="default" size="sm">{service.category}</Badge>
-                        </div>
-                      </div>
+                            {service.description && (
+                              <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                                {service.description}
+                              </p>
+                            )}
 
-                      {service.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                          {service.description}
-                        </p>
-                      )}
+                            <div className="flex items-center justify-between mb-3 text-sm">
+                              <div className="flex items-center gap-1 text-gray-600">
+                                <Clock size={16} />
+                                <span>{formatDuration(service.duration)}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-green-600 font-semibold">
+                                <DollarSign size={16} />
+                                <span>{formatCurrency(service.price)}</span>
+                              </div>
+                            </div>
 
-                      <div className="flex items-center justify-between mb-3 text-sm">
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <Clock size={16} />
-                        <span>{formatDuration(service.duration)}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-green-600 font-semibold">
-                        <DollarSign size={16} />
-                        <span>{formatCurrency(service.price)}</span>
-                      </div>
-                    </div>
-
-                    <Button
-                      size="sm"
-                      onClick={() => handleBookService(service._id)}
-                      fullWidth
-                    >
-                      <Calendar size={16} />
-                      Book Now
-                    </Button>
-                  </CardContent>
-                </Card>
+                            <Button
+                              size="sm"
+                              onClick={() => handleBookService(service._id)}
+                              fullWidth
+                            >
+                              <Calendar size={16} />
+                              Book Now
+                            </Button>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
                   );
