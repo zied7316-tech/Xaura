@@ -343,9 +343,13 @@ const createNotification = async (notificationData) => {
         ? new mongoose.Types.ObjectId(appointmentId)
         : appointmentId;
       
-      // For clients: ONLY ONE notification ever (no reminders, even if read)
+      // ============================================
+      // CLIENT NOTIFICATIONS: SEPARATE SYSTEM
+      // ============================================
+      // Clients get ONLY ONE notification ever, NO REMINDERS
+      // Check happens FIRST, before any creation attempt
       if (isClientNotification) {
-        // First, clean up any existing duplicates (keep only the oldest)
+        // STEP 1: Clean up any existing duplicates (keep only the oldest)
         const allClientNotifications = await Notification.find({
           userId: userId,
           relatedAppointment: appointmentId,
@@ -368,7 +372,7 @@ const createNotification = async (notificationData) => {
           });
         }
         
-        // Check for ANY existing notification (read or unread) - clients get only ONE ever
+        // STEP 2: Check for ANY existing notification (read or unread) - STRICT CHECK
         const existingNotification = await Notification.findOne({
           userId: userId,
           relatedAppointment: appointmentId,
@@ -376,18 +380,31 @@ const createNotification = async (notificationData) => {
         });
         
         if (existingNotification) {
-          console.log('✅ Client notification already exists (only one ever, no reminders):', {
+          console.log('🚫 CLIENT: Notification already exists - NO REMINDER (only one ever):', {
             userId: userId.toString(),
             type: notificationData.type,
             appointmentId: appointmentId.toString(),
             notificationId: existingNotification._id.toString(),
-            wasRead: existingNotification.isRead
+            wasRead: existingNotification.isRead,
+            createdAt: existingNotification.createdAt
           });
           
-          // Don't send push notification for existing notification
+          // CRITICAL: Return immediately - DO NOT create new notification
+          // DO NOT send push notification for existing notification
           return existingNotification;
         }
+        
+        // STEP 3: If no existing notification, proceed to create (will be caught by unique index if race condition)
+        console.log('✅ CLIENT: No existing notification, will create new one:', {
+          userId: userId.toString(),
+          type: notificationData.type,
+          appointmentId: appointmentId.toString()
+        });
       } else {
+        // ============================================
+        // WORKER/OWNER NOTIFICATIONS: SEPARATE SYSTEM
+        // ============================================
+        // Workers/Owners get REMINDERS until they act
         // For workers/owners: ONLY prevent duplicates if they have an UNREAD notification
         // If they read it but haven't acted, they should get a REMINDER (new notification)
         const query = {
@@ -486,11 +503,15 @@ const createNotification = async (notificationData) => {
         });
         
         if (existingNotification) {
-          console.log('✅ Duplicate prevented by unique index (race condition handled):', {
+          const isClientNotif = notificationData.type === 'appointment_confirmed' || notificationData.type === 'appointment_cancelled';
+          console.log(isClientNotif 
+            ? '🚫 CLIENT: Duplicate prevented by unique index (race condition) - NO REMINDER'
+            : '✅ Duplicate prevented by unique index (race condition handled):', {
             userId: userId.toString(),
             type: notificationData.type,
             appointmentId: appointmentId.toString(),
-            notificationId: existingNotification._id.toString()
+            notificationId: existingNotification._id.toString(),
+            isClientNotification: isClientNotif
           });
           return existingNotification;
         }
