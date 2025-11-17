@@ -532,6 +532,30 @@ const SalonDetailsPage = () => {
         }}
         worker={selectedWorkerForDetails}
       />
+
+      {/* Service Image Modal */}
+      <Modal
+        isOpen={showImageModal}
+        onClose={() => {
+          setShowImageModal(false)
+          setSelectedServiceImage(null)
+        }}
+        size="xl"
+        title=""
+      >
+        <div className="p-0">
+          {selectedServiceImage && (
+            <img
+              src={uploadService.getImageUrl(selectedServiceImage, { width: 1080, height: 1080 })}
+              alt="Service"
+              className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+              onError={(e) => {
+                e.target.src = uploadService.getImageUrl(selectedServiceImage)
+              }}
+            />
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }
