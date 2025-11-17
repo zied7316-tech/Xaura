@@ -7,6 +7,7 @@ import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import SafeImage from '../../components/ui/SafeImage'
+import Modal from '../../components/ui/Modal'
 import ThreeDImageRing from '../../components/ui/ThreeDImageRing'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import ReviewDisplay from '../../components/reviews/ReviewDisplay'
@@ -29,6 +30,8 @@ const SalonDetailsPage = () => {
   const [showWorkerModal, setShowWorkerModal] = useState(false)
   const [workerReviews, setWorkerReviews] = useState({}) // { workerId: { reviews, stats } }
   const [loadingReviews, setLoadingReviews] = useState({})
+  const [selectedServiceImage, setSelectedServiceImage] = useState(null)
+  const [showImageModal, setShowImageModal] = useState(false)
 
   useEffect(() => {
     loadSalonDetails()
@@ -355,11 +358,19 @@ const SalonDetailsPage = () => {
                   <Card key={service._id} className="border border-gray-200">
                     <CardContent className="p-4">
                       {/* Service Image */}
-                      <div className="h-32 w-full overflow-hidden rounded-lg mb-3">
+                      <div 
+                        className="h-32 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => {
+                          if (service.image) {
+                            setSelectedServiceImage(service.image)
+                            setShowImageModal(true)
+                          }
+                        }}
+                      >
                         <SafeImage
-                          src={service.image ? uploadService.getImageUrl(service.image) : null}
+                          src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
                           alt={service.name}
-                          className="w-full h-full"
+                          className="w-full h-full object-cover"
                           fallbackType="service"
                         />
                       </div>

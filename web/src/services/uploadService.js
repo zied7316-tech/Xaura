@@ -140,13 +140,29 @@ export const uploadService = {
 
   // Get image URL (for display)
   // Handles both Cloudinary URLs (https://) and local storage paths (/uploads/...)
-  getImageUrl: (imagePath) => {
+  getImageUrl: (imagePath, options = {}) => {
     if (!imagePath) {
       return null
     }
     
-    // If it's already a full URL (Cloudinary or external), return as-is
+    // If it's already a full URL (Cloudinary or external)
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // If it's a Cloudinary URL and we want specific dimensions
+      if (imagePath.includes('res.cloudinary.com') && (options.width || options.height)) {
+        const width = options.width || 1080
+        const height = options.height || 1080
+        // Insert transformation before the version number
+        // Format: https://res.cloudinary.com/.../image/upload/v123/... -> https://res.cloudinary.com/.../image/upload/w_1080,h_1080,c_fill/v123/...
+        const uploadIndex = imagePath.indexOf('/image/upload/')
+        if (uploadIndex !== -1) {
+          const beforeUpload = imagePath.substring(0, uploadIndex + '/image/upload'.length)
+          const afterUpload = imagePath.substring(uploadIndex + '/image/upload'.length + 1)
+          // Check if there's already a transformation
+          if (!afterUpload.startsWith('w_') && !afterUpload.startsWith('v')) {
+            return `${beforeUpload}/w_${width},h_${height},c_fill/${afterUpload}`
+          }
+        }
+      }
       return imagePath
     }
     
