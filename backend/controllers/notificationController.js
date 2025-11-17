@@ -322,14 +322,23 @@ const createNotification = async (notificationData) => {
         notificationData.type === 'appointment_confirmed' || 
         notificationData.type === 'appointment_cancelled';
       
+      // Ensure ObjectId conversion for proper comparison
+      const mongoose = require('mongoose');
+      const userId = mongoose.Types.ObjectId.isValid(notificationData.userId) 
+        ? new mongoose.Types.ObjectId(notificationData.userId)
+        : notificationData.userId;
+      const appointmentId = mongoose.Types.ObjectId.isValid(notificationData.relatedAppointment)
+        ? new mongoose.Types.ObjectId(notificationData.relatedAppointment)
+        : notificationData.relatedAppointment;
+      
       const query = {
-        userId: notificationData.userId,
-        relatedAppointment: notificationData.relatedAppointment,
+        userId: userId,
+        relatedAppointment: appointmentId,
         type: notificationData.type
       };
       
-      // For clients: check ANY notification (read or unread)
-      // For workers/owners: check only unread notifications
+      // For clients: check ANY notification (read or unread) - only one notification ever
+      // For workers/owners: check only unread notifications - they get reminders until action
       if (!isClientNotification) {
         query.isRead = false;
       }
@@ -338,15 +347,23 @@ const createNotification = async (notificationData) => {
 
       if (existingNotification) {
         // Return existing notification instead of creating duplicate
-        console.log('Duplicate notification prevented:', {
-          userId: notificationData.userId,
+        console.log('✅ Duplicate notification prevented:', {
+          userId: userId.toString(),
           type: notificationData.type,
-          appointmentId: notificationData.relatedAppointment,
+          appointmentId: appointmentId.toString(),
           isClientNotification,
-          wasRead: existingNotification.isRead
+          wasRead: existingNotification.isRead,
+          existingNotificationId: existingNotification._id.toString()
         });
         
         return existingNotification;
+      } else {
+        console.log('📝 Creating new notification:', {
+          userId: userId.toString(),
+          type: notificationData.type,
+          appointmentId: appointmentId.toString(),
+          isClientNotification
+        });
       }
     }
 
