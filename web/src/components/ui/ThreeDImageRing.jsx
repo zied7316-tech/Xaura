@@ -1,5 +1,7 @@
+"use client";
+
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import { motion, AnimatePresence, useMotionValue, animate, easeOut } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, easeOut, animate } from "framer-motion";
 import { cn } from "../../utils/cn";
 
 export function ThreeDImageRing({
@@ -23,18 +25,6 @@ export function ThreeDImageRing({
   inertiaTimeConstant = 300,
   inertiaVelocityMultiplier = 20,
 }) {
-  console.log('🎨 ThreeDImageRing component rendered:', {
-    imagesCount: images?.length,
-    images: images,
-    width,
-    perspective
-  });
-
-  if (!images || images.length === 0) {
-    console.log('❌ ThreeDImageRing: No images provided');
-    return null;
-  }
-
   const containerRef = useRef(null);
   const ringRef = useRef(null);
   const rotationY = useMotionValue(initialRotation);
@@ -161,10 +151,9 @@ export function ThreeDImageRing({
     },
   };
 
-  console.log('✅ ThreeDImageRing: Rendering with', images.length, 'images');
-  console.log('✅ ThreeDImageRing: showImages =', showImages);
-  console.log('✅ ThreeDImageRing: angle =', angle);
-  console.log('✅ ThreeDImageRing: currentScale =', currentScale);
+  if (!images || images.length === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -174,11 +163,9 @@ export function ThreeDImageRing({
         containerClassName
       )}
       style={{
-        backgroundColor: backgroundColor || 'transparent',
+        backgroundColor,
         transform: `scale(${currentScale})`,
         transformOrigin: "center center",
-        width: '100%',
-        height: '100%',
       }}
       onMouseDown={draggable ? handleDragStart : undefined}
       onTouchStart={draggable ? handleDragStart : undefined}
@@ -207,10 +194,7 @@ export function ThreeDImageRing({
           }}
         >
           <AnimatePresence>
-            {showImages && images.map((imageUrl, index) => {
-              const transformValue = `rotateY(${index * -angle}deg) translateZ(${-imageDistance * currentScale}px)`;
-              console.log(`🖼️ Image ${index}:`, { imageUrl, transform: transformValue, angle: index * -angle });
-              return (
+            {showImages && images.map((imageUrl, index) => (
               <motion.div
                 key={index}
                 className={cn(
@@ -223,10 +207,10 @@ export function ThreeDImageRing({
                   backgroundSize: "cover",
                   backgroundRepeat: "no-repeat",
                   backfaceVisibility: "hidden",
-                  transform: transformValue,
+                  rotateY: index * -angle,
+                  z: -imageDistance * currentScale,
                   transformOrigin: `50% 50% ${imageDistance * currentScale}px`,
                   backgroundPosition: getBgPos(index, currentRotationY.current, currentScale),
-                  opacity: 1, // Ensure images are visible
                 }}
                 initial="hidden"
                 animate="visible"
@@ -260,8 +244,7 @@ export function ThreeDImageRing({
                   }
                 }}
               />
-            );
-            })}
+            ))}
           </AnimatePresence>
         </motion.div>
       </div>
