@@ -467,9 +467,22 @@ const NotificationBell = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              const appointmentId = notification.relatedAppointment?._id || notification.relatedAppointment
+                              // Extract appointment ID - handle both object and string formats
+                              let appointmentId = null
+                              if (notification.relatedAppointment) {
+                                if (typeof notification.relatedAppointment === 'string') {
+                                  appointmentId = notification.relatedAppointment
+                                } else if (notification.relatedAppointment._id) {
+                                  appointmentId = typeof notification.relatedAppointment._id === 'string' 
+                                    ? notification.relatedAppointment._id 
+                                    : notification.relatedAppointment._id.toString()
+                                }
+                              }
                               if (appointmentId) {
                                 handleAcceptAppointment(appointmentId, e)
+                              } else {
+                                console.error('Could not extract appointment ID from notification:', notification)
+                                toast.error('Invalid appointment ID')
                               }
                             }}
                             disabled={processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment)}
@@ -481,9 +494,22 @@ const NotificationBell = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              const appointmentId = notification.relatedAppointment?._id || notification.relatedAppointment
+                              // Extract appointment ID - handle both object and string formats
+                              let appointmentId = null
+                              if (notification.relatedAppointment) {
+                                if (typeof notification.relatedAppointment === 'string') {
+                                  appointmentId = notification.relatedAppointment
+                                } else if (notification.relatedAppointment._id) {
+                                  appointmentId = typeof notification.relatedAppointment._id === 'string' 
+                                    ? notification.relatedAppointment._id 
+                                    : notification.relatedAppointment._id.toString()
+                                }
+                              }
                               if (appointmentId) {
                                 handleRejectAppointment(appointmentId, e)
+                              } else {
+                                console.error('Could not extract appointment ID from notification:', notification)
+                                toast.error('Invalid appointment ID')
                               }
                             }}
                             disabled={processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment)}

@@ -29,7 +29,14 @@ const acceptAppointment = async (req, res, next) => {
     }
 
     // Allow both worker and owner to accept
-    const isWorker = appointment.workerId && appointment.workerId.toString() === req.user.id;
+    // Handle both populated (object with _id) and non-populated (ObjectId) workerId
+    let isWorker = false
+    if (appointment.workerId) {
+      const workerId = appointment.workerId._id 
+        ? (appointment.workerId._id.toString ? appointment.workerId._id.toString() : appointment.workerId._id)
+        : (appointment.workerId.toString ? appointment.workerId.toString() : appointment.workerId)
+      isWorker = workerId === req.user.id
+    }
     
     // Check if user is owner - handle both populated and non-populated salonId
     let isOwner = false;
@@ -112,7 +119,14 @@ const rejectAppointment = async (req, res, next) => {
     }
 
     // Allow both worker and owner to reject
-    const isWorker = appointment.workerId && appointment.workerId.toString() === req.user.id;
+    // Handle both populated (object with _id) and non-populated (ObjectId) workerId
+    let isWorker = false
+    if (appointment.workerId) {
+      const workerId = appointment.workerId._id 
+        ? (appointment.workerId._id.toString ? appointment.workerId._id.toString() : appointment.workerId._id)
+        : (appointment.workerId.toString ? appointment.workerId.toString() : appointment.workerId)
+      isWorker = workerId === req.user.id
+    }
     
     // Check if user is owner - handle both populated and non-populated salonId
     let isOwner = false;
