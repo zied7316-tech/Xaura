@@ -99,8 +99,8 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    // Check if service has salonId
-    if (!service.salonId) {
+    // Check if first service has salonId
+    if (!firstService.salonId) {
       return res.status(400).json({
         success: false,
         message: 'Service is not assigned to a salon'

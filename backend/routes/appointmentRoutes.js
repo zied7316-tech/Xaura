@@ -13,8 +13,14 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 // Validation rules
 const createAppointmentValidation = [
   body('workerId').notEmpty().withMessage('Worker ID is required'),
-  body('serviceId').notEmpty().withMessage('Service ID is required'),
-  body('dateTime').isISO8601().withMessage('Valid date and time is required')
+  body('dateTime').isISO8601().withMessage('Valid date and time is required'),
+  // Either serviceId OR services array is required
+  body('serviceId').optional().notEmpty().withMessage('Service ID cannot be empty if provided'),
+  body('services').optional().isArray({ min: 1 }).withMessage('Services must be a non-empty array if provided'),
+  body('services.*.serviceId').optional().notEmpty().withMessage('Each service must have a serviceId'),
+  body('services.*.name').optional().isString().withMessage('Each service must have a name'),
+  body('services.*.price').optional().isNumeric().withMessage('Each service must have a numeric price'),
+  body('services.*.duration').optional().isNumeric().withMessage('Each service must have a numeric duration')
 ];
 
 const updateStatusValidation = [
