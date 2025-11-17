@@ -128,26 +128,44 @@ const ChatPage = () => {
 
   const handleSendMessage = async (chatId) => {
     const message = newMessages[chatId]?.trim();
-    if (!message) return;
+    if (!message) {
+      toast.error('Please enter a message');
+      return;
+    }
+
+    if (!chatId) {
+      toast.error('Chat ID is missing');
+      return;
+    }
 
     try {
       setSending(prev => ({ ...prev, [chatId]: true }));
-      await chatService.sendMessage(chatId, message);
+      console.log('Sending message to chat:', chatId, 'Message:', message);
+      
+      const response = await chatService.sendMessage(chatId, message);
+      console.log('Message sent successfully:', response);
+      
+      // Clear input
       setNewMessages(prev => ({ ...prev, [chatId]: '' }));
+      
       // Refresh messages
       await fetchMessages(chatId, true);
+      
       // Update chat list with new last message
-      fetchChats();
+      await fetchChats();
+      
+      toast.success('Message sent!');
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to send message';
+      toast.error(errorMessage);
     } finally {
       setSending(prev => ({ ...prev, [chatId]: false }));
     }
   };
 
   // Initialize particles for a specific chat
-  const initializeParticles = (chatId: string | null) => {
+  const initializeParticles = (chatId) => {
     if (!chatId) return;
     const particlesElement = document.getElementById(`js-particles-${chatId}`);
     if (!particlesElement || !window.particlesJS) return;
@@ -532,14 +550,30 @@ const ChatPage = () => {
                           onChange={(e) =>
                             setNewMessages(prev => ({ ...prev, [chat._id]: e.target.value }))
                           }
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(chat._id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (newMessage.trim() && !isSending) {
+                                handleSendMessage(chat._id);
+                              }
+                            }
+                          }}
                         />
                         <button
-                          onClick={() => handleSendMessage(chat._id)}
+                          onClick={() => {
+                            if (!isSending && newMessage.trim()) {
+                              handleSendMessage(chat._id);
+                            }
+                          }}
                           disabled={isSending || !newMessage.trim()}
-                          className="px-6 py-3 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center"
+                          className="px-6 py-3 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center min-w-[60px]"
+                          title={isSending ? 'Sending...' : 'Send message'}
                         >
-                          <Send className="w-5 h-5" />
+                          {isSending ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Send className="w-5 h-5" />
+                          )}
                         </button>
                       </div>
                     </div>
