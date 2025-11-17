@@ -70,7 +70,10 @@ import Test3D from './Test3D'
 function App() {
   const { user, loading } = useAuth()
 
-  if (loading) {
+  // Don't block Test3D page with loading state
+  const isTest3DPage = window.location.pathname === '/'
+  
+  if (loading && !isTest3DPage) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
