@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { appointmentService } from '../../services/appointmentService'
 import { appointmentManagementService } from '../../services/appointmentManagementService'
 import { workerService } from '../../services/workerService'
 import { uploadService } from '../../services/uploadService'
+import chatService from '../../services/chatService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
 import Modal from '../../components/ui/Modal'
 import ReviewModal from '../../components/reviews/ReviewModal'
-import { Calendar, Clock, User, Store, Phone, Mail, Check, X, RefreshCw, Star } from 'lucide-react'
+import { Calendar, Clock, User, Store, Phone, Mail, Check, X, RefreshCw, Star, MessageSquare } from 'lucide-react'
 import { formatDate, formatTime, formatCurrency } from '../../utils/helpers'
 import { celebrateSuccess } from '../../utils/confetti'
 import toast from 'react-hot-toast'
 
 const AppointmentsPage = () => {
   const { user, isClient, isOwner, salon } = useAuth()
+  const navigate = useNavigate()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -26,6 +29,7 @@ const AppointmentsPage = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [selectedWorker, setSelectedWorker] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [messagingWorker, setMessagingWorker] = useState(null)
 
   useEffect(() => {
     loadAppointments()
@@ -141,6 +145,31 @@ const AppointmentsPage = () => {
   const handleReviewSubmitted = () => {
     loadAppointments()
     celebrateSuccess()
+  }
+
+  const handleMessageWorker = async (appointment) => {
+    if (!appointment.workerId?._id) {
+      toast.error('Worker information not available')
+      return
+    }
+
+    setMessagingWorker(appointment._id)
+    try {
+      // Get or create chat with the worker
+      const chatData = await chatService.getOrCreateChat(
+        appointment.workerId._id,
+        null,
+        appointment._id
+      )
+      
+      // Navigate to messages page with chat ID
+      navigate(`/messages?chatId=${chatData.data._id}`)
+    } catch (error) {
+      console.error('Error creating chat:', error)
+      toast.error('Failed to start conversation with worker')
+    } finally {
+      setMessagingWorker(null)
+    }
   }
 
   const getStatusBadge = (status) => {
@@ -381,6 +410,21 @@ const AppointmentsPage = () => {
                         {formatCurrency(apt.servicePriceAtBooking)}
                       </p>
                       {getStatusBadge(apt.status)}
+                      
+                      {/* Message Worker Button - Only for clients with confirmed appointments */}
+                      {isClient && apt.workerId?._id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMessageWorker(apt)}
+                          disabled={messagingWorker === apt._id}
+                          loading={messagingWorker === apt._id}
+                          className="mt-3 w-full"
+                        >
+                          <MessageSquare size={16} />
+                          Message Worker
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

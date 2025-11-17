@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import chatService from '../../services/chatService';
@@ -7,22 +8,13 @@ import { MessageSquare, Send, User } from 'lucide-react';
 
 const ChatPage = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-
-  useEffect(() => {
-    fetchChats();
-  }, []);
-
-  useEffect(() => {
-    if (selectedChat) {
-      fetchMessages();
-    }
-  }, [selectedChat]);
 
   const fetchChats = async () => {
     try {
@@ -36,6 +28,49 @@ const ChatPage = () => {
       setLoading(false);
     }
   };
+
+  const fetchChatById = async (chatId) => {
+    try {
+      const data = await chatService.getChat(chatId);
+      if (data.data) {
+        setSelectedChat(data.data);
+        // Refresh chats list to include this chat
+        fetchChats();
+      }
+    } catch (error) {
+      console.error('Error fetching chat:', error);
+      toast.error('Chat not found');
+    }
+  };
+
+  useEffect(() => {
+    fetchChats();
+  }, []);
+
+  // Auto-select chat from URL parameter
+  useEffect(() => {
+    const chatId = searchParams.get('chatId');
+    if (chatId) {
+      if (chats.length > 0) {
+        const chat = chats.find(c => c._id === chatId);
+        if (chat) {
+          setSelectedChat(chat);
+        } else {
+          // Chat not in list yet, fetch it directly
+          fetchChatById(chatId);
+        }
+      } else if (!loading) {
+        // Chats loaded but not found, fetch it directly
+        fetchChatById(chatId);
+      }
+    }
+  }, [searchParams, chats, loading]);
+
+  useEffect(() => {
+    if (selectedChat) {
+      fetchMessages();
+    }
+  }, [selectedChat]);
 
   const fetchMessages = async () => {
     try {
