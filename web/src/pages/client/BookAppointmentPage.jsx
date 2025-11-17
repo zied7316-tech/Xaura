@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import toast from 'react-hot-toast'
+import ShinyText from '../../components/ui/ShinyText'
 
 // Capitalize first letter of service name
 const capitalizeFirst = (str) => {
@@ -263,14 +264,20 @@ const BookAppointmentPage = () => {
                     
                     <div className="flex-1">
                       <div className="text-center mb-2">
-                        <h3 className="text-2xl font-bold text-gray-900 tracking-wide" style={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}>
-                          {capitalizeFirst(service.name)}
+                        <h3>
+                          <ShinyText
+                            size="2xl"
+                            weight="bold"
+                            baseColor="#667eea"
+                            shineColor="#764ba2"
+                            speed={3}
+                            intensity={1}
+                            direction="left-to-right"
+                            shineWidth={30}
+                            className="tracking-wide"
+                          >
+                            {capitalizeFirst(service.name)}
+                          </ShinyText>
                         </h3>
                         {isSelected && (
                           <span className="text-primary-600 font-bold text-xl">✓</span>
@@ -325,13 +332,19 @@ const BookAppointmentPage = () => {
                 <p className="text-sm text-gray-600">Selected Service{(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? 's' : ''}:</p>
                 {(selectedServices.length > 0 ? selectedServices : [selectedService]).map((service, idx) => (
                   <div key={service._id || idx} className="mb-2 text-center">
-                    <p className="text-xl font-bold text-gray-900 mb-1" style={{
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text'
-                    }}>
-                      {capitalizeFirst(service.name)}
+                    <p className="mb-1">
+                      <ShinyText
+                        size="xl"
+                        weight="bold"
+                        baseColor="#667eea"
+                        shineColor="#764ba2"
+                        speed={3}
+                        intensity={1}
+                        direction="left-to-right"
+                        shineWidth={30}
+                      >
+                        {capitalizeFirst(service.name)}
+                      </ShinyText>
                     </p>
                     <p className="text-sm text-gray-600">
                       Duration: {formatDuration(service.duration)} | Price: {formatCurrency(service.price)}
@@ -611,14 +624,18 @@ const BookAppointmentPage = () => {
               {(selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])).map((service, idx) => (
                 <div key={service._id || idx} className="text-center py-2">
                   <span className="text-gray-600 text-sm block mb-1">Service {selectedServices.length > 1 ? idx + 1 : ''}</span>
-                  <span className="text-xl font-bold" style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
-                  }}>
+                  <ShinyText
+                    size="xl"
+                    weight="bold"
+                    baseColor="#667eea"
+                    shineColor="#764ba2"
+                    speed={3}
+                    intensity={1}
+                    direction="left-to-right"
+                    shineWidth={30}
+                  >
                     {capitalizeFirst(service.name)}
-                  </span>
+                  </ShinyText>
                 </div>
               ))}
               {selectedServices.length > 1 && (

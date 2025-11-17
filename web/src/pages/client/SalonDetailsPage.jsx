@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import toast from 'react-hot-toast'
+import ShinyText from '../../components/ui/ShinyText'
 
 // Capitalize first letter of service name
 const capitalizeFirst = (str) => {
@@ -379,14 +380,20 @@ const SalonDetailsPage = () => {
                       </div>
 
                       <div className="mb-2 text-center">
-                        <h4 className="text-2xl font-bold mb-2 tracking-wide" style={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}>
-                          {capitalizeFirst(service.name)}
+                        <h4 className="mb-2">
+                          <ShinyText
+                            size="2xl"
+                            weight="bold"
+                            baseColor="#667eea"
+                            shineColor="#764ba2"
+                            speed={3}
+                            intensity={1}
+                            direction="left-to-right"
+                            shineWidth={30}
+                            className="tracking-wide"
+                          >
+                            {capitalizeFirst(service.name)}
+                          </ShinyText>
                         </h4>
                         <div className="flex justify-center">
                           <Badge variant="default" size="sm">{service.category}</Badge>
