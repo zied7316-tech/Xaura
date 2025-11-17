@@ -102,7 +102,8 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<Test3D />} />
+      <Route path="/test-3d" element={<Test3D />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterPage />} />
