@@ -128,7 +128,13 @@ const SalonDetailsPage = () => {
     )
   }
 
-  const { salon, services, workers } = salonData
+  const { salon, services = [], workers = [] } = salonData || {}
+
+  console.log('📋 SalonDetailsPage - Services data:', {
+    salonDataExists: !!salonData,
+    servicesCount: services?.length,
+    services: services
+  });
 
   return (
     <div className="space-y-6">
@@ -145,8 +151,8 @@ const SalonDetailsPage = () => {
             {/* Logo */}
             <div className="lg:col-span-1">
               <SafeImage
-                src={salon.logo ? uploadService.getImageUrl(salon.logo) : null}
-                alt={salon.name}
+                src={salon?.logo ? uploadService.getImageUrl(salon.logo) : null}
+                alt={salon?.name || 'Salon'}
                 className="w-full h-64 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
                 fallbackType="salon"
               />
@@ -154,9 +160,9 @@ const SalonDetailsPage = () => {
 
             {/* Info */}
             <div className="lg:col-span-2 p-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{salon.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">{salon?.name || 'Salon'}</h1>
               
-              {salon.description && (
+              {salon?.description && (
                 <p className="text-gray-600 mb-6">{salon.description}</p>
               )}
 
@@ -237,21 +243,37 @@ const SalonDetailsPage = () => {
             <>
               {/* 3D Image Ring - Show when there are services with images */}
               {useMemo(() => {
+                if (!services || !Array.isArray(services) || services.length === 0) {
+                  console.log('❌ No services array available');
+                  return null;
+                }
+
                 console.log('🔍 Checking services for 3D ring:', {
                   totalServices: services.length,
-                  services: services.map(s => ({ id: s._id, name: s.name, hasImage: !!s.image, image: s.image }))
+                  services: services.map(s => ({ 
+                    id: s?._id, 
+                    name: s?.name, 
+                    hasImage: !!(s?.image), 
+                    image: s?.image 
+                  }))
                 });
                 
                 const servicesWithImages = services
                   .filter(service => {
-                    const hasImage = service && service.image && service.image.trim() !== '';
-                    console.log(`Service ${service?.name}: hasImage=${hasImage}, image="${service?.image}"`);
+                    if (!service) return false;
+                    const hasImage = service.image && String(service.image).trim() !== '';
+                    console.log(`Service "${service?.name}": hasImage=${hasImage}, image="${service?.image}"`);
                     return hasImage;
                   })
                   .map(service => {
-                    const url = uploadService.getImageUrl(service.image);
-                    console.log(`Service ${service.name}: imageUrl="${url}"`);
-                    return url;
+                    try {
+                      const url = uploadService.getImageUrl(service.image);
+                      console.log(`Service "${service.name}": imageUrl="${url}"`);
+                      return url;
+                    } catch (error) {
+                      console.error(`Error getting image URL for ${service.name}:`, error);
+                      return null;
+                    }
                   })
                   .filter(url => url && url !== null && url !== '');
                 
