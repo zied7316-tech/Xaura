@@ -36,7 +36,14 @@ export const notificationService = {
 
   // Mark notifications as read by appointment ID
   markNotificationsReadByAppointment: async (appointmentId) => {
-    const response = await api.put(`/notifications/appointment/${appointmentId}/read`)
-    return response // API interceptor already returns response.data
+    console.log('Marking notifications as read for appointment:', appointmentId)
+    try {
+      const response = await api.put(`/notifications/appointment/${appointmentId}/read`)
+      console.log('Mark notifications response:', response)
+      return response // API interceptor already returns response.data
+    } catch (error) {
+      console.error('Error marking notifications as read:', error)
+      throw error
+    }
   }
 }
