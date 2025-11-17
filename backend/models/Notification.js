@@ -88,8 +88,19 @@ notificationSchema.index({ salonId: 1, createdAt: -1 });
 // Compound indexes for duplicate prevention:
 // 1. For workers/owners: check existing unread notifications (with isRead filter)
 notificationSchema.index({ userId: 1, relatedAppointment: 1, type: 1, isRead: 1 });
-// 2. For clients: check ANY notification (read or unread) - only one ever
-notificationSchema.index({ userId: 1, relatedAppointment: 1, type: 1 });
+// 2. UNIQUE index for client notifications (appointment_confirmed/cancelled) - prevents duplicates at DB level
+// This ensures clients get ONLY ONE notification ever, even with race conditions
+notificationSchema.index(
+  { userId: 1, relatedAppointment: 1, type: 1 },
+  { 
+    unique: true,
+    partialFilterExpression: { 
+      type: { $in: ['appointment_confirmed', 'appointment_cancelled'] },
+      relatedAppointment: { $exists: true, $ne: null }
+    },
+    name: 'unique_client_notification'
+  }
+);
 
 // Auto-delete notifications older than 30 days
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
