@@ -45,6 +45,57 @@
     @apply shadow-md active:shadow-sm;
   }
   
+  /* Animated gradient border - only for Confirm Booking button */
+  .btn.btn-confirm-booking,
+  .btn-primary.btn-confirm-booking {
+    @apply text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply shadow-md active:shadow-sm;
+    position: relative;
+    background: linear-gradient(135deg, #c920d0 0%, #a716a8 100%) !important;
+    border: 3px solid transparent !important;
+    background-clip: padding-box;
+    overflow: visible;
+    isolation: isolate;
+  }
+  
+  .btn.btn-confirm-booking > *,
+  .btn-primary.btn-confirm-booking > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .btn.btn-confirm-booking::before,
+  .btn-primary.btn-confirm-booking::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: linear-gradient(
+      45deg,
+      #c920d0,
+      #e13eef,
+      #ee75f8,
+      #a716a8,
+      #8a1589,
+      #c920d0
+    );
+    background-size: 300% 300%;
+    border-radius: inherit;
+    z-index: -1;
+    animation: gradient-border 3s ease infinite;
+  }
+  
+  @keyframes gradient-border {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+  
   .btn-secondary {
     @apply bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500;
   }

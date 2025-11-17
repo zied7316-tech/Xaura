@@ -13,7 +13,7 @@ const getMySalons = async (req, res, next) => {
     const mySalons = await SalonClient.find({ clientId: req.user.id })
       .populate({
         path: 'salonId',
-        select: 'name description logo phone email address'
+        select: 'name description logo phone email address qrCode'
       })
       .sort({ joinedAt: -1 });
 

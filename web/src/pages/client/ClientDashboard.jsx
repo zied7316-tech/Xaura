@@ -6,8 +6,9 @@ import { uploadService } from '../../services/uploadService'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
-import { Calendar, Store, MapPin, Phone, ArrowRight, Plus, Crown, Sparkles, Star, DollarSign } from 'lucide-react'
+import { Calendar, Store, MapPin, Phone, Plus, Crown, Sparkles, Star, Share2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { QRCodeSVG } from 'qrcode.react'
 
 const ClientDashboard = () => {
   const { user } = useAuth()
@@ -15,6 +16,7 @@ const ClientDashboard = () => {
   const [mySalons, setMySalons] = useState([])
   const [loading, setLoading] = useState(true)
   const [hasVIPStatus, setHasVIPStatus] = useState(false)
+  const [selectedSalonForQR, setSelectedSalonForQR] = useState(null)
 
   useEffect(() => {
     loadMySalons()
@@ -37,6 +39,55 @@ const ClientDashboard = () => {
 
   const handleViewSalon = (salonId) => {
     navigate(`/salon/${salonId}`)
+  }
+
+  const handleShareQR = (salon) => {
+    setSelectedSalonForQR(salon)
+  }
+
+  const handleCloseQRModal = () => {
+    setSelectedSalonForQR(null)
+  }
+
+  const handleCopyQRCode = async (qrCode) => {
+    try {
+      await navigator.clipboard.writeText(qrCode)
+      toast.success('QR code copied to clipboard!')
+    } catch (error) {
+      toast.error('Failed to copy QR code')
+    }
+  }
+
+  const handleCopyQRUrl = async (qrCode) => {
+    const baseUrl = window.location.origin
+    const qrUrl = `${baseUrl}/scan/${qrCode}`
+    try {
+      await navigator.clipboard.writeText(qrUrl)
+      toast.success('QR link copied to clipboard!')
+    } catch (error) {
+      toast.error('Failed to copy link')
+    }
+  }
+
+  const handleShareQRUrl = async (salon) => {
+    const baseUrl = window.location.origin
+    const qrUrl = `${baseUrl}/scan/${salon.salonId.qrCode}`
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join ${salon.salonId.name}`,
+          text: `Scan this QR code or click the link to join ${salon.salonId.name} and book appointments!`,
+          url: qrUrl,
+        })
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          handleCopyQRUrl(salon.salonId.qrCode)
+        }
+      }
+    } else {
+      handleCopyQRUrl(salon.salonId.qrCode)
+    }
   }
 
   return (
@@ -180,13 +231,25 @@ const ClientDashboard = () => {
                       </span>
                     </div>
 
-                    <Button
-                      onClick={() => handleViewSalon(item.salonId._id)}
-                      fullWidth
-                    >
-                      <Calendar size={16} />
-                      Book Appointment
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleViewSalon(item.salonId._id)}
+                        className="flex-1"
+                      >
+                        <Calendar size={16} />
+                        Book Appointment
+                      </Button>
+                      {item.salonId.qrCode && (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleShareQR(item)}
+                          className="shrink-0"
+                          title="Share QR Code"
+                        >
+                          <Share2 size={16} />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -217,6 +280,105 @@ const ClientDashboard = () => {
           </Card>
         </Link>
       </div>
+
+      {/* QR Code Share Modal */}
+      {selectedSalonForQR && selectedSalonForQR.salonId.qrCode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Share QR Code</h3>
+                  <p className="text-sm text-gray-600">{selectedSalonForQR.salonId.name}</p>
+                </div>
+                <button
+                  onClick={handleCloseQRModal}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-gray-600" />
+                </button>
+              </div>
+
+              {/* QR Code Display */}
+              <div className="flex justify-center p-6 bg-white rounded-lg border-2 border-dashed border-gray-300 mb-4">
+                <QRCodeSVG 
+                  value={`${window.location.origin}/scan/${selectedSalonForQR.salonId.qrCode}`}
+                  size={256}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+
+              {/* QR Code Value */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  QR Code
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={selectedSalonForQR.salonId.qrCode}
+                    readOnly
+                    className="input flex-1 bg-white font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyQRCode(selectedSalonForQR.salonId.qrCode)}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+
+              {/* QR Code URL */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Booking Link
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={`${window.location.origin}/scan/${selectedSalonForQR.salonId.qrCode}`}
+                    readOnly
+                    className="input flex-1 bg-white text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyQRUrl(selectedSalonForQR.salonId.qrCode)}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+
+              {/* Share Button */}
+              <Button
+                onClick={() => handleShareQRUrl(selectedSalonForQR)}
+                fullWidth
+                className="mb-4"
+              >
+                <Share2 size={18} />
+                Share QR Code
+              </Button>
+
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-blue-900 mb-2">
+                  How to share:
+                </p>
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                  <li>Click "Share QR Code" to share via your device</li>
+                  <li>Or copy the QR code or link and send it manually</li>
+                  <li>Others can scan the QR code to join this salon</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
