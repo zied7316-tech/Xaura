@@ -12,11 +12,16 @@ let storage;
 if (useCloudinary) {
   // Use Cloudinary for persistent storage
   console.log('📦 Using Cloudinary for image storage');
+  console.log('   Cloud Name:', process.env.CLOUDINARY_CLOUD_NAME);
+  console.log('   API Key:', process.env.CLOUDINARY_API_KEY ? '***' + process.env.CLOUDINARY_API_KEY.slice(-4) : 'NOT SET');
   const { storage: cloudinaryStorage } = require('../config/cloudinary');
   storage = cloudinaryStorage;
 } else {
   // Fallback to local storage (for development)
   console.log('⚠️  Cloudinary not configured, using local storage (files may be lost on Railway)');
+  console.log('   CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME || 'NOT SET');
+  console.log('   CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET');
+  console.log('   CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET');
   
   // Create uploads directory if it doesn't exist
   const uploadsDir = path.join(__dirname, '../uploads');

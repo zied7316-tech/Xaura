@@ -165,6 +165,20 @@ const uploadServiceImage = async (req, res, next) => {
  */
 const uploadWorkerImage = async (req, res, next) => {
   try {
+    console.log('🔍 Upload request received:', {
+      workerId: req.params.id,
+      hasFile: !!req.file,
+      fileInfo: req.file ? {
+        keys: Object.keys(req.file),
+        url: req.file.url,
+        secure_url: req.file.secure_url,
+        path: req.file.path,
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : null
+    });
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -180,6 +194,12 @@ const uploadWorkerImage = async (req, res, next) => {
         message: 'Worker not found'
       });
     }
+
+    console.log('👤 Worker found:', {
+      id: worker._id,
+      name: worker.name,
+      currentAvatar: worker.avatar
+    });
 
     // Check authorization (owner of salon or worker themselves)
     const Salon = require('../models/Salon');
@@ -203,14 +223,18 @@ const uploadWorkerImage = async (req, res, next) => {
     // Check for Cloudinary URL (multer-storage-cloudinary uses 'url' or 'secure_url')
     if (req.file.url) {
       imageUrl = req.file.url;
+      console.log('☁️  Using Cloudinary URL from req.file.url');
     } else if (req.file.secure_url) {
       imageUrl = req.file.secure_url;
+      console.log('☁️  Using Cloudinary URL from req.file.secure_url');
     } else if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
       // Fallback: some configurations use path
       imageUrl = req.file.path;
+      console.log('☁️  Using Cloudinary URL from req.file.path');
     } else {
       // Local storage path
       imageUrl = `/uploads/workers/${req.file.filename}`;
+      console.log('💾 Using local storage path');
     }
     
     console.log('📤 Uploading worker image:', {
@@ -219,23 +243,40 @@ const uploadWorkerImage = async (req, res, next) => {
       secure_url: req.file.secure_url,
       path: req.file.path,
       filename: req.file.filename,
-      finalImageUrl: imageUrl
+      finalImageUrl: imageUrl,
+      oldAvatar: worker.avatar
     });
     
+    // Update worker avatar
     worker.avatar = imageUrl;
-    await worker.save();
+    const saveResult = await worker.save();
     
-    console.log('✅ Worker avatar saved to DB:', worker.avatar);
+    console.log('💾 Save result:', {
+      avatar: saveResult.avatar,
+      _id: saveResult._id
+    });
+    
+    // Verify the save worked by re-querying
+    const verifyWorker = await User.findById(req.params.id);
+    console.log('✅ Verification - Worker avatar in DB:', verifyWorker.avatar);
+    
+    if (verifyWorker.avatar !== imageUrl) {
+      console.error('❌ ERROR: Database save verification failed!');
+      console.error('Expected:', imageUrl);
+      console.error('Got:', verifyWorker.avatar);
+    }
 
     res.json({
       success: true,
       message: 'Profile picture uploaded successfully',
       data: {
         imageUrl,
-        workerId: worker._id
+        workerId: worker._id,
+        verified: verifyWorker.avatar === imageUrl
       }
     });
   } catch (error) {
+    console.error('❌ Error in uploadWorkerImage:', error);
     next(error);
   }
 };
