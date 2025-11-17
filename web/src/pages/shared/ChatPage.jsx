@@ -6,13 +6,6 @@ import chatService from '../../services/chatService';
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton';
 import { MessageSquare, Send, User } from 'lucide-react';
 
-// Declare particlesJS for TypeScript
-declare global {
-  interface Window {
-    particlesJS: any;
-  }
-}
-
 const ChatPage = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
