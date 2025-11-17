@@ -15,12 +15,10 @@ const NotificationBell = () => {
   const dropdownRef = useRef(null)
 
   useEffect(() => {
-    console.log('NotificationBell: Component mounted, loading notifications...')
     loadNotifications()
     
     // Poll for new notifications every 30 seconds
     const interval = setInterval(() => {
-      console.log('NotificationBell: Polling for new notifications...')
       loadNotifications()
     }, 30000)
     
@@ -73,16 +71,8 @@ const NotificationBell = () => {
 
   const loadNotifications = async () => {
     try {
-      console.log('🔔 NotificationBell: loadNotifications called')
       setLoading(true)
-      console.log('🔔 NotificationBell: Calling notificationService.getNotifications...')
       const response = await notificationService.getNotifications(20, false)
-      console.log('🔔 NotificationBell: Response received:', response)
-      console.log('🔔 NotificationBell: Response type:', typeof response)
-      console.log('🔔 NotificationBell: Is array?', Array.isArray(response))
-      console.log('🔔 NotificationBell: Response.data:', response?.data)
-      console.log('🔔 NotificationBell: Response.success:', response?.success)
-      console.log('🔔 NotificationBell: Unread count:', response?.unreadCount)
       
       // Handle different response structures
       let notifications = []
@@ -90,46 +80,27 @@ const NotificationBell = () => {
       
       if (Array.isArray(response)) {
         // Response is directly an array
-        console.log('🔔 NotificationBell: Response is an array, using directly')
         notifications = response
-        // Try to get unread count from array
         unreadCount = response.filter(n => !n.isRead).length
       } else if (response?.data && Array.isArray(response.data)) {
         // Response has data property
-        console.log('🔔 NotificationBell: Response has data property')
         notifications = response.data
         unreadCount = response.unreadCount || 0
       } else if (response?.success && Array.isArray(response.data)) {
         // Standard API response
-        console.log('🔔 NotificationBell: Standard API response structure')
         notifications = response.data
         unreadCount = response.unreadCount || 0
-      } else {
-        console.warn('⚠️ NotificationBell: Unknown response structure:', response)
-        notifications = []
-        unreadCount = 0
       }
-      
-      console.log('🔔 NotificationBell: Final notifications array:', notifications)
-      console.log('🔔 NotificationBell: Final notifications length:', notifications.length)
-      console.log('🔔 NotificationBell: Setting notifications:', notifications.length, 'items')
-      console.log('🔔 NotificationBell: Setting unread count:', unreadCount)
       
       setNotifications(notifications)
       setUnreadCount(unreadCount)
-      
-      // Force a re-render check
-      console.log('🔔 NotificationBell: State updated, notifications should render')
     } catch (error) {
-      console.error('❌ NotificationBell: Error loading notifications:', error)
-      console.error('❌ NotificationBell: Error message:', error.message)
-      console.error('❌ NotificationBell: Error stack:', error.stack)
+      console.error('Error loading notifications:', error)
       // Set empty arrays on error to prevent UI issues
       setNotifications([])
       setUnreadCount(0)
     } finally {
       setLoading(false)
-      console.log('🔔 NotificationBell: loadNotifications finished')
     }
   }
 
@@ -211,12 +182,10 @@ const NotificationBell = () => {
       {/* Bell Button */}
       <button
         onClick={() => {
-          console.log('NotificationBell: Bell clicked, showDropdown:', !showDropdown)
           const newState = !showDropdown
           setShowDropdown(newState)
           // Reload notifications when opening dropdown
           if (newState) {
-            console.log('NotificationBell: Opening dropdown, reloading notifications...')
             loadNotifications()
           }
         }}
@@ -269,22 +238,13 @@ const NotificationBell = () => {
 
           {/* Notifications List */}
           <div className="max-h-96 overflow-y-auto">
-            {(() => {
-              console.log('🔔 RENDER: notifications.length =', notifications.length)
-              console.log('🔔 RENDER: notifications =', notifications)
-              console.log('🔔 RENDER: loading =', loading)
-              return null
-            })()}
             {notifications.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Bell className="mx-auto mb-2 text-gray-400" size={32} />
                 <p className="text-sm">No notifications</p>
-                <p className="text-xs text-gray-400 mt-2">State: {notifications.length} items, Loading: {loading ? 'Yes' : 'No'}</p>
               </div>
             ) : (
-              notifications.map((notification) => {
-                console.log('🔔 RENDER: Mapping notification:', notification._id || notification.id)
-                return (
+              notifications.map((notification) => (
                 <div
                   key={notification._id}
                   className={`p-4 border-b border-l-4 ${getPriorityColor(notification.priority)} ${
@@ -332,8 +292,7 @@ const NotificationBell = () => {
                     </div>
                   </div>
                 </div>
-                )
-              })
+              ))
             )}
           </div>
 

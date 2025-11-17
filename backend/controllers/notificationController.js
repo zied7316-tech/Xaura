@@ -8,17 +8,13 @@ const User = require('../models/User');
  */
 const getNotifications = async (req, res, next) => {
   try {
-    console.log('🔔 BACKEND: getNotifications called');
     const userId = req.user.id;
-    console.log('🔔 BACKEND: User ID:', userId);
     const { limit = 20, unreadOnly = false } = req.query;
-    console.log('🔔 BACKEND: Query params - limit:', limit, 'unreadOnly:', unreadOnly);
 
     const query = { userId };
     if (unreadOnly === 'true') {
       query.isRead = false;
     }
-    console.log('🔔 BACKEND: Query:', JSON.stringify(query));
 
     // Use lean() for better performance and handle populate errors gracefully
     const notifications = await Notification.find(query)
@@ -36,34 +32,19 @@ const getNotifications = async (req, res, next) => {
       .limit(parseInt(limit))
       .lean(); // Convert to plain objects for better performance
 
-    console.log('🔔 BACKEND: Found', notifications.length, 'notifications');
-
     // Get unread count
     const unreadCount = await Notification.countDocuments({
       userId,
       isRead: false
     });
 
-    console.log('🔔 BACKEND: Unread count:', unreadCount);
-    console.log('🔔 BACKEND: Sending response with', notifications.length, 'notifications');
-
-    const response = {
+    res.json({
       success: true,
       data: notifications || [],
       unreadCount: unreadCount || 0
-    };
-
-    console.log('🔔 BACKEND: Response structure:', JSON.stringify(response, null, 2).substring(0, 500));
-
-    res.json(response);
-  } catch (error) {
-    console.error('❌ BACKEND: Error in getNotifications:', error);
-    console.error('❌ BACKEND: Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-      userId: req.user?.id
     });
+  } catch (error) {
+    console.error('Error in getNotifications:', error);
     next(error);
   }
 };

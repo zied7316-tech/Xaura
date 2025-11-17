@@ -3,18 +3,11 @@ import api from './api'
 export const notificationService = {
   // Get user's notifications
   getNotifications: async (limit = 20, unreadOnly = false) => {
-    console.log('notificationService: getNotifications called with limit:', limit, 'unreadOnly:', unreadOnly)
-    try {
-      const response = await api.get('/notifications', {
-        params: { limit, unreadOnly }
-      })
-      console.log('notificationService: API response received:', response)
-      // API interceptor already returns response.data, so response is already the data object
-      return response
-    } catch (error) {
-      console.error('notificationService: Error in getNotifications:', error)
-      throw error
-    }
+    const response = await api.get('/notifications', {
+      params: { limit, unreadOnly }
+    })
+    // API interceptor already returns response.data, so response is already the data object
+    return response
   },
 
   // Mark notification as read
