@@ -29,6 +29,12 @@ export function ThreeDImageRing({
     width,
     perspective
   });
+
+  if (!images || images.length === 0) {
+    console.log('❌ ThreeDImageRing: No images provided');
+    return null;
+  }
+
   const containerRef = useRef(null);
   const ringRef = useRef(null);
   const rotationY = useMotionValue(initialRotation);
@@ -38,12 +44,8 @@ export function ThreeDImageRing({
   const velocity = useRef(0);
   const [currentScale, setCurrentScale] = useState(1);
   const [showImages, setShowImages] = useState(false);
-  const [currentRotation, setCurrentRotation] = useState(initialRotation);
 
-  const angle = useMemo(() => {
-    if (!images || images.length === 0) return 0;
-    return 360 / images.length;
-  }, [images]);
+  const angle = useMemo(() => 360 / images.length, [images.length]);
 
   const getBgPos = (imageIndex, currentRot, scale) => {
     const scaledImageDistance = imageDistance * scale;
@@ -54,22 +56,16 @@ export function ThreeDImageRing({
 
   useEffect(() => {
     const unsubscribe = rotationY.on("change", (latestRotation) => {
-      setCurrentRotation(latestRotation);
-      currentRotationY.current = latestRotation;
-      
       if (ringRef.current) {
-        // Update ring rotation
-        ringRef.current.style.transform = `rotateY(${latestRotation}deg)`;
-        
-        // Update background positions for parallax effect
         Array.from(ringRef.current.children).forEach((imgElement, i) => {
-          imgElement.style.backgroundPosition = getBgPos(
+          (imgElement as HTMLElement).style.backgroundPosition = getBgPos(
             i,
             latestRotation,
             currentScale
           );
         });
       }
+      currentRotationY.current = latestRotation;
     });
 
     return () => unsubscribe();
@@ -103,7 +99,7 @@ export function ThreeDImageRing({
     velocity.current = 0;
 
     if (ringRef.current) {
-      ringRef.current.style.cursor = "grabbing";
+      (ringRef.current as HTMLElement).style.cursor = "grabbing";
     }
 
     document.addEventListener("mousemove", handleDrag);
@@ -115,7 +111,7 @@ export function ThreeDImageRing({
   const handleDrag = (event) => {
     if (!draggable || !isDragging.current) return;
 
-    const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
+    const clientX = "touches" in event ? (event as TouchEvent).touches[0].clientX : (event as MouseEvent).clientX;
     const deltaX = clientX - startX.current;
 
     velocity.current = -deltaX * 0.5;
@@ -127,7 +123,7 @@ export function ThreeDImageRing({
     isDragging.current = false;
 
     if (ringRef.current) {
-      ringRef.current.style.cursor = "grab";
+      (ringRef.current as HTMLElement).style.cursor = "grab";
       currentRotationY.current = rotationY.get();
     }
 
@@ -163,11 +159,6 @@ export function ThreeDImageRing({
     },
   };
 
-  if (!images || images.length === 0) {
-    console.log('❌ ThreeDImageRing: No images provided');
-    return null;
-  }
-
   console.log('✅ ThreeDImageRing: Rendering with', images.length, 'images');
 
   return (
@@ -181,7 +172,6 @@ export function ThreeDImageRing({
         backgroundColor: backgroundColor || 'transparent',
         transform: `scale(${currentScale})`,
         transformOrigin: "center center",
-        minHeight: '384px', // Ensure minimum height
       }}
       onMouseDown={draggable ? handleDragStart : undefined}
       onTouchStart={draggable ? handleDragStart : undefined}
@@ -197,29 +187,36 @@ export function ThreeDImageRing({
           transform: "translate(-50%, -50%)",
         }}
       >
-        <div
+        <motion.div
           ref={ringRef}
-          className={cn("w-full h-full absolute", ringClassName)}
+          className={cn(
+            "w-full h-full absolute",
+            ringClassName
+          )}
           style={{
             transformStyle: "preserve-3d",
+            rotateY: rotationY,
             cursor: draggable ? "grab" : "default",
-            transform: `rotateY(${currentRotation}deg)`,
           }}
         >
           <AnimatePresence>
             {showImages && images.map((imageUrl, index) => (
               <motion.div
                 key={index}
-                className={cn("w-full h-full absolute", imageClassName)}
+                className={cn(
+                  "w-full h-full absolute",
+                  imageClassName
+                )}
                 style={{
                   transformStyle: "preserve-3d",
                   backgroundImage: `url(${imageUrl})`,
                   backgroundSize: "cover",
                   backgroundRepeat: "no-repeat",
                   backfaceVisibility: "hidden",
+                  rotateY: index * -angle,
+                  z: -imageDistance * currentScale,
                   transformOrigin: `50% 50% ${imageDistance * currentScale}px`,
                   backgroundPosition: getBgPos(index, currentRotationY.current, currentScale),
-                  transform: `rotateY(${index * -angle}deg) translateZ(${-imageDistance * currentScale}px)`,
                 }}
                 initial="hidden"
                 animate="visible"
@@ -237,7 +234,7 @@ export function ThreeDImageRing({
                   if (ringRef.current) {
                     Array.from(ringRef.current.children).forEach((imgEl, i) => {
                       if (i !== index) {
-                        imgEl.style.opacity = `${hoverOpacity}`;
+                        (imgEl as HTMLElement).style.opacity = `${hoverOpacity}`;
                       }
                     });
                   }
@@ -246,18 +243,17 @@ export function ThreeDImageRing({
                   if (isDragging.current) return;
                   if (ringRef.current) {
                     Array.from(ringRef.current.children).forEach((imgEl) => {
-                      imgEl.style.opacity = `1`;
+                      (imgEl as HTMLElement).style.opacity = `1`;
                     });
                   }
                 }}
               />
             ))}
           </AnimatePresence>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
 }
 
 export default ThreeDImageRing;
-
