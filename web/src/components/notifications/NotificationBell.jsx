@@ -465,20 +465,32 @@ const NotificationBell = () => {
                        (isWorker || isOwner) && (
                         <div className="flex gap-2 mt-3">
                           <button
-                            onClick={(e) => handleAcceptAppointment(notification.relatedAppointment, e)}
-                            disabled={processingAppointment === notification.relatedAppointment}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const appointmentId = notification.relatedAppointment?._id || notification.relatedAppointment
+                              if (appointmentId) {
+                                handleAcceptAppointment(appointmentId, e)
+                              }
+                            }}
+                            disabled={processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment)}
                             className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                           >
                             <CheckCircle size={14} />
-                            {processingAppointment === notification.relatedAppointment ? 'Processing...' : 'Accept'}
+                            {processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment) ? 'Processing...' : 'Accept'}
                           </button>
                           <button
-                            onClick={(e) => handleRejectAppointment(notification.relatedAppointment, e)}
-                            disabled={processingAppointment === notification.relatedAppointment}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const appointmentId = notification.relatedAppointment?._id || notification.relatedAppointment
+                              if (appointmentId) {
+                                handleRejectAppointment(appointmentId, e)
+                              }
+                            }}
+                            disabled={processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment)}
                             className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                           >
                             <XCircle size={14} />
-                            {processingAppointment === notification.relatedAppointment ? 'Processing...' : 'Reject'}
+                            {processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment) ? 'Processing...' : 'Reject'}
                           </button>
                         </div>
                       )}
