@@ -85,6 +85,9 @@ const notificationSchema = new mongoose.Schema({
 notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ salonId: 1, createdAt: -1 });
+// Compound index for duplicate prevention: check for existing unread notifications
+// for the same user, appointment, and type
+notificationSchema.index({ userId: 1, relatedAppointment: 1, type: 1, isRead: 1 });
 
 // Auto-delete notifications older than 30 days
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });

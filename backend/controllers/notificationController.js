@@ -306,9 +306,37 @@ const unregisterPushToken = async (req, res, next) => {
 /**
  * Helper function to create notification (used by other controllers)
  * Also sends push notification if user has registered tokens
+ * Prevents duplicate notifications for the same user, appointment, and type
  */
 const createNotification = async (notificationData) => {
   try {
+    // Check for existing unread notification (only for appointment-related notifications)
+    // This prevents duplicate notifications for clients and owners
+    if (notificationData.relatedAppointment && notificationData.type) {
+      const existingNotification = await Notification.findOne({
+        userId: notificationData.userId,
+        relatedAppointment: notificationData.relatedAppointment,
+        type: notificationData.type,
+        isRead: false
+      });
+
+      if (existingNotification) {
+        // Return existing notification instead of creating duplicate
+        console.log('Duplicate notification prevented:', {
+          userId: notificationData.userId,
+          type: notificationData.type,
+          appointmentId: notificationData.relatedAppointment
+        });
+        
+        // Optionally update createdAt to refresh the notification (uncomment if needed)
+        // existingNotification.createdAt = new Date();
+        // await existingNotification.save();
+        
+        return existingNotification;
+      }
+    }
+
+    // Create new notification if no duplicate found
     const notification = await Notification.create(notificationData);
     
     // Send push notification if user has registered tokens
