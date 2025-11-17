@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import chatService from '../../services/chatService';
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton';
 import { MessageSquare, Send, User } from 'lucide-react';
+import Particles from 'react-particles';
+import { loadSlim } from 'tsparticles-slim';
 
 const ChatPage = () => {
   const { user } = useAuth();
@@ -138,6 +140,11 @@ const ChatPage = () => {
       setSending(prev => ({ ...prev, [chatId]: false }));
     }
   };
+
+  // Initialize particles
+  const particlesInit = useCallback(async (engine) => {
+    await loadSlim(engine);
+  }, []);
 
   const getOtherPerson = (chat) => {
     if (user.role === 'Client') {
@@ -276,15 +283,109 @@ const ChatPage = () => {
                 {/* Expanded Chat Messages */}
                 {isExpanded && (
                   <div className="border-t border-gray-100">
-                    {/* Messages Area */}
-                    <div className="h-[400px] p-4 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100">
-                      {messages.length === 0 ? (
-                        <div className="text-center text-gray-500 py-8">
-                          <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                          <p>No messages yet. Start the conversation!</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
+                    {/* Messages Area with Particles Background */}
+                    <div className="relative h-[400px] overflow-hidden">
+                      {/* Particles Background */}
+                      <Particles
+                        id={`particles-${chat._id}`}
+                        init={particlesInit}
+                        options={{
+                          particles: {
+                            number: {
+                              value: 30,
+                              density: {
+                                enable: true,
+                                value_area: 800
+                              }
+                            },
+                            color: {
+                              value: '#c920d0' // Primary color
+                            },
+                            shape: {
+                              type: 'circle'
+                            },
+                            opacity: {
+                              value: 0.3,
+                              random: true,
+                              anim: {
+                                enable: true,
+                                speed: 1,
+                                opacity_min: 0.1,
+                                sync: false
+                              }
+                            },
+                            size: {
+                              value: 3,
+                              random: true,
+                              anim: {
+                                enable: true,
+                                speed: 2,
+                                size_min: 0.1,
+                                sync: false
+                              }
+                            },
+                            line_linked: {
+                              enable: true,
+                              distance: 150,
+                              color: '#c920d0',
+                              opacity: 0.2,
+                              width: 1
+                            },
+                            move: {
+                              enable: true,
+                              speed: 1,
+                              direction: 'none',
+                              random: false,
+                              straight: false,
+                              out_mode: 'out',
+                              bounce: false
+                            }
+                          },
+                          interactivity: {
+                            detect_on: 'canvas',
+                            events: {
+                              onhover: {
+                                enable: true,
+                                mode: 'repulse'
+                              },
+                              onclick: {
+                                enable: true,
+                                mode: 'push'
+                              },
+                              resize: true
+                            },
+                            modes: {
+                              repulse: {
+                                distance: 100,
+                                duration: 0.4
+                              },
+                              push: {
+                                particles_nb: 4
+                              }
+                            }
+                          },
+                          retina_detect: true
+                        }}
+                        className="absolute inset-0 z-0"
+                        style={{
+                          position: 'absolute',
+                          width: '100%',
+                          height: '100%',
+                          top: 0,
+                          left: 0,
+                          zIndex: 0
+                        }}
+                      />
+                      
+                      {/* Messages Content */}
+                      <div className="relative z-10 h-full p-4 overflow-y-auto bg-gradient-to-b from-gray-50/80 to-gray-100/80 backdrop-blur-sm">
+                        {messages.length === 0 ? (
+                          <div className="text-center text-gray-500 py-8">
+                            <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                            <p>No messages yet. Start the conversation!</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
                           {messages.map((msg, index) => {
                             // Determine if this message is from the current user
                             // Handle both populated sender object and string ID
@@ -350,6 +451,7 @@ const ChatPage = () => {
                           <div ref={(el) => (messageEndRefs.current[chat._id] = el)} />
                         </div>
                       )}
+                      </div>
                     </div>
 
                     {/* Message Input */}
