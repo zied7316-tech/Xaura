@@ -178,11 +178,23 @@ const markNotificationsReadByAppointment = async (req, res, next) => {
     const userId = req.user.id;
     const { appointmentId } = req.params;
 
+    console.log('Marking notifications as read for appointment:', {
+      userId,
+      appointmentId,
+      appointmentIdType: typeof appointmentId
+    });
+
+    // Convert appointmentId to ObjectId if it's a string
+    const mongoose = require('mongoose');
+    const appointmentObjectId = mongoose.Types.ObjectId.isValid(appointmentId) 
+      ? new mongoose.Types.ObjectId(appointmentId)
+      : appointmentId;
+
     // Mark all unread notifications related to this appointment as read
     const result = await Notification.updateMany(
       { 
-        userId,
-        relatedAppointment: appointmentId,
+        userId: new mongoose.Types.ObjectId(userId),
+        relatedAppointment: appointmentObjectId,
         isRead: false
       },
       { 
@@ -191,12 +203,19 @@ const markNotificationsReadByAppointment = async (req, res, next) => {
       }
     );
 
+    console.log('Mark notifications result:', {
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount
+    });
+
     res.json({
       success: true,
       message: `${result.modifiedCount} notification(s) marked as read`,
-      modifiedCount: result.modifiedCount
+      modifiedCount: result.modifiedCount,
+      matchedCount: result.matchedCount
     });
   } catch (error) {
+    console.error('Error marking notifications as read by appointment:', error);
     next(error);
   }
 };
