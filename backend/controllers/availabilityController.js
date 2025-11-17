@@ -314,7 +314,8 @@ async function checkAppointmentConflict(workerId, date, startTime, endTime) {
     const aptTime = new Date(apt.dateTime);
     const aptHours = aptTime.getHours();
     const aptMins = aptTime.getMinutes();
-    const aptDuration = apt.duration || 60;
+    // Use serviceDurationAtBooking for multi-service appointments, fallback to duration
+    const aptDuration = apt.serviceDurationAtBooking || apt.duration || 60;
     
     const aptStartMinutes = aptHours * 60 + aptMins;
     const aptEndMinutes = aptStartMinutes + aptDuration;
