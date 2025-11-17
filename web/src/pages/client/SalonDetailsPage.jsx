@@ -328,25 +328,26 @@ const SalonDetailsPage = () => {
                   console.log('✅ RENDERING 3D RING with', servicesWithImages.length, 'images');
                   console.log('✅ Images array:', servicesWithImages);
                   return (
-                    <div className="mb-8">
-                      <div className="w-full h-96 relative bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg overflow-hidden">
+                    <div className="mb-8 w-full">
+                      <div className="w-full h-[500px] relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-2xl">
                         <ThreeDImageRing
                           images={servicesWithImages}
-                          width={280}
-                          perspective={2000}
-                          imageDistance={400}
+                          width={400}
+                          perspective={2500}
+                          imageDistance={600}
                           initialRotation={180}
-                          animationDuration={1.2}
-                          staggerDelay={0.08}
-                          hoverOpacity={0.4}
+                          animationDuration={1.5}
+                          staggerDelay={0.1}
+                          hoverOpacity={0.3}
                           draggable={true}
                           mobileBreakpoint={768}
-                          mobileScaleFactor={0.7}
+                          mobileScaleFactor={0.6}
                           containerClassName="w-full h-full"
+                          backgroundColor="transparent"
                         />
-                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg z-20">
-                          <p className="text-sm text-gray-600 text-center">
-                            <span className="font-semibold text-primary-600">Drag to rotate</span> • {servicesWithImages.length} services
+                        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-xl z-20 border border-gray-200">
+                          <p className="text-sm text-gray-700 text-center font-medium">
+                            <span className="text-primary-600 font-semibold">Drag to rotate</span> • {servicesWithImages.length} services
                           </p>
                         </div>
                       </div>

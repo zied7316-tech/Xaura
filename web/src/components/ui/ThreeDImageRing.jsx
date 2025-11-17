@@ -179,8 +179,6 @@ export function ThreeDImageRing({
         transformOrigin: "center center",
         width: '100%',
         height: '100%',
-        minHeight: '400px',
-        minWidth: '400px',
       }}
       onMouseDown={draggable ? handleDragStart : undefined}
       onTouchStart={draggable ? handleDragStart : undefined}
