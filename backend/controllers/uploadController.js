@@ -34,23 +34,38 @@ const uploadSalonImage = async (req, res, next) => {
     }
 
     // Get image URL
-    // Cloudinary: req.file.path contains the full URL
+    // Cloudinary: req.file.url or req.file.secure_url contains the full URL
     // Local storage: req.file.filename contains just the filename
     let imageUrl;
-    if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
-      // Cloudinary URL
+    
+    // Check for Cloudinary URL (multer-storage-cloudinary uses 'url' or 'secure_url')
+    if (req.file.url) {
+      imageUrl = req.file.url;
+    } else if (req.file.secure_url) {
+      imageUrl = req.file.secure_url;
+    } else if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+      // Fallback: some configurations use path
       imageUrl = req.file.path;
     } else {
       // Local storage path
       imageUrl = `/uploads/salons/${req.file.filename}`;
     }
     
+    console.log('📤 Uploading salon image:', {
+      fileKeys: Object.keys(req.file),
+      url: req.file.url,
+      secure_url: req.file.secure_url,
+      path: req.file.path,
+      filename: req.file.filename,
+      finalImageUrl: imageUrl
+    });
+    
     salon.logo = imageUrl;
     await salon.save();
 
     // Verify the save worked
     const updatedSalon = await Salon.findById(req.params.id);
-    console.log('Salon logo saved:', updatedSalon.logo);
+    console.log('✅ Salon logo saved to DB:', updatedSalon.logo);
 
     res.json({
       success: true,
@@ -97,21 +112,38 @@ const uploadServiceImage = async (req, res, next) => {
     }
 
     // Get image URL
-    // Cloudinary: req.file.path contains the full URL
+    // Cloudinary: req.file.url or req.file.secure_url contains the full URL
     // Local storage: req.file.filename contains just the filename
     let imageUrl;
-    if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
-      // Cloudinary URL
+    
+    // Check for Cloudinary URL (multer-storage-cloudinary uses 'url' or 'secure_url')
+    if (req.file.url) {
+      imageUrl = req.file.url;
+    } else if (req.file.secure_url) {
+      imageUrl = req.file.secure_url;
+    } else if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+      // Fallback: some configurations use path
       imageUrl = req.file.path;
     } else {
       // Local storage path
       imageUrl = `/uploads/services/${req.file.filename}`;
     }
     
-    // Update service with image
-    await Service.findByIdAndUpdate(req.params.id, {
-      $set: { image: imageUrl }
+    console.log('📤 Uploading service image:', {
+      fileKeys: Object.keys(req.file),
+      url: req.file.url,
+      secure_url: req.file.secure_url,
+      path: req.file.path,
+      filename: req.file.filename,
+      finalImageUrl: imageUrl
     });
+    
+    // Update service with image
+    const updatedService = await Service.findByIdAndUpdate(req.params.id, {
+      $set: { image: imageUrl }
+    }, { new: true });
+    
+    console.log('✅ Service image saved to DB:', updatedService?.image);
 
     res.json({
       success: true,
@@ -164,19 +196,36 @@ const uploadWorkerImage = async (req, res, next) => {
     }
 
     // Get image URL
-    // Cloudinary: req.file.path contains the full URL
+    // Cloudinary: req.file.url or req.file.secure_url contains the full URL
     // Local storage: req.file.filename contains just the filename
     let imageUrl;
-    if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
-      // Cloudinary URL
+    
+    // Check for Cloudinary URL (multer-storage-cloudinary uses 'url' or 'secure_url')
+    if (req.file.url) {
+      imageUrl = req.file.url;
+    } else if (req.file.secure_url) {
+      imageUrl = req.file.secure_url;
+    } else if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+      // Fallback: some configurations use path
       imageUrl = req.file.path;
     } else {
       // Local storage path
       imageUrl = `/uploads/workers/${req.file.filename}`;
     }
     
+    console.log('📤 Uploading worker image:', {
+      fileKeys: Object.keys(req.file),
+      url: req.file.url,
+      secure_url: req.file.secure_url,
+      path: req.file.path,
+      filename: req.file.filename,
+      finalImageUrl: imageUrl
+    });
+    
     worker.avatar = imageUrl;
     await worker.save();
+    
+    console.log('✅ Worker avatar saved to DB:', worker.avatar);
 
     res.json({
       success: true,
@@ -191,9 +240,187 @@ const uploadWorkerImage = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Delete salon logo/image
+ * @route   DELETE /api/upload/salon/:id
+ * @access  Private (Owner)
+ */
+const deleteSalonImage = async (req, res, next) => {
+  try {
+    const salon = await Salon.findById(req.params.id);
+    
+    if (!salon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    // Check ownership
+    if (salon.ownerId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    // Delete from Cloudinary if it's a Cloudinary URL
+    if (salon.logo && (salon.logo.startsWith('http://') || salon.logo.startsWith('https://'))) {
+      try {
+        const cloudinary = require('../config/cloudinary').cloudinary;
+        // Extract public_id from Cloudinary URL
+        const urlParts = salon.logo.split('/');
+        const publicIdWithExt = urlParts[urlParts.length - 1].split('.')[0];
+        const folder = salon.logo.includes('/xaura/salons/') ? 'xaura/salons' : 'xaura';
+        const publicId = `${folder}/${publicIdWithExt}`;
+        
+        await cloudinary.uploader.destroy(publicId);
+        console.log('🗑️  Deleted salon image from Cloudinary:', publicId);
+      } catch (cloudinaryError) {
+        console.error('Error deleting from Cloudinary (continuing anyway):', cloudinaryError);
+      }
+    }
+
+    salon.logo = '';
+    await salon.save();
+
+    console.log('✅ Salon logo deleted from DB');
+
+    res.json({
+      success: true,
+      message: 'Image deleted successfully',
+      data: {
+        salon: salon
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete service image
+ * @route   DELETE /api/upload/service/:id
+ * @access  Private (Owner)
+ */
+const deleteServiceImage = async (req, res, next) => {
+  try {
+    const service = await Service.findById(req.params.id).populate('salonId');
+    
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
+      });
+    }
+
+    // Check ownership
+    if (service.salonId.ownerId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    // Delete from Cloudinary if it's a Cloudinary URL
+    if (service.image && (service.image.startsWith('http://') || service.image.startsWith('https://'))) {
+      try {
+        const cloudinary = require('../config/cloudinary').cloudinary;
+        // Extract public_id from Cloudinary URL
+        const urlParts = service.image.split('/');
+        const publicIdWithExt = urlParts[urlParts.length - 1].split('.')[0];
+        const folder = service.image.includes('/xaura/services/') ? 'xaura/services' : 'xaura';
+        const publicId = `${folder}/${publicIdWithExt}`;
+        
+        await cloudinary.uploader.destroy(publicId);
+        console.log('🗑️  Deleted service image from Cloudinary:', publicId);
+      } catch (cloudinaryError) {
+        console.error('Error deleting from Cloudinary (continuing anyway):', cloudinaryError);
+      }
+    }
+
+    await Service.findByIdAndUpdate(req.params.id, {
+      $set: { image: '' }
+    });
+
+    console.log('✅ Service image deleted from DB');
+
+    res.json({
+      success: true,
+      message: 'Image deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete worker profile picture
+ * @route   DELETE /api/upload/worker/:id
+ * @access  Private (Owner or Worker themselves)
+ */
+const deleteWorkerImage = async (req, res, next) => {
+  try {
+    const worker = await User.findById(req.params.id);
+    
+    if (!worker || worker.role !== 'Worker') {
+      return res.status(404).json({
+        success: false,
+        message: 'Worker not found'
+      });
+    }
+
+    // Check authorization (owner of salon or worker themselves)
+    const Salon = require('../models/Salon');
+    const salon = await Salon.findById(worker.salonId);
+    
+    const isOwner = salon && salon.ownerId.toString() === req.user.id;
+    const isSelf = worker._id.toString() === req.user.id;
+
+    if (!isOwner && !isSelf) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    // Delete from Cloudinary if it's a Cloudinary URL
+    if (worker.avatar && (worker.avatar.startsWith('http://') || worker.avatar.startsWith('https://'))) {
+      try {
+        const cloudinary = require('../config/cloudinary').cloudinary;
+        // Extract public_id from Cloudinary URL
+        const urlParts = worker.avatar.split('/');
+        const publicIdWithExt = urlParts[urlParts.length - 1].split('.')[0];
+        const folder = worker.avatar.includes('/xaura/workers/') ? 'xaura/workers' : 'xaura';
+        const publicId = `${folder}/${publicIdWithExt}`;
+        
+        await cloudinary.uploader.destroy(publicId);
+        console.log('🗑️  Deleted worker image from Cloudinary:', publicId);
+      } catch (cloudinaryError) {
+        console.error('Error deleting from Cloudinary (continuing anyway):', cloudinaryError);
+      }
+    }
+
+    worker.avatar = '';
+    await worker.save();
+
+    console.log('✅ Worker avatar deleted from DB');
+
+    res.json({
+      success: true,
+      message: 'Image deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   uploadSalonImage,
   uploadServiceImage,
-  uploadWorkerImage
+  uploadWorkerImage,
+  deleteSalonImage,
+  deleteServiceImage,
+  deleteWorkerImage
 };
 
