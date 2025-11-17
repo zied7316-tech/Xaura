@@ -459,8 +459,11 @@ const SalonDetailsPage = () => {
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
-              </div>
+                      ))}
+                    </div>
+                  );
+                }
+              })()}
             </>
           )}
         </CardContent>
