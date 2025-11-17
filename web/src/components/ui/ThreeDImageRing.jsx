@@ -11,9 +11,9 @@ import { Clock, DollarSign, Calendar } from "lucide-react";
 
 export function ThreeDImageRing({
   services = [],
-  width = 320,
+  width = 380,
   perspective = 3000,
-  imageDistance = 500,
+  imageDistance = 650,
   initialRotation = 0,
   animationDuration = 1.5,
   staggerDelay = 0.1,
@@ -197,7 +197,7 @@ export function ThreeDImageRing({
                     left: "50%",
                     top: "50%",
                     marginLeft: `-${width / 2}px`,
-                    marginTop: `-200px`,
+                    marginTop: `-250px`,
                     transform: `rotateY(${rotationAngle}deg) translateZ(${translateZ}px)`,
                     pointerEvents: isDragging.current ? "none" : "auto",
                   }}
@@ -236,11 +236,11 @@ export function ThreeDImageRing({
                     }
                   }}
                 >
-                  <Card className="border border-gray-200 shadow-lg bg-white">
-                    <CardContent className="p-4">
+                  <Card className="border border-gray-200 shadow-xl bg-white">
+                    <CardContent className="p-5">
                       {/* Service Image */}
                       <div 
-                        className="h-64 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity relative group"
+                        className="h-80 w-full overflow-hidden rounded-lg mb-4 cursor-pointer hover:opacity-90 transition-opacity relative group"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (onImageClick && service.image) {
@@ -262,11 +262,11 @@ export function ThreeDImageRing({
                         </div>
                       </div>
 
-                      <div className="mb-2 text-center">
-                        <h4 className="mb-2">
+                      <div className="mb-3 text-center">
+                        <h4 className="mb-3">
                           {ShinyText ? (
                             <ShinyText
-                              size="2xl"
+                              size="3xl"
                               weight="bold"
                               baseColor="#667eea"
                               shineColor="#764ba2"
@@ -279,33 +279,33 @@ export function ThreeDImageRing({
                               {capitalizeFirst ? capitalizeFirst(service.name) : service.name}
                             </ShinyText>
                           ) : (
-                            <span className="text-xl font-bold">{service.name}</span>
+                            <span className="text-2xl font-bold">{service.name}</span>
                           )}
                         </h4>
-                        <div className="flex justify-center">
-                          <Badge variant="default" size="sm">{service.category}</Badge>
+                        <div className="flex justify-center mb-3">
+                          <Badge variant="default" size="md">{service.category}</Badge>
                         </div>
                       </div>
 
                       {service.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2 text-center">
+                        <p className="text-base text-gray-600 mb-4 line-clamp-2 text-center">
                           {service.description}
                         </p>
                       )}
 
-                      <div className="flex items-center justify-between mb-3 text-sm">
-                        <div className="flex items-center gap-1 text-gray-600">
-                          <Clock size={16} />
-                          <span>{formatDuration ? formatDuration(service.duration) : `${service.duration} min`}</span>
+                      <div className="flex items-center justify-between mb-4 text-base">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Clock size={18} />
+                          <span className="font-medium">{formatDuration ? formatDuration(service.duration) : `${service.duration} min`}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-green-600 font-semibold">
-                          <DollarSign size={16} />
-                          <span>{formatCurrency ? formatCurrency(service.price) : `$${service.price}`}</span>
+                        <div className="flex items-center gap-2 text-green-600 font-semibold">
+                          <DollarSign size={18} />
+                          <span className="text-lg">{formatCurrency ? formatCurrency(service.price) : `$${service.price}`}</span>
                         </div>
                       </div>
 
                       <Button
-                        size="sm"
+                        size="md"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (onBookService) {
@@ -313,8 +313,9 @@ export function ThreeDImageRing({
                           }
                         }}
                         fullWidth
+                        className="py-3 text-base font-semibold"
                       >
-                        <Calendar size={16} />
+                        <Calendar size={18} />
                         Book Now
                       </Button>
                     </CardContent>

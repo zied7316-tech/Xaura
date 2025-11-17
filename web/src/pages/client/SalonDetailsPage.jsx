@@ -274,12 +274,12 @@ const SalonDetailsPage = () => {
                 if (servicesWithImages.length >= 2) {
                   return (
                     <div className="w-full mb-8">
-                      <div className="w-full h-[700px] relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-2xl">
+                      <div className="w-full h-[800px] relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-2xl">
                         <ThreeDImageRing
                           services={servicesWithImages}
-                          width={320}
-                          perspective={3500}
-                          imageDistance={550}
+                          width={380}
+                          perspective={4000}
+                          imageDistance={650}
                           initialRotation={0}
                           animationDuration={1.5}
                           staggerDelay={0.1}
