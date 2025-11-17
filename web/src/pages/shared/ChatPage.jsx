@@ -286,18 +286,22 @@ const ChatPage = () => {
                       ) : (
                         <div className="space-y-3">
                           {messages.map((msg, index) => {
-                            const isMe = msg.sender._id === user._id;
+                            // Determine if this message is from the current user
+                            // Handle both populated sender object and string ID
+                            const senderId = msg.sender?._id || msg.sender || msg.senderId;
+                            const currentUserId = user._id || user.id;
+                            const isMe = String(senderId) === String(currentUserId);
                             return (
                               <div
                                 key={msg._id}
                                 className={`flex items-end gap-2 ${
-                                  isMe ? 'justify-end flex-row-reverse' : 'justify-start'
+                                  isMe ? 'justify-end' : 'justify-start'
                                 }`}
                                 style={{
                                   animation: `slideInMessage 0.3s ease-out ${index * 0.05}s both`
                                 }}
                               >
-                                {/* Avatar for received messages */}
+                                {/* Avatar for received messages (only show on left for other person) */}
                                 {!isMe && (
                                   <div className="w-8 h-8 rounded-full bg-primary-200 flex items-center justify-center flex-shrink-0 mb-1">
                                     {otherPerson?.profilePicture ? (
@@ -312,6 +316,7 @@ const ChatPage = () => {
                                   </div>
                                 )}
                                 
+                                {/* Message bubble */}
                                 <div
                                   className={`max-w-[70%] sm:max-w-[75%] p-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
                                     isMe
