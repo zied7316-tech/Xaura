@@ -73,11 +73,11 @@ const sendPushNotification = async (userId, notification) => {
     // Determine sound based on user role
     let soundFile = '/sounds/notification.mp3' // Default fallback
     if (user.role === 'Owner') {
-      soundFile = '/sounds/owner-notification.mp3'
+      soundFile = '/sounds/owner-notification.mp3.mp3'
     } else if (user.role === 'Worker') {
-      soundFile = '/sounds/worker-notification.mp3'
+      soundFile = '/sounds/worker-notification.mp3.mp3'
     } else if (user.role === 'Client') {
-      soundFile = '/sounds/client-notification.mp3'
+      soundFile = '/sounds/client-notification.mp3.mp3'
     }
 
     // Prepare FCM message

@@ -19,11 +19,11 @@ const NotificationBell = () => {
   // Helper function to get notification sound based on user role
   const getNotificationSound = () => {
     if (isOwner) {
-      return '/sounds/owner-notification.mp3'
+      return '/sounds/owner-notification.mp3.mp3'
     } else if (isWorker) {
-      return '/sounds/worker-notification.mp3'
+      return '/sounds/worker-notification.mp3.mp3'
     } else if (isClient) {
-      return '/sounds/client-notification.mp3'
+      return '/sounds/client-notification.mp3.mp3'
     }
     return '/sounds/notification.mp3' // Default fallback
   }

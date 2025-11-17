@@ -30,11 +30,11 @@ messaging.onBackgroundMessage((payload) => {
   let soundFile = '/sounds/notification.mp3' // Default fallback
   
   if (userRole === 'Owner') {
-    soundFile = '/sounds/owner-notification.mp3'
+    soundFile = '/sounds/owner-notification.mp3.mp3'
   } else if (userRole === 'Worker') {
-    soundFile = '/sounds/worker-notification.mp3'
+    soundFile = '/sounds/worker-notification.mp3.mp3'
   } else if (userRole === 'Client') {
-    soundFile = '/sounds/client-notification.mp3'
+    soundFile = '/sounds/client-notification.mp3.mp3'
   }
   
   const notificationTitle = payload.notification?.title || 'New Notification'
