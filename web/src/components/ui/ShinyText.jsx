@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion, type Variants } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "../../utils/cn";
 
 export interface ShinyTextProps {
@@ -118,7 +118,7 @@ export function ShinyText({
   };
 
   // Define the animate state structure consistently
-  const animationVariants: Variants = {
+  const animationVariants = {
     initial: {
       backgroundPosition: config.backgroundPosition[0],
     },
