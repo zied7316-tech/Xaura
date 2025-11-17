@@ -464,7 +464,7 @@ const BookAppointmentPage = () => {
                   disabled={!selectedDate || !selectedTime}
                   loading={booking}
                   fullWidth
-                  className="btn-confirm-booking"
+                  className={selectedDate && selectedTime ? "btn-confirm-booking" : ""}
                 >
                   <CheckCircle size={18} />
                   Confirm Booking
