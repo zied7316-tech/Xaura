@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Modal from '../ui/Modal'
 import Badge from '../ui/Badge'
 import ReviewDisplay from '../reviews/ReviewDisplay'
+import SafeImage from '../ui/SafeImage'
 import { uploadService } from '../../services/uploadService'
 import { reviewService } from '../../services/reviewService'
 import { User, X, Award, Briefcase, GraduationCap, Star } from 'lucide-react'
@@ -45,17 +46,12 @@ const WorkerDetailsModal = ({ isOpen, onClose, worker }) => {
         {/* Header with Avatar and Name */}
         <div className="flex items-start gap-4 pb-4 border-b">
           <div className="flex-shrink-0">
-            {worker.avatar ? (
-              <img
-                src={uploadService.getImageUrl(worker.avatar)}
-                alt={worker.name}
-                className="w-24 h-24 rounded-full object-cover border-4 border-primary-200"
-              />
-            ) : (
-              <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center border-4 border-primary-200">
-                <User className="text-primary-600" size={40} />
-              </div>
-            )}
+            <SafeImage
+              src={worker.avatar ? uploadService.getImageUrl(worker.avatar) : null}
+              alt={worker.name}
+              className="w-24 h-24 rounded-full object-cover border-4 border-primary-200"
+              fallbackType="worker"
+            />
           </div>
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{worker.name}</h2>

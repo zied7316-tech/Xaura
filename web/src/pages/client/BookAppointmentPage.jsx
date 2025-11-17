@@ -8,6 +8,7 @@ import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Badge from '../../components/ui/Badge'
+import SafeImage from '../../components/ui/SafeImage'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import { 
   Calendar, Clock, User, Scissors, DollarSign, 
@@ -207,17 +208,12 @@ const BookAppointmentPage = () => {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    {service.image ? (
-                      <img
-                        src={uploadService.getImageUrl(service.image)}
-                        alt={service.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-purple-100 rounded-lg flex items-center justify-center">
-                        <Scissors className="text-primary-300" size={24} />
-                      </div>
-                    )}
+                    <SafeImage
+                      src={service.image ? uploadService.getImageUrl(service.image) : null}
+                      alt={service.name}
+                      className="w-16 h-16 rounded-lg object-cover"
+                      fallbackType="service"
+                    />
                     
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{service.name}</h3>
@@ -281,31 +277,18 @@ const BookAppointmentPage = () => {
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          {worker.avatar ? (
-                            <img
-                              src={uploadService.getImageUrl(worker.avatar)}
-                              alt={worker.name}
-                              className="w-16 h-16 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-primary-400 transition-all"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedWorkerForDetails(worker)
-                                setShowWorkerModal(true)
-                              }}
-                              title="Click to view details"
-                            />
-                          ) : (
-                            <div 
-                              className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary-400 transition-all"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedWorkerForDetails(worker)
-                                setShowWorkerModal(true)
-                              }}
-                              title="Click to view details"
-                            >
-                              <User className="text-primary-600" size={28} />
-                            </div>
-                          )}
+                          <SafeImage
+                            src={worker.avatar ? uploadService.getImageUrl(worker.avatar) : null}
+                            alt={worker.name}
+                            className="w-16 h-16 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-primary-400 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedWorkerForDetails(worker)
+                              setShowWorkerModal(true)
+                            }}
+                            title="Click to view details"
+                            fallbackType="worker"
+                          />
                           
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
@@ -355,17 +338,12 @@ const BookAppointmentPage = () => {
             <div className="space-y-4">
               {/* Worker Info */}
               <div className="p-4 bg-gray-50 rounded-lg flex items-center gap-3">
-                {selectedWorker.avatar ? (
-                  <img
-                    src={uploadService.getImageUrl(selectedWorker.avatar)}
-                    alt={selectedWorker.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                    <User className="text-primary-600" size={24} />
-                  </div>
-                )}
+                <SafeImage
+                  src={selectedWorker.avatar ? uploadService.getImageUrl(selectedWorker.avatar) : null}
+                  alt={selectedWorker.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                  fallbackType="worker"
+                />
                 <div>
                   <p className="text-sm text-gray-600">Your Worker:</p>
                   <p className="font-semibold text-gray-900">{selectedWorker.name}</p>

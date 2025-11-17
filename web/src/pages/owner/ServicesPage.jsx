@@ -10,6 +10,7 @@ import Select from '../../components/ui/Select'
 import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import ImageUpload from '../../components/ui/ImageUpload'
+import SafeImage from '../../components/ui/SafeImage'
 import { Plus, Edit, Trash2, Scissors, Clock, DollarSign, Tag } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import { SERVICE_CATEGORIES } from '../../utils/constants'
@@ -212,19 +213,14 @@ const ServicesPage = () => {
             <Card key={service._id}>
               <CardContent className="p-0">
                 {/* Service Image */}
-                {service.image ? (
-                  <div className="h-40 w-full overflow-hidden rounded-t-lg">
-                    <img
-                      src={uploadService.getImageUrl(service.image)}
-                      alt={service.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-40 w-full bg-gradient-to-br from-primary-100 to-purple-100 rounded-t-lg flex items-center justify-center">
-                    <Scissors className="text-primary-300" size={48} />
-                  </div>
-                )}
+                <div className="h-40 w-full overflow-hidden rounded-t-lg">
+                  <SafeImage
+                    src={service.image ? uploadService.getImageUrl(service.image) : null}
+                    alt={service.name}
+                    className="w-full h-full"
+                    fallbackType="service"
+                  />
+                </div>
                 
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">

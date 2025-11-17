@@ -6,6 +6,7 @@ import { reviewService } from '../../services/reviewService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
+import SafeImage from '../../components/ui/SafeImage'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import ReviewDisplay from '../../components/reviews/ReviewDisplay'
 import { 
@@ -142,17 +143,12 @@ const SalonDetailsPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Logo */}
             <div className="lg:col-span-1">
-              {salon.logo ? (
-                <img
-                  src={uploadService.getImageUrl(salon.logo)}
-                  alt={salon.name}
-                  className="w-full h-64 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
-                />
-              ) : (
-                <div className="w-full h-64 lg:h-full bg-gradient-to-br from-primary-100 to-purple-100 rounded-t-lg lg:rounded-l-lg lg:rounded-t-none flex items-center justify-center">
-                  <Store className="text-primary-300" size={80} />
-                </div>
-              )}
+              <SafeImage
+                src={salon.logo ? uploadService.getImageUrl(salon.logo) : null}
+                alt={salon.name}
+                className="w-full h-64 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
+                fallbackType="salon"
+              />
             </div>
 
             {/* Info */}
@@ -242,19 +238,14 @@ const SalonDetailsPage = () => {
                 <Card key={service._id} className="border border-gray-200">
                   <CardContent className="p-4">
                     {/* Service Image */}
-                    {service.image ? (
-                      <div className="h-32 w-full overflow-hidden rounded-lg mb-3">
-                        <img
-                          src={uploadService.getImageUrl(service.image)}
-                          alt={service.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-32 w-full bg-gradient-to-br from-primary-100 to-purple-100 rounded-lg mb-3 flex items-center justify-center">
-                        <Scissors className="text-primary-300" size={32} />
-                      </div>
-                    )}
+                    <div className="h-32 w-full overflow-hidden rounded-lg mb-3">
+                      <SafeImage
+                        src={service.image ? uploadService.getImageUrl(service.image) : null}
+                        alt={service.name}
+                        className="w-full h-full"
+                        fallbackType="service"
+                      />
+                    </div>
 
                     <div className="mb-2">
                       <h4 className="font-semibold text-gray-900 mb-1">{service.name}</h4>
@@ -317,18 +308,13 @@ const SalonDetailsPage = () => {
                           setShowWorkerModal(true)
                         }}
                       >
-                        {worker.avatar ? (
-                          <img
-                            src={uploadService.getImageUrl(worker.avatar)}
-                            alt={worker.name}
-                            className="w-20 h-20 rounded-full mx-auto mb-2 object-cover border-2 border-primary-200 group-hover:border-primary-400 group-hover:ring-2 group-hover:ring-primary-200 transition-all"
-                            title="Click to view details"
-                          />
-                        ) : (
-                          <div className="w-20 h-20 rounded-full mx-auto mb-2 bg-primary-100 flex items-center justify-center group-hover:ring-2 group-hover:ring-primary-200 transition-all">
-                            <User className="text-primary-600" size={32} />
-                          </div>
-                        )}
+                        <SafeImage
+                          src={worker.avatar ? uploadService.getImageUrl(worker.avatar) : null}
+                          alt={worker.name}
+                          className="w-20 h-20 rounded-full mx-auto mb-2 object-cover border-2 border-primary-200 group-hover:border-primary-400 group-hover:ring-2 group-hover:ring-primary-200 transition-all"
+                          title="Click to view details"
+                          fallbackType="worker"
+                        />
                         <p className="font-medium text-gray-900 text-sm group-hover:text-primary-600 transition-colors">{worker.name}</p>
                         
                         {/* Rating Summary */}

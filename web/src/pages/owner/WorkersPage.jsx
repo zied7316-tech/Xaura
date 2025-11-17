@@ -10,6 +10,7 @@ import Select from '../../components/ui/Select'
 import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import ImageUpload from '../../components/ui/ImageUpload'
+import SafeImage from '../../components/ui/SafeImage'
 import { UserPlus, Mail, Phone, DollarSign, Edit, Trash2, TrendingUp, Award, Calendar, User } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -183,17 +184,12 @@ const WorkersPage = () => {
               <CardContent className="p-6">
                 <div className="flex items-start gap-4 mb-4">
                   {/* Worker Avatar */}
-                  {worker.avatar ? (
-                    <img
-                      src={uploadService.getImageUrl(worker.avatar)}
-                      alt={worker.name}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-primary-200"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-                      <User className="text-primary-600" size={32} />
-                    </div>
-                  )}
+                  <SafeImage
+                    src={worker.avatar ? uploadService.getImageUrl(worker.avatar) : null}
+                    alt={worker.name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-primary-200"
+                    fallbackType="worker"
+                  />
                   
                   <div className="flex-1">
                     <div className="flex items-start justify-between">

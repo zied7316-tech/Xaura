@@ -7,6 +7,7 @@ import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
+import SafeImage from '../../components/ui/SafeImage'
 import { Search, MapPin, Scissors, Users, Phone, Mail, Store, Star, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -164,19 +165,14 @@ const SalonSearchPage = () => {
             <Card key={salon._id} className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardContent className="p-0">
                 {/* Salon Logo/Image */}
-                {salon.logo ? (
-                  <div className="h-48 w-full overflow-hidden rounded-t-lg">
-                    <img
-                      src={uploadService.getImageUrl(salon.logo)}
-                      alt={salon.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-48 w-full bg-gradient-to-br from-primary-100 to-purple-100 rounded-t-lg flex items-center justify-center">
-                    <Store className="text-primary-300" size={64} />
-                  </div>
-                )}
+                <div className="h-48 w-full overflow-hidden rounded-t-lg">
+                  <SafeImage
+                    src={salon.logo ? uploadService.getImageUrl(salon.logo) : null}
+                    alt={salon.name}
+                    className="w-full h-full"
+                    fallbackType="salon"
+                  />
+                </div>
 
                 <div className="p-6">
                   {/* Salon Name */}
