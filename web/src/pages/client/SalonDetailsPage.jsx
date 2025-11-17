@@ -562,9 +562,11 @@ const SalonDetailsPage = () => {
       />
 
       {/* Service Image Modal */}
+      {console.log('🔍 Modal render check:', { showImageModal, selectedServiceImage })}
       <Modal
         isOpen={showImageModal}
         onClose={() => {
+          console.log('🔍 Closing modal')
           setShowImageModal(false)
           setSelectedServiceImage(null)
         }}
@@ -572,27 +574,34 @@ const SalonDetailsPage = () => {
         showHeader={false}
         className="bg-transparent shadow-none"
       >
-        <div className="relative w-full h-full flex items-center justify-center">
+        <div className="relative w-full h-full flex items-center justify-center min-h-[400px]">
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              console.log('🔍 Close button clicked')
               setShowImageModal(false)
               setSelectedServiceImage(null)
             }}
-            className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+            className="absolute top-4 right-4 z-[10002] bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
             aria-label="Close"
           >
             <X size={24} />
           </button>
-          {selectedServiceImage && (
+          {selectedServiceImage ? (
             <img
               src={uploadService.getImageUrl(selectedServiceImage, { width: 1080, height: 1080 })}
               alt="Service"
               className="max-w-full max-h-[95vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
               onError={(e) => {
+                console.error('❌ Image load error')
                 e.target.src = uploadService.getImageUrl(selectedServiceImage)
               }}
+              onLoad={() => console.log('✅ Image loaded successfully')}
             />
+          ) : (
+            <div className="text-white">Loading image...</div>
           )}
         </div>
       </Modal>
