@@ -315,16 +315,18 @@ const NotificationBell = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {/* Test sound button - remove in production */}
+              {/* Test sound button - always visible for debugging */}
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   console.log('🔊 Manual sound test triggered')
                   playNotificationSound()
+                  toast.success('Testing notification sound...')
                 }}
-                className="text-xs text-blue-600 hover:text-blue-700"
+                className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors"
                 title="Test notification sound"
               >
-                🔊 Test
+                🔊 Test Sound
               </button>
               {unreadCount > 0 && (
                 <button
