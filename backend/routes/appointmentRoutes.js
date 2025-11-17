@@ -10,23 +10,14 @@ const {
 } = require('../controllers/appointmentController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// Validation rules
+// Validation rules - allow either serviceId (single) or services (multiple)
 const createAppointmentValidation = [
   body('workerId').notEmpty().withMessage('Worker ID is required'),
   body('dateTime').isISO8601().withMessage('Valid date and time is required'),
-  // Either serviceId OR services array is required (custom validation)
-  body().custom((value) => {
-    if (!value.serviceId && (!value.services || !Array.isArray(value.services) || value.services.length === 0)) {
-      throw new Error('Either serviceId or services array is required');
-    }
-    return true;
-  }),
-  body('serviceId').optional().notEmpty().withMessage('Service ID cannot be empty if provided'),
-  body('services').optional().isArray({ min: 1 }).withMessage('Services must be a non-empty array if provided'),
-  body('services.*.serviceId').optional().notEmpty().withMessage('Each service must have a serviceId'),
-  body('services.*.name').optional().isString().withMessage('Each service must have a name'),
-  body('services.*.price').optional().isNumeric().withMessage('Each service must have a numeric price'),
-  body('services.*.duration').optional().isNumeric().withMessage('Each service must have a numeric duration')
+  // serviceId is optional (for backward compatibility with single service)
+  body('serviceId').optional(),
+  // services array is optional (for multiple services)
+  body('services').optional().isArray().withMessage('Services must be an array if provided')
 ];
 
 const updateStatusValidation = [
