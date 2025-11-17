@@ -160,6 +160,9 @@ export function ThreeDImageRing({
   };
 
   console.log('✅ ThreeDImageRing: Rendering with', images.length, 'images');
+  console.log('✅ ThreeDImageRing: showImages =', showImages);
+  console.log('✅ ThreeDImageRing: angle =', angle);
+  console.log('✅ ThreeDImageRing: currentScale =', currentScale);
 
   return (
     <div
@@ -204,7 +207,10 @@ export function ThreeDImageRing({
           }}
         >
           <AnimatePresence>
-            {showImages && images.map((imageUrl, index) => (
+            {showImages && images.map((imageUrl, index) => {
+              const transformValue = `rotateY(${index * -angle}deg) translateZ(${-imageDistance * currentScale}px)`;
+              console.log(`🖼️ Image ${index}:`, { imageUrl, transform: transformValue, angle: index * -angle });
+              return (
               <motion.div
                 key={index}
                 className={cn(
@@ -217,9 +223,10 @@ export function ThreeDImageRing({
                   backgroundSize: "cover",
                   backgroundRepeat: "no-repeat",
                   backfaceVisibility: "hidden",
-                  transform: `rotateY(${index * -angle}deg) translateZ(${-imageDistance * currentScale}px)`,
+                  transform: transformValue,
                   transformOrigin: `50% 50% ${imageDistance * currentScale}px`,
                   backgroundPosition: getBgPos(index, currentRotationY.current, currentScale),
+                  opacity: 1, // Ensure images are visible
                 }}
                 initial="hidden"
                 animate="visible"
@@ -251,7 +258,8 @@ export function ThreeDImageRing({
                   }
                 }}
               />
-            ))}
+            );
+            })}
           </AnimatePresence>
         </motion.div>
       </div>
