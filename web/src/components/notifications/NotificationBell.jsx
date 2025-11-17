@@ -315,6 +315,17 @@ const NotificationBell = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {/* Test sound button - remove in production */}
+              <button
+                onClick={() => {
+                  console.log('🔊 Manual sound test triggered')
+                  playNotificationSound()
+                }}
+                className="text-xs text-blue-600 hover:text-blue-700"
+                title="Test notification sound"
+              >
+                🔊 Test
+              </button>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
