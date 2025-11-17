@@ -111,8 +111,20 @@ const NotificationBell = () => {
         const { setupMessageListener } = await import('../../services/firebaseService')
         setupMessageListener((payload) => {
           if (payload) {
-            // Play notification sound (only once per push notification)
-            playNotificationSound()
+            // Get notification ID from payload to prevent duplicate sound
+            const notificationId = payload.data?.notificationId
+            
+            // Only play sound if we haven't seen this notification ID before
+            if (notificationId && !seenNotificationIds.has(notificationId)) {
+              // Mark as seen immediately to prevent duplicate sound
+              setSeenNotificationIds(prev => new Set([...prev, notificationId]))
+              
+              // Play notification sound (only once per push notification)
+              playNotificationSound()
+            } else if (!notificationId) {
+              // If no ID in payload, play sound anyway (fallback)
+              playNotificationSound()
+            }
             
             // Show browser notification
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -121,7 +133,7 @@ const NotificationBell = () => {
                 body: payload.notification?.body || payload.data?.message,
                 icon: payload.notification?.icon || '/favicon.ico',
                 badge: '/favicon.ico',
-                tag: payload.data?.notificationId || Date.now().toString(),
+                tag: notificationId || Date.now().toString(),
                 sound: soundFile
               })
             }
@@ -131,7 +143,7 @@ const NotificationBell = () => {
               duration: 5000
             })
             
-            // Reload notifications (without playing sound again)
+            // Reload notifications (without playing sound again - already marked as seen)
             loadNotifications(false)
           }
         })
