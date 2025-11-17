@@ -133,7 +133,9 @@ const SalonDetailsPage = () => {
   console.log('📋 SalonDetailsPage - Services data:', {
     salonDataExists: !!salonData,
     servicesCount: services?.length,
-    services: services
+    services: services,
+    servicesWithImages: services?.filter(s => s?.image && String(s.image).trim() !== '').length,
+    serviceImages: services?.map(s => ({ name: s?.name, image: s?.image, hasImage: !!(s?.image && String(s.image).trim() !== '') }))
   });
 
   return (
@@ -264,28 +266,46 @@ const SalonDetailsPage = () => {
                 });
                 
                 const servicesWithImages = services
+                  .map((service, index) => {
+                    console.log(`\n🔍 Processing service ${index + 1}:`, {
+                      name: service?.name,
+                      hasService: !!service,
+                      imageRaw: service?.image,
+                      imageType: typeof service?.image,
+                      imageLength: service?.image?.length,
+                      imageTrimmed: service?.image ? String(service.image).trim() : null,
+                      isEmpty: !service?.image || String(service.image).trim() === ''
+                    });
+                    return service;
+                  })
                   .filter(service => {
                     if (!service) {
                       console.log('⚠️ Service is null/undefined');
                       return false;
                     }
-                    const hasImage = service.image && String(service.image).trim() !== '';
-                    console.log(`Service "${service?.name}": hasImage=${hasImage}, image="${service?.image}"`);
+                    // More lenient check: allow any truthy value that's not just whitespace
+                    const hasImage = service.image && 
+                                     String(service.image).trim() !== '' && 
+                                     String(service.image).trim() !== 'null' &&
+                                     String(service.image).trim() !== 'undefined';
+                    console.log(`✅ Service "${service?.name}": hasImage=${hasImage}, image="${service?.image}"`);
                     return hasImage;
                   })
                   .map(service => {
                     try {
                       const url = uploadService.getImageUrl(service.image);
-                      console.log(`Service "${service.name}": imageUrl="${url}"`);
+                      console.log(`✅ Service "${service.name}": imageUrl="${url}"`);
                       return url;
                     } catch (error) {
-                      console.error(`Error getting image URL for ${service.name}:`, error);
+                      console.error(`❌ Error getting image URL for ${service.name}:`, error);
                       return null;
                     }
                   })
                   .filter(url => {
-                    const isValid = url && url !== null && url !== '';
-                    if (!isValid) console.log('⚠️ Filtered out invalid URL:', url);
+                    const isValid = url && url !== null && url !== '' && url !== 'null' && url !== 'undefined';
+                    if (!isValid) {
+                      console.log('⚠️ Filtered out invalid URL:', url);
+                    }
                     return isValid;
                   });
 
