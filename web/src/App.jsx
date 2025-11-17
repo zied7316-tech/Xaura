@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 // Layout
@@ -65,16 +65,11 @@ import AdvancedBookingPage from './pages/client/AdvancedBookingPage'
 import AppointmentsPage from './pages/shared/AppointmentsPage'
 import ProfilePage from './pages/shared/ProfilePage'
 import ChatPage from './pages/shared/ChatPage'
-import Test3D from './Test3D'
 
 function App() {
   const { user, loading } = useAuth()
-  const location = useLocation()
 
-  // Don't block Test3D page with loading state
-  const isTest3DPage = location.pathname === '/test-3d'
-  
-  if (loading && !isTest3DPage) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -103,9 +98,7 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/test-3d" element={<Test3D />} />
       <Route path="/" element={<LandingPage />} />
-      <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterPage />} />
       <Route path="/register-salon" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterSalonPage />} />
