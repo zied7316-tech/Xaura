@@ -169,6 +169,39 @@ const clearAllNotifications = async (req, res, next) => {
 };
 
 /**
+ * @desc    Mark notifications as read by appointment ID
+ * @route   PUT /api/notifications/appointment/:appointmentId/read
+ * @access  Private
+ */
+const markNotificationsReadByAppointment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { appointmentId } = req.params;
+
+    // Mark all unread notifications related to this appointment as read
+    const result = await Notification.updateMany(
+      { 
+        userId,
+        relatedAppointment: appointmentId,
+        isRead: false
+      },
+      { 
+        isRead: true,
+        readAt: new Date()
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} notification(s) marked as read`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Register push notification token
  * @route   POST /api/notifications/register-push-token
  * @access  Private
@@ -289,6 +322,7 @@ module.exports = {
   markAllAsRead,
   deleteNotification,
   clearAllNotifications,
+  markNotificationsReadByAppointment,
   registerPushToken,
   unregisterPushToken,
   createNotification

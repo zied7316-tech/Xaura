@@ -69,6 +69,13 @@ const AppointmentsPage = () => {
     setProcessing(true)
     try {
       await appointmentManagementService.acceptAppointment(appointmentId)
+      // Mark related notifications as read
+      try {
+        const { notificationService } = await import('../../services/notificationService')
+        await notificationService.markNotificationsReadByAppointment(appointmentId)
+      } catch (markError) {
+        console.log('Could not mark notifications as read:', markError)
+      }
       toast.success('✅ Appointment accepted!')
       loadAppointments()
     } catch (error) {
@@ -84,6 +91,13 @@ const AppointmentsPage = () => {
     setProcessing(true)
     try {
       await appointmentManagementService.rejectAppointment(appointmentId, 'Cancelled by owner')
+      // Mark related notifications as read
+      try {
+        const { notificationService } = await import('../../services/notificationService')
+        await notificationService.markNotificationsReadByAppointment(appointmentId)
+      } catch (markError) {
+        console.log('Could not mark notifications as read:', markError)
+      }
       toast.success('❌ Appointment cancelled')
       loadAppointments()
     } catch (error) {

@@ -342,6 +342,12 @@ const NotificationBell = () => {
     setProcessingAppointment(appointmentId)
     try {
       await appointmentManagementService.acceptAppointment(appointmentId)
+      // Mark related notifications as read
+      try {
+        await notificationService.markNotificationsReadByAppointment(appointmentId)
+      } catch (markError) {
+        console.log('Could not mark notifications as read:', markError)
+      }
       toast.success('Appointment accepted!')
       // Reload notifications to show updated status
       await loadNotifications()
@@ -360,6 +366,12 @@ const NotificationBell = () => {
     setProcessingAppointment(appointmentId)
     try {
       await appointmentManagementService.rejectAppointment(appointmentId, 'Not available')
+      // Mark related notifications as read
+      try {
+        await notificationService.markNotificationsReadByAppointment(appointmentId)
+      } catch (markError) {
+        console.log('Could not mark notifications as read:', markError)
+      }
       toast.success('Appointment rejected')
       // Reload notifications to show updated status
       await loadNotifications()

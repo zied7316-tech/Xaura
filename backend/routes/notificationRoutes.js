@@ -6,6 +6,7 @@ const {
   markAllAsRead,
   deleteNotification,
   clearAllNotifications,
+  markNotificationsReadByAppointment,
   registerPushToken,
   unregisterPushToken
 } = require('../controllers/notificationController');
@@ -17,6 +18,7 @@ router.get('/', protect, getNotifications);
 // Mark as read
 router.put('/:id/read', protect, markAsRead);
 router.put('/read-all', protect, markAllAsRead);
+router.put('/appointment/:appointmentId/read', protect, markNotificationsReadByAppointment);
 
 // Delete
 router.delete('/:id', protect, deleteNotification);

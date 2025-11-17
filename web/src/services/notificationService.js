@@ -32,5 +32,11 @@ export const notificationService = {
   clearAllNotifications: async () => {
     const response = await api.delete('/notifications/clear-all')
     return response // API interceptor already returns response.data
+  },
+
+  // Mark notifications as read by appointment ID
+  markNotificationsReadByAppointment: async (appointmentId) => {
+    const response = await api.put(`/notifications/appointment/${appointmentId}/read`)
+    return response // API interceptor already returns response.data
   }
 }

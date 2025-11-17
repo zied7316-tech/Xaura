@@ -54,6 +54,13 @@ const WorkerAppointmentsPage = () => {
   const handleAccept = async (appointmentId) => {
     try {
       await appointmentManagementService.acceptAppointment(appointmentId)
+      // Mark related notifications as read
+      try {
+        const { notificationService } = await import('../../services/notificationService')
+        await notificationService.markNotificationsReadByAppointment(appointmentId)
+      } catch (markError) {
+        console.log('Could not mark notifications as read:', markError)
+      }
       toast.success('Appointment accepted!')
       loadAppointments()
     } catch (error) {
@@ -66,6 +73,13 @@ const WorkerAppointmentsPage = () => {
     
     try {
       await appointmentManagementService.rejectAppointment(appointmentId, 'Not available')
+      // Mark related notifications as read
+      try {
+        const { notificationService } = await import('../../services/notificationService')
+        await notificationService.markNotificationsReadByAppointment(appointmentId)
+      } catch (markError) {
+        console.log('Could not mark notifications as read:', markError)
+      }
       toast.success('Appointment rejected')
       loadAppointments()
     } catch (error) {
