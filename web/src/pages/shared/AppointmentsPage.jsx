@@ -148,7 +148,10 @@ const AppointmentsPage = () => {
   }
 
   const handleMessageWorker = async (appointment) => {
-    if (!appointment.workerId?._id) {
+    // Handle both populated (object) and non-populated (string) workerId
+    const workerId = appointment.workerId?._id || appointment.workerId
+    
+    if (!workerId) {
       toast.error('Worker information not available')
       return
     }
@@ -157,7 +160,7 @@ const AppointmentsPage = () => {
     try {
       // Get or create chat with the worker
       const chatData = await chatService.getOrCreateChat(
-        appointment.workerId._id,
+        workerId,
         null,
         appointment._id
       )
@@ -350,7 +353,20 @@ const AppointmentsPage = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {confirmedAppointments.map((apt) => (
+              {confirmedAppointments.map((apt) => {
+                // Debug: Check if button should show
+                const shouldShowButton = isClient && (apt.workerId?._id || apt.workerId) && ['Confirmed', 'In Progress'].includes(apt.status)
+                if (isClient && ['Confirmed', 'In Progress'].includes(apt.status)) {
+                  console.log('Appointment debug:', {
+                    appointmentId: apt._id,
+                    status: apt.status,
+                    workerId: apt.workerId,
+                    workerId_id: apt.workerId?._id,
+                    isClient,
+                    shouldShowButton
+                  })
+                }
+                return (
                 <div key={apt._id} className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-300 transition-all">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
@@ -412,7 +428,7 @@ const AppointmentsPage = () => {
                       {getStatusBadge(apt.status)}
                       
                       {/* Message Worker Button - Only for clients with confirmed appointments */}
-                      {isClient && apt.workerId?._id && (
+                      {isClient && (apt.workerId?._id || apt.workerId) && ['Confirmed', 'In Progress'].includes(apt.status) && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -428,7 +444,8 @@ const AppointmentsPage = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </CardContent>
         </Card>
