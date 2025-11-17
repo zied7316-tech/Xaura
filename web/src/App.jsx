@@ -65,6 +65,7 @@ import AdvancedBookingPage from './pages/client/AdvancedBookingPage'
 import AppointmentsPage from './pages/shared/AppointmentsPage'
 import ProfilePage from './pages/shared/ProfilePage'
 import ChatPage from './pages/shared/ChatPage'
+import Test3D from './Test3D'
 
 function App() {
   const { user, loading } = useAuth()
@@ -98,7 +99,8 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<Test3D />} />
+      <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterPage />} />
       <Route path="/register-salon" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterSalonPage />} />
