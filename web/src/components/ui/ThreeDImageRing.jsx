@@ -213,8 +213,7 @@ export function ThreeDImageRing({
                   backgroundSize: "cover",
                   backgroundRepeat: "no-repeat",
                   backfaceVisibility: "hidden",
-                  rotateY: index * -angle,
-                  z: -imageDistance * currentScale,
+                  transform: `rotateY(${index * -angle}deg) translateZ(${-imageDistance * currentScale}px)`,
                   transformOrigin: `50% 50% ${imageDistance * currentScale}px`,
                   backgroundPosition: getBgPos(index, currentRotationY.current, currentScale),
                 }}
