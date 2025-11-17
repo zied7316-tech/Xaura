@@ -43,7 +43,7 @@ export function ThreeDImageRing({
   const angle = useMemo(() => {
     if (!images || images.length === 0) return 0;
     return 360 / images.length;
-  }, [images.length]);
+  }, [images]);
 
   const getBgPos = (imageIndex, currentRot, scale) => {
     const scaledImageDistance = imageDistance * scale;
