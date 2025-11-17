@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 // Layout
@@ -69,9 +69,10 @@ import Test3D from './Test3D'
 
 function App() {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   // Don't block Test3D page with loading state
-  const isTest3DPage = window.location.pathname === '/test-3d'
+  const isTest3DPage = location.pathname === '/test-3d'
   
   if (loading && !isTest3DPage) {
     return (
@@ -169,12 +170,8 @@ function App() {
         <Route path="/messages" element={<ChatPage />} />
       </Route>
 
-      {/* Catch all - but don't redirect test-3d */}
-      <Route path="*" element={
-        window.location.pathname === '/test-3d' ? 
-          <Test3D /> : 
-          <Navigate to={getDashboardRoute()} />
-      } />
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to={getDashboardRoute()} />} />
     </Routes>
   )
 }
