@@ -360,22 +360,43 @@ const SalonDetailsPage = () => {
                       {/* Service Image */}
                       <div 
                         className="h-32 w-full overflow-hidden rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity relative group"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          console.log('🖼️ Image container clicked!', { 
+                            hasImage: !!service.image, 
+                            image: service.image,
+                            serviceName: service.name 
+                          })
                           if (service.image) {
-                            console.log('🖼️ Clicked service image:', service.image)
+                            console.log('🖼️ Setting image modal state')
                             setSelectedServiceImage(service.image)
                             setShowImageModal(true)
+                            console.log('🖼️ Modal should now be open')
+                          } else {
+                            console.log('⚠️ No image to display')
                           }
                         }}
                         title="Click to view full size"
+                        style={{ pointerEvents: 'auto' }}
                       >
-                        <SafeImage
-                          src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
-                          alt={service.name}
-                          className="w-full h-full object-cover"
-                          fallbackType="service"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <div 
+                          className="w-full h-full"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            console.log('🖼️ Inner div clicked')
+                          }}
+                        >
+                          <SafeImage
+                            src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
+                            alt={service.name}
+                            className="w-full h-full object-cover pointer-events-none"
+                            fallbackType="service"
+                          />
+                        </div>
+                        <div 
+                          className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none"
+                        >
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
                             Click to enlarge
                           </div>

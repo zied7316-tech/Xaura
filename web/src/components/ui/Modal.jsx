@@ -24,7 +24,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md', showHeader = tru
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black bg-opacity-75 transition-opacity backdrop-blur-sm"
@@ -32,8 +32,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md', showHeader = tru
       ></div>
 
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className={`relative bg-white rounded-lg shadow-2xl w-full ${sizes[size]} transform transition-all ${className}`}>
+      <div className="flex min-h-full items-center justify-center p-4 z-[10000]">
+        <div className={`relative bg-white rounded-lg shadow-2xl w-full ${sizes[size]} transform transition-all ${className} z-[10001]`}>
           {/* Header - only show if title is provided or showHeader is true */}
           {(title || showHeader) && (
             <div className="flex items-center justify-between p-4 border-b">
