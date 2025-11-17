@@ -207,6 +207,18 @@ const NotificationBell = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Refresh notifications when window regains focus (e.g., after accepting/rejecting from appointments page)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (showDropdown) {
+        loadNotifications(false)
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [showDropdown])
+
   const loadNotifications = async (playSoundOnNew = false) => {
     try {
       setLoading(true)
