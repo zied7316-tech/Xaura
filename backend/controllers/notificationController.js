@@ -25,7 +25,7 @@ const getNotifications = async (req, res, next) => {
       })
       .populate({
         path: 'relatedAppointment',
-        select: 'dateTime serviceId',
+        select: 'dateTime serviceId status',
         strictPopulate: false // Don't throw error if appointment doesn't exist
       })
       .sort({ createdAt: -1 })

@@ -304,15 +304,35 @@ const NotificationBell = () => {
     }
   }
 
+  // Helper function to get appointment status from notification
+  const getAppointmentStatus = (notification) => {
+    if (!notification.relatedAppointment) return null
+    if (typeof notification.relatedAppointment === 'string') return null
+    return notification.relatedAppointment.status || null
+  }
+
+  // Helper function to extract appointment ID from notification
+  const extractAppointmentId = (notification) => {
+    if (!notification.relatedAppointment) return null
+    if (typeof notification.relatedAppointment === 'string') {
+      return notification.relatedAppointment
+    }
+    if (notification.relatedAppointment._id) {
+      return typeof notification.relatedAppointment._id === 'string' 
+        ? notification.relatedAppointment._id 
+        : notification.relatedAppointment._id.toString()
+    }
+    return null
+  }
+
   const handleAcceptAppointment = async (appointmentId, e) => {
     e.stopPropagation()
     setProcessingAppointment(appointmentId)
     try {
       await appointmentManagementService.acceptAppointment(appointmentId)
       toast.success('Appointment accepted!')
-      loadNotifications()
-      // Optionally navigate to appointments page
-      // navigate('/worker/appointments')
+      // Reload notifications to show updated status
+      await loadNotifications()
     } catch (error) {
       toast.error(error.message || 'Failed to accept appointment')
       console.error('Error accepting appointment:', error)
@@ -329,7 +349,8 @@ const NotificationBell = () => {
     try {
       await appointmentManagementService.rejectAppointment(appointmentId, 'Not available')
       toast.success('Appointment rejected')
-      loadNotifications()
+      // Reload notifications to show updated status
+      await loadNotifications()
     } catch (error) {
       toast.error(error.message || 'Failed to reject appointment')
       console.error('Error rejecting appointment:', error)
@@ -373,12 +394,12 @@ const NotificationBell = () => {
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
-        onClick={() => {
+        onClick={async () => {
           const newState = !showDropdown
           setShowDropdown(newState)
-          // Reload notifications when opening dropdown
+          // Reload notifications when opening dropdown to get latest appointment status
           if (newState) {
-            loadNotifications()
+            await loadNotifications(false)
           }
         }}
         className="p-2 rounded-md text-gray-600 hover:bg-gray-100 relative"
@@ -459,65 +480,75 @@ const NotificationBell = () => {
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                       
-                      {/* Accept/Reject buttons for new appointment notifications */}
+                      {/* Accept/Reject buttons or status indicator for new appointment notifications */}
                       {notification.type === 'new_appointment' && 
                        notification.relatedAppointment && 
                        (isWorker || isOwner) && (
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              // Extract appointment ID - handle both object and string formats
-                              let appointmentId = null
-                              if (notification.relatedAppointment) {
-                                if (typeof notification.relatedAppointment === 'string') {
-                                  appointmentId = notification.relatedAppointment
-                                } else if (notification.relatedAppointment._id) {
-                                  appointmentId = typeof notification.relatedAppointment._id === 'string' 
-                                    ? notification.relatedAppointment._id 
-                                    : notification.relatedAppointment._id.toString()
-                                }
-                              }
-                              if (appointmentId) {
-                                handleAcceptAppointment(appointmentId, e)
-                              } else {
-                                console.error('Could not extract appointment ID from notification:', notification)
-                                toast.error('Invalid appointment ID')
-                              }
-                            }}
-                            disabled={processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment)}
-                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                          >
-                            <CheckCircle size={14} />
-                            {processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment) ? 'Processing...' : 'Accept'}
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              // Extract appointment ID - handle both object and string formats
-                              let appointmentId = null
-                              if (notification.relatedAppointment) {
-                                if (typeof notification.relatedAppointment === 'string') {
-                                  appointmentId = notification.relatedAppointment
-                                } else if (notification.relatedAppointment._id) {
-                                  appointmentId = typeof notification.relatedAppointment._id === 'string' 
-                                    ? notification.relatedAppointment._id 
-                                    : notification.relatedAppointment._id.toString()
-                                }
-                              }
-                              if (appointmentId) {
-                                handleRejectAppointment(appointmentId, e)
-                              } else {
-                                console.error('Could not extract appointment ID from notification:', notification)
-                                toast.error('Invalid appointment ID')
-                              }
-                            }}
-                            disabled={processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment)}
-                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                          >
-                            <XCircle size={14} />
-                            {processingAppointment === (notification.relatedAppointment?._id || notification.relatedAppointment) ? 'Processing...' : 'Reject'}
-                          </button>
+                        <div className="mt-3">
+                          {(() => {
+                            const appointmentStatus = getAppointmentStatus(notification)
+                            const appointmentId = extractAppointmentId(notification)
+                            const isProcessing = processingAppointment === appointmentId
+                            
+                            // Show status indicator if appointment is already accepted/rejected
+                            if (appointmentStatus === 'Confirmed') {
+                              return (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-md">
+                                  <CheckCircle size={16} className="text-green-600" />
+                                  <span className="text-sm font-medium text-green-700">Accepted</span>
+                                </div>
+                              )
+                            }
+                            
+                            if (appointmentStatus === 'Cancelled') {
+                              return (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                                  <XCircle size={16} className="text-red-600" />
+                                  <span className="text-sm font-medium text-red-700">Rejected</span>
+                                </div>
+                              )
+                            }
+                            
+                            // Show buttons if still pending
+                            if (appointmentStatus === 'Pending' || !appointmentStatus) {
+                              return (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      if (appointmentId) {
+                                        handleAcceptAppointment(appointmentId, e)
+                                      } else {
+                                        console.error('Could not extract appointment ID from notification:', notification)
+                                        toast.error('Invalid appointment ID')
+                                      }
+                                    }}
+                                    disabled={isProcessing}
+                                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                                  >
+                                    <CheckCircle size={14} />
+                                    {isProcessing ? 'Processing...' : 'Accept'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      if (appointmentId) {
+                                        handleRejectAppointment(appointmentId, e)
+                                      } else {
+                                        console.error('Could not extract appointment ID from notification:', notification)
+                                        toast.error('Invalid appointment ID')
+                                      }
+                                    }}
+                                    disabled={isProcessing}
+                                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                                  >
+                                    <XCircle size={14} />
+                                    {isProcessing ? 'Processing...' : 'Reject'}
+                                  </button>
+                                </div>
+                              )
+                            }
+                            
+                            return null
+                          })()}
                         </div>
                       )}
                       
