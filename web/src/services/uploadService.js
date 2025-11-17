@@ -151,15 +151,28 @@ export const uploadService = {
       if (imagePath.includes('res.cloudinary.com') && (options.width || options.height)) {
         const width = options.width || 1080
         const height = options.height || 1080
-        // Insert transformation before the version number
-        // Format: https://res.cloudinary.com/.../image/upload/v123/... -> https://res.cloudinary.com/.../image/upload/w_1080,h_1080,c_fill/v123/...
+        // Insert transformation before the version number or public_id
+        // Format: https://res.cloudinary.com/.../image/upload/v123/... 
+        // -> https://res.cloudinary.com/.../image/upload/w_1080,h_1080,c_fill/v123/...
         const uploadIndex = imagePath.indexOf('/image/upload/')
         if (uploadIndex !== -1) {
           const beforeUpload = imagePath.substring(0, uploadIndex + '/image/upload'.length)
           const afterUpload = imagePath.substring(uploadIndex + '/image/upload'.length + 1)
-          // Check if there's already a transformation
-          if (!afterUpload.startsWith('w_') && !afterUpload.startsWith('v')) {
+          
+          // Check if there's already a transformation (starts with w_, h_, c_, etc.)
+          const hasTransformation = /^[a-z_0-9,]+/.test(afterUpload) && !afterUpload.startsWith('v')
+          
+          if (!hasTransformation) {
+            // Insert transformation before version or public_id
             return `${beforeUpload}/w_${width},h_${height},c_fill/${afterUpload}`
+          } else {
+            // Replace existing transformation
+            const parts = afterUpload.split('/')
+            if (parts.length > 0) {
+              // Replace first part (transformation) with new one
+              parts[0] = `w_${width},h_${height},c_fill`
+              return `${beforeUpload}/${parts.join('/')}`
+            }
           }
         }
       }
