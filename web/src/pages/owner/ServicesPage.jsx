@@ -11,7 +11,7 @@ import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import ImageUpload from '../../components/ui/ImageUpload'
 import SafeImage from '../../components/ui/SafeImage'
-import ThreeDImageRing from '../../components/ui/ThreeDImageRing'
+// Removed ThreeDImageRing import
 import { Plus, Edit, Trash2, Scissors, Clock, DollarSign, Tag } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import { SERVICE_CATEGORIES } from '../../utils/constants'
