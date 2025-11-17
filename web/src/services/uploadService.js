@@ -62,6 +62,48 @@ export const uploadService = {
     return response.data.data
   },
 
+  // Delete salon logo
+  deleteSalonImage: async (salonId) => {
+    const token = localStorage.getItem('token')
+    const response = await axios.delete(
+      `${API_URL}/upload/salon/${salonId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+    return response.data
+  },
+
+  // Delete service image
+  deleteServiceImage: async (serviceId) => {
+    const token = localStorage.getItem('token')
+    const response = await axios.delete(
+      `${API_URL}/upload/service/${serviceId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+    return response.data
+  },
+
+  // Delete worker profile picture
+  deleteWorkerImage: async (workerId) => {
+    const token = localStorage.getItem('token')
+    const response = await axios.delete(
+      `${API_URL}/upload/worker/${workerId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+    return response.data
+  },
+
   // Get image URL (for display)
   // Handles both Cloudinary URLs (https://) and local storage paths (/uploads/...)
   getImageUrl: (imagePath) => {

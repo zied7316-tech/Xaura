@@ -72,23 +72,54 @@ const WorkersPage = () => {
 
   const handleUpdateWorker = async () => {
     try {
-      await workerService.updateWorker(selectedWorker._id, editData)
-      
-      // Upload avatar if selected
+      // Upload avatar FIRST if selected (before updating worker to avoid conflicts)
       if (selectedAvatar) {
         try {
-          await uploadService.uploadWorkerImage(selectedWorker._id, selectedAvatar)
+          console.log('📤 Uploading worker avatar for:', selectedWorker._id)
+          const uploadResult = await uploadService.uploadWorkerImage(selectedWorker._id, selectedAvatar)
+          console.log('✅ Avatar upload result:', uploadResult)
+          toast.success('Profile picture updated!')
+          // Refresh workers immediately after upload
+          await loadWorkers()
         } catch (error) {
-          console.error('Avatar upload failed:', error)
+          console.error('❌ Avatar upload failed:', error)
+          toast.error('Failed to upload profile picture: ' + (error.response?.data?.message || error.message))
+          return // Stop here if upload fails
         }
       }
+      
+      // Then update worker data
+      await workerService.updateWorker(selectedWorker._id, editData)
       
       toast.success('Worker updated successfully!')
       setShowEditModal(false)
       setSelectedAvatar(null)
       loadWorkers()
     } catch (error) {
-      toast.error('Failed to update worker')
+      console.error('❌ Worker update failed:', error)
+      toast.error(error.response?.data?.message || 'Failed to update worker')
+    }
+  }
+
+  const handleDeleteWorkerImage = async () => {
+    if (!confirm('Are you sure you want to delete this worker\'s profile picture?')) return
+    
+    try {
+      console.log('🗑️ Deleting worker avatar for:', selectedWorker._id)
+      await uploadService.deleteWorkerImage(selectedWorker._id)
+      toast.success('Profile picture deleted!')
+      setSelectedAvatar(null)
+      // Refresh workers and update selected worker
+      await loadWorkers()
+      // Update the selected worker in the modal
+      const updatedWorkers = await workerService.getWorkers()
+      const updatedWorker = updatedWorkers.find(w => w._id === selectedWorker._id)
+      if (updatedWorker) {
+        setSelectedWorker(updatedWorker)
+      }
+    } catch (error) {
+      console.error('❌ Delete avatar failed:', error)
+      toast.error('Failed to delete profile picture: ' + (error.response?.data?.message || error.message))
     }
   }
 
@@ -303,13 +334,26 @@ const WorkersPage = () => {
       >
         {editData && (
           <div className="space-y-4">
-            <ImageUpload
-              label="Worker Profile Picture"
-              currentImage={selectedWorker?.avatar ? uploadService.getImageUrl(selectedWorker.avatar) : null}
-              onImageSelect={setSelectedAvatar}
-              accept="image/*"
-              maxSize={5}
-            />
+            <div className="space-y-2">
+              <ImageUpload
+                label="Worker Profile Picture"
+                currentImage={selectedWorker?.avatar ? uploadService.getImageUrl(selectedWorker.avatar) : null}
+                onImageSelect={setSelectedAvatar}
+                accept="image/*"
+                maxSize={5}
+              />
+              {selectedWorker?.avatar && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDeleteWorkerImage}
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 size={16} />
+                  Delete Current Picture
+                </Button>
+              )}
+            </div>
 
             <Input
               label="Name"
