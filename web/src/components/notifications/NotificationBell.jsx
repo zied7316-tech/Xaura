@@ -14,6 +14,7 @@ const NotificationBell = () => {
   const [unreadCount, setUnreadCount] = useState(0)
   const [showDropdown, setShowDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [seenNotificationIds, setSeenNotificationIds] = useState(new Set())
   const dropdownRef = useRef(null)
   const audioRef = useRef(null)
 
@@ -110,7 +111,7 @@ const NotificationBell = () => {
         const { setupMessageListener } = await import('../../services/firebaseService')
         setupMessageListener((payload) => {
           if (payload) {
-            // Play notification sound
+            // Play notification sound (only once per push notification)
             playNotificationSound()
             
             // Show browser notification
@@ -130,8 +131,8 @@ const NotificationBell = () => {
               duration: 5000
             })
             
-            // Reload notifications
-            loadNotifications()
+            // Reload notifications (without playing sound again)
+            loadNotifications(false)
           }
         })
       } catch (error) {
@@ -166,7 +167,6 @@ const NotificationBell = () => {
   const loadNotifications = async (playSoundOnNew = false) => {
     try {
       setLoading(true)
-      const previousUnreadCount = unreadCount
       const response = await notificationService.getNotifications(20, false)
       
       // Handle different response structures
@@ -174,30 +174,44 @@ const NotificationBell = () => {
       let newUnreadCount = 0
       
       if (Array.isArray(response)) {
-        // Response is directly an array
         notifications = response
         newUnreadCount = response.filter(n => !n.isRead).length
       } else if (response?.data && Array.isArray(response.data)) {
-        // Response has data property
         notifications = response.data
         newUnreadCount = response.unreadCount || 0
       } else if (response?.success && Array.isArray(response.data)) {
-        // Standard API response
         notifications = response.data
         newUnreadCount = response.unreadCount || 0
       }
       
-      // Play sound if new unread notifications arrived
-      if (playSoundOnNew && newUnreadCount > previousUnreadCount) {
-        console.log('🔔 New notifications detected! Previous:', previousUnreadCount, 'New:', newUnreadCount)
-        playNotificationSound()
+      // Only play sound if there are truly NEW notifications we haven't seen
+      if (playSoundOnNew && notifications.length > 0) {
+        // Get current notification IDs
+        const currentNotificationIds = new Set(notifications.map(n => n._id || n.id).filter(Boolean))
+        
+        // Find NEW notifications (ones we haven't seen before and are unread)
+        const newNotifications = notifications.filter(n => {
+          const id = n._id || n.id
+          return id && !seenNotificationIds.has(id) && !n.isRead
+        })
+        
+        // If there are new unread notifications, play sound ONCE
+        if (newNotifications.length > 0) {
+          console.log('🔔 New notifications detected! Playing sound once.')
+          playNotificationSound()
+          // Update seen notifications to include all current ones
+          setSeenNotificationIds(currentNotificationIds)
+        }
+      } else if (!playSoundOnNew) {
+        // On initial load, just track the IDs without playing sound
+        const currentNotificationIds = new Set(notifications.map(n => n._id || n.id).filter(Boolean))
+        setSeenNotificationIds(currentNotificationIds)
       }
       
       setNotifications(notifications)
       setUnreadCount(newUnreadCount)
     } catch (error) {
       console.error('Error loading notifications:', error)
-      // Set empty arrays on error to prevent UI issues
       setNotifications([])
       setUnreadCount(0)
     } finally {
@@ -279,21 +293,7 @@ const NotificationBell = () => {
   }
 
   return (
-    <div className="relative flex items-center gap-2" ref={dropdownRef}>
-      {/* Test Sound Button - Always visible for debugging */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          console.log('🔊 Manual sound test triggered')
-          playNotificationSound()
-          toast.success('Testing notification sound...')
-        }}
-        className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors"
-        title="Test notification sound"
-      >
-        🔊
-      </button>
-      
+    <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
         onClick={() => {
@@ -329,19 +329,6 @@ const NotificationBell = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {/* Test sound button - always visible for debugging */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  console.log('🔊 Manual sound test triggered')
-                  playNotificationSound()
-                  toast.success('Testing notification sound...')
-                }}
-                className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors"
-                title="Test notification sound"
-              >
-                🔊 Test Sound
-              </button>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
