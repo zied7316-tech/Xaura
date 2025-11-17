@@ -15,10 +15,10 @@ const { protect } = require('../middleware/authMiddleware');
 // Get notifications
 router.get('/', protect, getNotifications);
 
-// Mark as read
-router.put('/:id/read', protect, markAsRead);
-router.put('/read-all', protect, markAllAsRead);
+// Mark as read - specific routes first (order matters!)
 router.put('/appointment/:appointmentId/read', protect, markNotificationsReadByAppointment);
+router.put('/read-all', protect, markAllAsRead);
+router.put('/:id/read', protect, markAsRead);
 
 // Delete
 router.delete('/:id', protect, deleteNotification);
