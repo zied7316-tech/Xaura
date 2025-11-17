@@ -61,7 +61,7 @@ export function ShinyText({
   repeat = "infinite",
   pauseOnHover = false,
   gradientType = "linear",
-}: ShinyTextProps) {
+}) {
   const config = directionConfig[direction];
   const gradientDirection = direction === "left-to-right" || direction === "right-to-left"
     ? "90deg"
