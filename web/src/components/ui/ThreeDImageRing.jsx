@@ -32,8 +32,12 @@ export function ThreeDImageRing({
   const velocity = useRef(0);
   const [currentScale, setCurrentScale] = useState(1);
   const [showImages, setShowImages] = useState(false);
+  const [currentRotation, setCurrentRotation] = useState(initialRotation);
 
-  const angle = useMemo(() => 360 / images.length, [images.length]);
+  const angle = useMemo(() => {
+    if (!images || images.length === 0) return 0;
+    return 360 / images.length;
+  }, [images.length]);
 
   const getBgPos = (imageIndex, currentRot, scale) => {
     const scaledImageDistance = imageDistance * scale;
@@ -44,7 +48,14 @@ export function ThreeDImageRing({
 
   useEffect(() => {
     const unsubscribe = rotationY.on("change", (latestRotation) => {
+      setCurrentRotation(latestRotation);
+      currentRotationY.current = latestRotation;
+      
       if (ringRef.current) {
+        // Update ring rotation
+        ringRef.current.style.transform = `rotateY(${latestRotation}deg)`;
+        
+        // Update background positions for parallax effect
         Array.from(ringRef.current.children).forEach((imgElement, i) => {
           imgElement.style.backgroundPosition = getBgPos(
             i,
@@ -53,7 +64,6 @@ export function ThreeDImageRing({
           );
         });
       }
-      currentRotationY.current = latestRotation;
     });
 
     return () => unsubscribe();
@@ -177,13 +187,13 @@ export function ThreeDImageRing({
           transform: "translate(-50%, -50%)",
         }}
       >
-        <motion.div
+        <div
           ref={ringRef}
           className={cn("w-full h-full absolute", ringClassName)}
           style={{
             transformStyle: "preserve-3d",
-            rotateY: rotationY,
             cursor: draggable ? "grab" : "default",
+            transform: `rotateY(${currentRotation}deg)`,
           }}
         >
           <AnimatePresence>
@@ -197,10 +207,9 @@ export function ThreeDImageRing({
                   backgroundSize: "cover",
                   backgroundRepeat: "no-repeat",
                   backfaceVisibility: "hidden",
-                  rotateY: index * -angle,
-                  z: -imageDistance * currentScale,
                   transformOrigin: `50% 50% ${imageDistance * currentScale}px`,
                   backgroundPosition: getBgPos(index, currentRotationY.current, currentScale),
+                  transform: `rotateY(${index * -angle}deg) translateZ(${-imageDistance * currentScale}px)`,
                 }}
                 initial="hidden"
                 animate="visible"
@@ -234,7 +243,7 @@ export function ThreeDImageRing({
               />
             ))}
           </AnimatePresence>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

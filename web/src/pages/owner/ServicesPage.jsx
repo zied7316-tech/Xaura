@@ -213,9 +213,11 @@ const ServicesPage = () => {
           {/* 3D Image Ring - Show when there are services with images */}
           {useMemo(() => {
             const servicesWithImages = services
-              .filter(service => service.image)
+              .filter(service => service && service.image)
               .map(service => uploadService.getImageUrl(service.image))
-              .filter(url => url);
+              .filter(url => url && url !== null);
+            
+            console.log('🎨 3D Ring - Services with images:', servicesWithImages.length, servicesWithImages);
             
             return servicesWithImages.length >= 2 ? (
               <Card className="mb-8">
