@@ -99,9 +99,7 @@ const BookAppointmentPage = () => {
       const slots = await availabilityService.getWorkerTimeSlots(selectedWorker._id, {
         date: selectedDate,
         serviceId: serviceId,
-        totalDuration: totalDuration.toString(), // Pass totalDuration for multi-service bookings
-        serviceId: serviceId,
-        totalDuration: totalDuration // Pass total duration for multiple services
+        totalDuration: totalDuration.toString() // Pass totalDuration for multi-service bookings
       })
       setAvailableSlots(slots)
     } catch (error) {
