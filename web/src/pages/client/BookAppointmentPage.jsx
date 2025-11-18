@@ -99,6 +99,8 @@ const BookAppointmentPage = () => {
       const slots = await availabilityService.getWorkerTimeSlots(selectedWorker._id, {
         date: selectedDate,
         serviceId: serviceId,
+        totalDuration: totalDuration.toString(), // Pass totalDuration for multi-service bookings
+        serviceId: serviceId,
         totalDuration: totalDuration // Pass total duration for multiple services
       })
       setAvailableSlots(slots)
@@ -295,24 +297,33 @@ const BookAppointmentPage = () => {
                 </div>
               )})}
             </div>
-            {selectedServices.length > 0 && (
-              <div className="mt-4 p-3 bg-primary-50 rounded-lg">
-                <p className="text-sm font-semibold text-primary-700 mb-2">
-                  Selected: {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''}
+            {(selectedServices.length > 0 || selectedService) && (
+              <div className="mt-4 p-4 bg-primary-50 rounded-lg border-2 border-primary-200">
+                <p className="text-sm font-semibold text-primary-700 mb-3">
+                  Selected: {(selectedServices.length > 0 ? selectedServices : [selectedService]).length} service{(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? 's' : ''}
                 </p>
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <span>Total Duration: {formatDuration(selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0))}</span>
-                  <span>•</span>
-                  <span className="text-green-600 font-semibold">
-                    Total Price: {formatCurrency(selectedServices.reduce((sum, s) => sum + (s.price || 0), 0))}
+                <div className="space-y-2 mb-3">
+                  {(selectedServices.length > 0 ? selectedServices : [selectedService]).map((service, idx) => (
+                    <div key={service._id || idx} className="flex items-center justify-between text-sm bg-white p-2 rounded">
+                      <span className="text-gray-700">{capitalizeFirst(service.name)}</span>
+                      <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-sm font-semibold pt-2 border-t border-primary-300">
+                  <span className="text-gray-700">
+                    Total Duration: {formatDuration((selectedServices.length > 0 ? selectedServices : [selectedService]).reduce((sum, s) => sum + (s.duration || 0), 0))}
+                  </span>
+                  <span className="text-green-600 text-lg">
+                    Total Price: {formatCurrency((selectedServices.length > 0 ? selectedServices : [selectedService]).reduce((sum, s) => sum + (s.price || 0), 0))}
                   </span>
                 </div>
                 <Button
                   onClick={() => setStep(2)}
-                  className="mt-3"
-                  disabled={selectedServices.length === 0}
+                  className="mt-3 w-full"
+                  disabled={(selectedServices.length === 0 && !selectedService)}
                 >
-                  Continue with {selectedServices.length} Service{selectedServices.length > 1 ? 's' : ''}
+                  Continue with {(selectedServices.length > 0 ? selectedServices : [selectedService]).length} Service{(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? 's' : ''}
                 </Button>
               </div>
             )}
@@ -622,33 +633,48 @@ const BookAppointmentPage = () => {
           <CardContent>
             <div className="space-y-3">
               {(selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])).map((service, idx) => (
-                <div key={service._id || idx} className="text-center py-2">
-                  <span className="text-gray-600 text-sm block mb-1">Service {selectedServices.length > 1 ? idx + 1 : ''}</span>
-                  <ShinyText
-                    size="xl"
-                    weight="bold"
-                    baseColor="#667eea"
-                    shineColor="#764ba2"
-                    speed={3}
-                    intensity={1}
-                    direction="left-to-right"
-                    shineWidth={30}
-                  >
-                    {capitalizeFirst(service.name)}
-                  </ShinyText>
+                <div key={service._id || idx} className="flex items-center justify-between py-2 border-b border-primary-200 last:border-0">
+                  <div className="flex-1">
+                    <span className="text-gray-600 text-xs block mb-1">
+                      Service {(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? `${idx + 1} of ${(selectedServices.length > 0 ? selectedServices : [selectedService]).length}` : ''}
+                    </span>
+                    <ShinyText
+                      size="lg"
+                      weight="bold"
+                      baseColor="#667eea"
+                      shineColor="#764ba2"
+                      speed={3}
+                      intensity={1}
+                      direction="left-to-right"
+                      shineWidth={30}
+                    >
+                      {capitalizeFirst(service.name)}
+                    </ShinyText>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <span>⏱️ {formatDuration(service.duration)}</span>
+                      <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+                    </div>
+                  </div>
                 </div>
               ))}
-              {selectedServices.length > 1 && (
-                <div className="flex items-center justify-between pt-2 border-t border-primary-300">
-                  <span className="text-gray-700 font-medium">Total:</span>
-                  <span className="text-lg font-bold text-green-600">
-                    {formatCurrency(selectedServices.reduce((sum, s) => sum + (s.price || 0), 0))}
+              
+              <div className="pt-3 border-t-2 border-primary-300 mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-700 font-medium">Total Duration:</span>
+                  <span className="font-semibold text-gray-900">
+                    {formatDuration((selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])).reduce((sum, s) => sum + (s.duration || 0), 0))}
                   </span>
                 </div>
-              )}
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700 font-medium">Total Price:</span>
+                  <span className="text-2xl font-bold text-green-600">
+                    {formatCurrency((selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])).reduce((sum, s) => sum + (s.price || 0), 0))}
+                  </span>
+                </div>
+              </div>
               
               {selectedDate && (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pt-3 border-t border-primary-200">
                   <span className="text-gray-600">Date:</span>
                   <span className="font-semibold text-gray-900">
                     {new Date(selectedDate).toLocaleDateString('en-US', { 
@@ -672,15 +698,6 @@ const BookAppointmentPage = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Worker:</span>
                   <span className="font-semibold text-gray-900">{selectedWorker.name}</span>
-                </div>
-              )}
-              
-              {selectedService && (
-                <div className="flex items-center justify-between pt-3 border-t border-primary-300">
-                  <span className="text-gray-700 font-medium">Total:</span>
-                  <span className="text-2xl font-bold text-green-600">
-                    {formatCurrency(selectedService.price)}
-                  </span>
                 </div>
               )}
             </div>
