@@ -22,7 +22,7 @@ const appointmentSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Service',
       required: true
-    },
+  },
     name: String,
     price: Number,
     duration: Number
