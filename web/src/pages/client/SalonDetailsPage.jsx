@@ -108,13 +108,13 @@ const SalonDetailsPage = () => {
   }
 
   const handleBookService = (serviceId) => {
-    // Navigate to booking page with salon and service pre-selected
-    navigate(`/book?salon=${salonId}&service=${serviceId}`)
+    // Navigate to booking page with salon, service, and recurring option
+    navigate(`/book?salon=${salonId}&service=${serviceId}&recurring=true`)
   }
 
   const handleBookNow = () => {
-    // Navigate to booking page with just salon
-    navigate(`/book?salon=${salonId}`)
+    // Navigate to booking page with salon and recurring option
+    navigate(`/book?salon=${salonId}&recurring=true`)
   }
 
   if (loading) {
