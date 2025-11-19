@@ -59,6 +59,13 @@ const BookAppointmentPage = () => {
   }, [salonIdParam])
 
   useEffect(() => {
+    // Sync selectedService to selectedServices array for consistency
+    if (selectedService && !selectedServices.some(s => s._id === selectedService._id)) {
+      setSelectedServices([selectedService])
+    }
+  }, [selectedService])
+
+  useEffect(() => {
     if (selectedWorker && selectedDate && (selectedService || selectedServices.length > 0)) {
       loadAvailableSlots()
     }
@@ -74,6 +81,7 @@ const BookAppointmentPage = () => {
         const service = data.services.find(s => s._id === serviceIdParam)
         if (service) {
           setSelectedService(service)
+          setSelectedServices([service]) // Also add to array for consistency
           setStep(2)
         }
       }
@@ -217,9 +225,24 @@ const BookAppointmentPage = () => {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Step 1: Choose a Service</CardTitle>
+            <CardTitle>Step 1: Choose Service(s)</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">💡</span>
+                <div>
+                  <p className="text-sm font-semibold text-blue-900 mb-1">
+                    Choose One or Multiple Services
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    You can select <strong className="text-blue-900">one service</strong> (e.g., Haircut) or 
+                    <strong className="text-blue-900"> multiple services</strong> for the same appointment (e.g., Haircut + Barber + Styling). 
+                    Click on services to select/deselect them.
+                  </p>
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {salonDetails?.services.map((service) => {
                 const isSelected = selectedServices.some(s => s._id === service._id) || selectedService?._id === service._id
@@ -227,13 +250,17 @@ const BookAppointmentPage = () => {
                 <div
                   key={service._id}
                   onClick={() => {
-                    // Toggle service selection
+                    // Toggle service selection - always use selectedServices array for consistency
                     if (isSelected) {
-                      setSelectedServices(prev => prev.filter(s => s._id !== service._id))
+                      // Remove from selection
+                      const newServices = selectedServices.filter(s => s._id !== service._id)
+                      setSelectedServices(newServices)
+                      // Also clear selectedService if it matches
                       if (selectedService?._id === service._id) {
                         setSelectedService(null)
                       }
                     } else {
+                      // Add to selection
                       setSelectedServices(prev => [...prev, service])
                     }
                   }}
@@ -295,33 +322,70 @@ const BookAppointmentPage = () => {
                 </div>
               )})}
             </div>
-            {(selectedServices.length > 0 || selectedService) && (
-              <div className="mt-4 p-4 bg-primary-50 rounded-lg border-2 border-primary-200">
-                <p className="text-sm font-semibold text-primary-700 mb-3">
-                  Selected: {(selectedServices.length > 0 ? selectedServices : [selectedService]).length} service{(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? 's' : ''}
-                </p>
-                <div className="space-y-2 mb-3">
-                  {(selectedServices.length > 0 ? selectedServices : [selectedService]).map((service, idx) => (
-                    <div key={service._id || idx} className="flex items-center justify-between text-sm bg-white p-2 rounded">
-                      <span className="text-gray-700">{capitalizeFirst(service.name)}</span>
-                      <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+            {selectedServices.length > 0 && (
+              <div className="mt-4 p-4 bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg border-2 border-primary-300 shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-bold text-primary-800">
+                    ✓ Selected: {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''}
+                  </p>
+                  {selectedServices.length > 1 && (
+                    <Badge variant="default" className="bg-purple-100 text-purple-700">
+                      Multi-Service
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
+                  {selectedServices.map((service, idx) => (
+                    <div 
+                      key={service._id || idx} 
+                      className="flex items-center justify-between text-sm bg-white p-3 rounded-lg border border-gray-200 hover:border-primary-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-primary-600 font-bold text-xs w-6 h-6 flex items-center justify-center bg-primary-100 rounded-full">
+                          {idx + 1}
+                        </span>
+                        <span className="text-gray-700 font-medium">{capitalizeFirst(service.name)}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500">⏱️ {formatDuration(service.duration)}</span>
+                        <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedServices(prev => prev.filter(s => s._id !== service._id))
+                            if (selectedService?._id === service._id) {
+                              setSelectedService(null)
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1 transition-colors"
+                          title="Remove service"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-between text-sm font-semibold pt-2 border-t border-primary-300">
-                  <span className="text-gray-700">
-                    Total Duration: {formatDuration((selectedServices.length > 0 ? selectedServices : [selectedService]).reduce((sum, s) => sum + (s.duration || 0), 0))}
-                  </span>
-                  <span className="text-green-600 text-lg">
-                    Total Price: {formatCurrency((selectedServices.length > 0 ? selectedServices : [selectedService]).reduce((sum, s) => sum + (s.price || 0), 0))}
-                  </span>
+                <div className="flex items-center justify-between text-sm font-bold pt-3 border-t-2 border-primary-300 bg-white p-3 rounded-lg">
+                  <div>
+                    <span className="text-gray-600 block text-xs mb-1">Total Duration</span>
+                    <span className="text-gray-900 text-base">
+                      {formatDuration(selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0))}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-gray-600 block text-xs mb-1">Total Price</span>
+                    <span className="text-green-600 text-xl">
+                      {formatCurrency(selectedServices.reduce((sum, s) => sum + (s.price || 0), 0))}
+                    </span>
+                  </div>
                 </div>
                 <Button
                   onClick={() => setStep(2)}
                   className="mt-3 w-full"
-                  disabled={(selectedServices.length === 0 && !selectedService)}
+                  disabled={selectedServices.length === 0}
                 >
-                  Continue with {(selectedServices.length > 0 ? selectedServices : [selectedService]).length} Service{(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? 's' : ''}
+                  Continue with {selectedServices.length} Service{selectedServices.length > 1 ? 's' : ''} →
                 </Button>
               </div>
             )}

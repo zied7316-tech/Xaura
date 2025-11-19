@@ -24,7 +24,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   
   Map<String, dynamic>? _salonDetails;
   int _step = 1; // 1: Service, 2: Worker, 3: Date & Time
-  Map<String, dynamic>? _selectedService;
+  List<Map<String, dynamic>> _selectedServices = []; // Support multiple services
   Map<String, dynamic>? _selectedWorker;
   DateTime? _selectedDate;
   String? _selectedTime;
@@ -52,15 +52,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       final details = await _salonSearchService.getSalonDetails(widget.salonId!);
       setState(() {
         _salonDetails = details;
-        if (widget.serviceId != null && details['services'] != null) {
-          final services = details['services'] as List<dynamic>;
-          final service = services.firstWhere(
-            (s) => (s['_id'] ?? s['id']) == widget.serviceId,
-            orElse: () => null,
-          );
-          if (service != null) {
-            _selectedService = service;
-            _step = 2;
+        if (widget.serviceId != null && details != null && details['services'] != null) {
+          final services = details['services'] as List<dynamic>?;
+          if (services != null) {
+            final service = services.firstWhere(
+              (s) => (s['_id'] ?? s['id']) == widget.serviceId,
+              orElse: () => null,
+            );
+            if (service != null) {
+              _selectedServices = [service];
+              _step = 2;
+            }
           }
         }
       });
@@ -74,16 +76,23 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Future<void> _loadAvailableSlots() async {
-    if (_selectedWorker == null || _selectedDate == null || _selectedService == null) return;
+    if (_selectedWorker == null || _selectedDate == null || _selectedServices.isEmpty) return;
     
     setState(() => _loadingSlots = true);
     try {
       final workerId = _selectedWorker!['_id'] ?? _selectedWorker!['id'];
+      // Calculate total duration for multiple services
+      final totalDuration = _selectedServices.fold<int>(
+        0,
+        (sum, service) => sum + (service['duration'] as int? ?? 0),
+      );
+      
       final slots = await _availabilityService.getWorkerTimeSlots(
         workerId,
         filters: {
           'date': _selectedDate!.toIso8601String().split('T')[0],
-          'serviceId': _selectedService!['_id'] ?? _selectedService!['id'],
+          'serviceId': _selectedServices[0]['_id'] ?? _selectedServices[0]['id'],
+          'totalDuration': totalDuration.toString(),
         },
       );
       setState(() {
@@ -99,7 +108,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Future<void> _bookAppointment() async {
-    if (_selectedService == null || _selectedWorker == null || _selectedDate == null || _selectedTime == null) {
+    if (_selectedServices.isEmpty || _selectedWorker == null || _selectedDate == null || _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please complete all steps')),
       );
@@ -116,16 +125,31 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         int.parse(_selectedTime!.split(':')[1]),
       );
 
+      // Prepare services array for backend
+      final services = _selectedServices.map((service) {
+        return {
+          'serviceId': service['_id'] ?? service['id'],
+          'name': service['name'],
+          'price': service['price'],
+          'duration': service['duration'],
+        };
+      }).toList();
+
       final result = await _appointmentService.createAppointment({
         'workerId': _selectedWorker!['_id'] ?? _selectedWorker!['id'],
-        'serviceId': _selectedService!['_id'] ?? _selectedService!['id'],
+        'serviceId': _selectedServices[0]['_id'] ?? _selectedServices[0]['id'], // Keep for backward compatibility
+        'services': services, // Array of services
         'dateTime': appointmentDateTime.toIso8601String(),
         'notes': '',
       });
 
       if (result != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment booked successfully!')),
+          SnackBar(
+            content: Text(
+              'Appointment booked successfully for ${_selectedServices.length} service${_selectedServices.length > 1 ? 's' : ''}!',
+            ),
+          ),
         );
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) context.go('/appointments');
@@ -183,21 +207,52 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             // Step 1: Select Service
             if (_step == 1) ...[
               Text(
-                'Choose a Service',
+                'Choose Service(s)',
                 style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'You can select one or multiple services for the same booking',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               ...services.map((service) {
-                final isSelected = _selectedService?['_id'] == service['_id'] || 
-                                  _selectedService?['id'] == service['id'];
+                final serviceId = service['_id'] ?? service['id'];
+                final isSelected = _selectedServices.any(
+                  (s) => (s['_id'] ?? s['id']) == serviceId,
+                );
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : null,
                   child: InkWell(
                     onTap: () {
                       setState(() {
-                        _selectedService = service;
-                        _step = 2;
+                        if (isSelected) {
+                          _selectedServices.removeWhere(
+                            (s) => (s['_id'] ?? s['id']) == serviceId,
+                          );
+                        } else {
+                          _selectedServices.add(service);
+                        }
                       });
                     },
                     child: Padding(
@@ -230,10 +285,114 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   ),
                 );
               }),
+              if (_selectedServices.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Card(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Selected: ${_selectedServices.length} service${_selectedServices.length > 1 ? 's' : ''}',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ..._selectedServices.map((service) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    service['name'] ?? 'Service',
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                                ),
+                                Text(
+                                  '\$${service['price'] ?? 0.0}',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        const Divider(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Duration:',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${_selectedServices.fold<int>(0, (sum, s) => sum + (s['duration'] as int? ?? 0))} min',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Price:',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '\$${_selectedServices.fold<double>(0.0, (sum, s) => sum + ((s['price'] as num?)?.toDouble() ?? 0.0)).toStringAsFixed(2)}',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _step = 2;
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(
+                              'Continue with ${_selectedServices.length} Service${_selectedServices.length > 1 ? 's' : ''}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
             
             // Step 2: Select Worker
-            if (_step == 2 && _selectedService != null) ...[
+            if (_step == 2 && _selectedServices.isNotEmpty) ...[
               Row(
                 children: [
                   IconButton(
@@ -247,6 +406,67 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              // Show selected services summary
+              Card(
+                color: Colors.grey.shade100,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selected Service${_selectedServices.length > 1 ? 's' : ''}:',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ..._selectedServices.map((service) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  service['name'] ?? 'Service',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                              Text(
+                                '${service['duration'] ?? 0} min • \$${service['price'] ?? 0.0}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      if (_selectedServices.length > 1) ...[
+                        const Divider(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total:',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${_selectedServices.fold<int>(0, (sum, s) => sum + (s['duration'] as int? ?? 0))} min • \$${_selectedServices.fold<double>(0.0, (sum, s) => sum + ((s['price'] as num?)?.toDouble() ?? 0.0)).toStringAsFixed(2)}',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               ...workers.map((worker) {
@@ -306,7 +526,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             ],
             
             // Step 3: Select Date & Time
-            if (_step == 3 && _selectedWorker != null && _selectedService != null) ...[
+            if (_step == 3 && _selectedWorker != null && _selectedServices.isNotEmpty) ...[
               Row(
                 children: [
                   IconButton(
