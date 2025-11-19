@@ -80,7 +80,7 @@ const WorkerStatusToggle = () => {
         className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg border-2 transition-all ${current.bgColor} ${current.borderColor} ${current.hoverBg} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <CurrentIcon size={16} className={`${current.color} sm:w-[18px] sm:h-[18px]`} />
-        <span className={`font-medium text-xs sm:text-sm ${current.color} hidden xs:inline`}>
+        <span className={`font-medium text-xs sm:text-sm ${current.color}`}>
           {current.label}
         </span>
         <ChevronDown size={14} className={`${current.color} sm:w-4 sm:h-4`} />
