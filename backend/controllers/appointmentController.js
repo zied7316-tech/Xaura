@@ -23,7 +23,7 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    const { workerId, serviceId, services, dateTime, notes } = req.body;
+    const { workerId, serviceId, services, dateTime, notes, skipAvailabilityCheck } = req.body;
 
     console.log('Creating appointment:', {
       workerId,
@@ -145,12 +145,15 @@ const createAppointment = async (req, res, next) => {
     const totalPrice = servicesToBook.reduce((sum, s) => sum + (s.price || 0), 0);
 
     // Check if time slot is available (using total duration)
-    const available = await isSlotAvailable(workerId, dateTime, totalDuration);
-    if (!available) {
-      return res.status(409).json({
-        success: false,
-        message: 'This time slot is not available. Please choose another time.'
-      });
+    // Skip check for multi-person bookings (skipAvailabilityCheck flag)
+    if (!skipAvailabilityCheck) {
+      const available = await isSlotAvailable(workerId, dateTime, totalDuration);
+      if (!available) {
+        return res.status(409).json({
+          success: false,
+          message: 'This time slot is not available. Please choose another time.'
+        });
+      }
     }
 
     // Create appointment with multiple services

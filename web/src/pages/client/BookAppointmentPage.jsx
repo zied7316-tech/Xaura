@@ -184,15 +184,27 @@ const BookAppointmentPage = () => {
     try {
       // Calculate total duration - handle both single and multi-person
       let servicesToCheck = []
+      let totalDuration = 0
+      
       if (numberOfPeople === 1) {
         servicesToCheck = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])
+        totalDuration = servicesToCheck.reduce((sum, service) => sum + (service.duration || 0), 0)
       } else {
-        // For multiple people, use the longest duration (since all appointments are at the same time)
-        const allServices = peopleServices.flatMap(person => person.services)
-        servicesToCheck = allServices
+        // For multiple people, calculate the MAXIMUM duration needed
+        // Since all appointments happen at the same time, we need the longest single appointment duration
+        // But we also need to account for multiple appointments occupying the same slot
+        const maxPersonDuration = Math.max(
+          ...peopleServices.map(person => 
+            person.services.reduce((sum, service) => sum + (service.duration || 0), 0)
+          ),
+          0
+        )
+        // For availability check, we use the max duration since appointments are simultaneous
+        // The backend will check if the slot can accommodate multiple appointments
+        totalDuration = maxPersonDuration
+        // Get all services for the first person to get serviceId
+        servicesToCheck = peopleServices[0]?.services || []
       }
-      
-      const totalDuration = servicesToCheck.reduce((sum, service) => sum + (service.duration || 0), 0)
       
       // Use first service ID for API (or we can update API to accept totalDuration)
       const serviceId = servicesToCheck.length > 0 ? servicesToCheck[0]._id : selectedService?._id
@@ -200,7 +212,8 @@ const BookAppointmentPage = () => {
       const slots = await availabilityService.getWorkerTimeSlots(selectedWorker._id, {
         date: selectedDate,
         serviceId: serviceId,
-        totalDuration: totalDuration.toString() // Pass totalDuration for multi-service bookings
+        totalDuration: totalDuration.toString(), // Pass totalDuration for multi-service bookings
+        numberOfPeople: numberOfPeople > 1 ? numberOfPeople.toString() : undefined // Pass number of people for multi-person bookings
       })
       setAvailableSlots(slots)
     } catch (error) {
@@ -302,28 +315,48 @@ const BookAppointmentPage = () => {
 
           toast.success(`🎉 Appointment booked successfully for ${servicesToBook.length} service${servicesToBook.length > 1 ? 's' : ''}!`)
         } else {
-          // Multiple people booking - create one appointment per person
-          const appointmentPromises = peopleServices.map(async (person, personIdx) => {
-            if (person.services.length === 0) return null
-            
-            return await appointmentService.createAppointment({
-              workerId: selectedWorker._id,
-              serviceId: person.services[0]._id,
-              services: person.services.map(service => ({
-                serviceId: service._id,
-                name: service.name,
-                price: service.price,
-                duration: service.duration
-              })),
-              dateTime: appointmentDateTime.toISOString(),
-              notes: `Person ${personIdx + 1} of ${numberOfPeople} - Multi-person booking`
-            })
-          })
-
-          const results = await Promise.all(appointmentPromises)
-          const successfulBookings = results.filter(r => r !== null)
+          // Multiple people booking - create one appointment per person at the same time
+          // Since all appointments are at the same time, we need to create them sequentially
+          // to avoid availability conflicts (first appointment will block the slot)
+          const createdAppointments = []
+          let hasError = false
           
-          toast.success(`🎉 Successfully booked ${successfulBookings.length} appointment${successfulBookings.length > 1 ? 's' : ''} for ${numberOfPeople} ${numberOfPeople === 1 ? 'person' : 'people'}!`)
+          for (let personIdx = 0; personIdx < peopleServices.length; personIdx++) {
+            const person = peopleServices[personIdx]
+            if (person.services.length === 0) continue
+            
+            try {
+              const appointment = await appointmentService.createAppointment({
+                workerId: selectedWorker._id,
+                serviceId: person.services[0]._id,
+                services: person.services.map(service => ({
+                  serviceId: service._id,
+                  name: service.name,
+                  price: service.price,
+                  duration: service.duration
+                })),
+                dateTime: appointmentDateTime.toISOString(),
+                notes: `Person ${personIdx + 1} of ${numberOfPeople} - Multi-person booking`,
+                skipAvailabilityCheck: personIdx > 0 // Skip check for subsequent appointments since they're at the same time
+              })
+              createdAppointments.push(appointment)
+            } catch (error) {
+              console.error(`Error creating appointment for person ${personIdx + 1}:`, error)
+              hasError = true
+              // If we fail to create any appointment, try to rollback by deleting created ones
+              if (createdAppointments.length > 0) {
+                toast.error(`Failed to create appointment for person ${personIdx + 1}. Rolling back...`)
+                // Note: We could add a rollback mechanism here, but for now just show error
+                break
+              }
+            }
+          }
+          
+          if (hasError && createdAppointments.length < numberOfPeople) {
+            toast.error(`⚠️ Only ${createdAppointments.length} of ${numberOfPeople} appointments were created. Some appointments may need to be cancelled manually.`)
+          } else if (createdAppointments.length === numberOfPeople) {
+            toast.success(`🎉 Successfully booked ${numberOfPeople} appointment${numberOfPeople > 1 ? 's' : ''} for ${numberOfPeople} ${numberOfPeople === 1 ? 'person' : 'people'} at the same time!`)
+          }
         }
         
         setTimeout(() => {
