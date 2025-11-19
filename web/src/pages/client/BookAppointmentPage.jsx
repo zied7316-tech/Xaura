@@ -15,7 +15,7 @@ import Modal from '../../components/ui/Modal'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import { 
   Calendar, Clock, User, Scissors, DollarSign, 
-  ArrowLeft, CheckCircle, X
+  ArrowLeft, CheckCircle, X, Repeat
 } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import toast from 'react-hot-toast'
