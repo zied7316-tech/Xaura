@@ -150,15 +150,16 @@ const WorkerAvailabilityPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 px-4 md:px-0">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Availability</h1>
-          <p className="text-gray-600 mt-1">Set your working hours for each day</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">My Availability</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-base">Set your working hours for each day</p>
         </div>
-        <Button onClick={handleSave} loading={saving}>
+        <Button onClick={handleSave} loading={saving} className="w-full md:w-auto">
           <Save size={18} />
-          Save Changes
+          <span className="hidden sm:inline">Save Changes</span>
+          <span className="sm:hidden">Save</span>
         </Button>
       </div>
 
@@ -172,16 +173,16 @@ const WorkerAvailabilityPage = () => {
               const daySchedule = availability.weeklySchedule[day]
               
               return (
-                <div key={day} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Calendar size={20} className="text-primary-600" />
-                      <h3 className="font-semibold text-gray-900">{DAY_LABELS[day]}</h3>
+                <div key={day} className="border border-gray-200 rounded-lg p-3 md:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <Calendar size={18} md:size={20} className="text-primary-600 flex-shrink-0" />
+                      <h3 className="font-semibold text-gray-900 text-base md:text-lg">{DAY_LABELS[day]}</h3>
                     </div>
                     
                     <button
                       onClick={() => handleToggleDay(day)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-lg transition-colors text-sm md:text-base ${
                         daySchedule.isAvailable
                           ? 'bg-green-100 text-green-700'
                           : 'bg-gray-100 text-gray-500'
@@ -189,12 +190,12 @@ const WorkerAvailabilityPage = () => {
                     >
                       {daySchedule.isAvailable ? (
                         <>
-                          <ToggleRight size={20} />
+                          <ToggleRight size={18} className="md:w-5 md:h-5" />
                           <span className="font-medium">Available</span>
                         </>
                       ) : (
                         <>
-                          <ToggleLeft size={20} />
+                          <ToggleLeft size={18} className="md:w-5 md:h-5" />
                           <span className="font-medium">Not Available</span>
                         </>
                       )}
@@ -202,27 +203,29 @@ const WorkerAvailabilityPage = () => {
                   </div>
 
                   {daySchedule.isAvailable && (
-                    <div className="space-y-3 ml-8">
+                    <div className="space-y-3 ml-0 sm:ml-4 md:ml-8">
                       {daySchedule.slots.map((slot, index) => (
-                        <div key={index} className="flex items-center gap-4">
-                          <Clock size={16} className="text-gray-400" />
-                          <Input
-                            type="time"
-                            value={slot.start}
-                            onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
-                            className="w-32"
-                          />
-                          <span className="text-gray-500">to</span>
-                          <Input
-                            type="time"
-                            value={slot.end}
-                            onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
-                            className="w-32"
-                          />
+                        <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                            <Clock size={16} className="text-gray-400 flex-shrink-0" />
+                            <Input
+                              type="time"
+                              value={slot.start}
+                              onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
+                              className="flex-1 sm:w-32"
+                            />
+                            <span className="text-gray-500 text-sm sm:text-base">to</span>
+                            <Input
+                              type="time"
+                              value={slot.end}
+                              onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
+                              className="flex-1 sm:w-32"
+                            />
+                          </div>
                           {daySchedule.slots.length > 1 && (
                             <button
                               onClick={() => handleRemoveSlot(day, index)}
-                              className="text-red-600 hover:text-red-700 text-sm font-medium"
+                              className="text-red-600 hover:text-red-700 text-sm font-medium px-2 py-1 sm:px-0 sm:py-0"
                             >
                               Remove
                             </button>
@@ -232,7 +235,7 @@ const WorkerAvailabilityPage = () => {
                       
                       <button
                         onClick={() => handleAddSlot(day)}
-                        className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1"
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1 px-2 py-1"
                       >
                         + Add Time Slot
                       </button>
@@ -245,10 +248,11 @@ const WorkerAvailabilityPage = () => {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} loading={saving} size="lg">
+      <div className="flex justify-end px-4 md:px-0">
+        <Button onClick={handleSave} loading={saving} size="lg" className="w-full sm:w-auto">
           <Save size={20} />
-          Save Availability
+          <span className="hidden sm:inline">Save Availability</span>
+          <span className="sm:hidden">Save</span>
         </Button>
       </div>
     </div>
