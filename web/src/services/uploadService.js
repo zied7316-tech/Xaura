@@ -155,30 +155,45 @@ export const uploadService = {
         // Cloudinary URL format examples:
         // https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}
         // https://res.cloudinary.com/{cloud}/image/upload/{transform}/v{version}/{public_id}
+        // https://res.cloudinary.com/{cloud}/image/upload/{public_id} (no version)
         
         const uploadIndex = imagePath.indexOf('/image/upload/')
         if (uploadIndex !== -1) {
           const baseUrl = imagePath.substring(0, uploadIndex + '/image/upload'.length)
           const afterUpload = imagePath.substring(uploadIndex + '/image/upload/'.length)
           
-          // Check if there's already a transformation (doesn't start with 'v')
+          // Check if there's already a transformation
+          // Transformations are typically in format: w_100,h_100,c_fill
+          // Version numbers start with 'v' followed by digits
+          // Public IDs don't match transformation patterns
           const parts = afterUpload.split('/')
           const firstPart = parts[0] || ''
           
-          // If first part starts with 'v' or is empty, it's a version number or public_id
-          // Otherwise, it's likely a transformation
-          const hasTransform = firstPart && !firstPart.startsWith('v') && !/^\d+$/.test(firstPart)
+          // Check if first part is a transformation (contains underscores and transformation params)
+          const isTransform = firstPart.includes('_') && (
+            firstPart.includes('w_') || 
+            firstPart.includes('h_') || 
+            firstPart.includes('c_') ||
+            firstPart.includes('f_') ||
+            firstPart.includes('q_')
+          )
+          
+          // Check if first part is a version number (starts with 'v' followed by digits)
+          const isVersion = /^v\d+$/.test(firstPart)
           
           // Build new transformation
           const newTransform = `w_${width},h_${height},c_fill`
           
           let transformedUrl
-          if (hasTransform) {
+          if (isTransform) {
             // Replace existing transformation
             parts[0] = newTransform
             transformedUrl = `${baseUrl}/${parts.join('/')}`
+          } else if (isVersion) {
+            // Insert transformation before version
+            transformedUrl = `${baseUrl}/${newTransform}/${afterUpload}`
           } else {
-            // Insert new transformation before version/public_id
+            // No transformation or version - insert transformation before public_id
             transformedUrl = `${baseUrl}/${newTransform}/${afterUpload}`
           }
           
@@ -186,7 +201,10 @@ export const uploadService = {
             original: imagePath,
             transformed: transformedUrl,
             width,
-            height
+            height,
+            firstPart,
+            isTransform,
+            isVersion
           })
           
           return transformedUrl
