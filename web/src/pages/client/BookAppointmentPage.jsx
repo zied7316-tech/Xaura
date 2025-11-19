@@ -4,6 +4,7 @@ import { salonSearchService } from '../../services/salonSearchService'
 import { salonService } from '../../services/salonService'
 import { availabilityService } from '../../services/availabilityService'
 import { appointmentService } from '../../services/appointmentService'
+import { advancedBookingService } from '../../services/advancedBookingService'
 import { uploadService } from '../../services/uploadService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -54,6 +55,13 @@ const BookAppointmentPage = () => {
   const [showWorkerModal, setShowWorkerModal] = useState(false)
   const [selectedServiceImage, setSelectedServiceImage] = useState(null)
   const [showImageModal, setShowImageModal] = useState(false)
+  
+  // Recurring appointment state
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurringFrequency, setRecurringFrequency] = useState('weekly') // weekly, biweekly, monthly
+  const [recurringStartDate, setRecurringStartDate] = useState(defaultDate)
+  const [recurringEndDate, setRecurringEndDate] = useState('')
+  const [recurringDayOfWeek, setRecurringDayOfWeek] = useState(null) // 0-6 (Sunday-Saturday)
 
   useEffect(() => {
     const loadSalon = async () => {
@@ -96,6 +104,17 @@ const BookAppointmentPage = () => {
       setSelectedServices([selectedService])
     }
   }, [selectedService])
+
+  useEffect(() => {
+    // Enable recurring mode if recurring parameter is present
+    if (recurringParam === 'true') {
+      setIsRecurring(true)
+    }
+    // Enable group mode if group parameter is present (multi-service is already enabled)
+    if (groupParam === 'true') {
+      // Group booking is essentially multi-service, which is already supported
+    }
+  }, [recurringParam, groupParam])
 
   useEffect(() => {
     if (selectedWorker && selectedDate && (selectedService || selectedServices.length > 0)) {
@@ -159,36 +178,72 @@ const BookAppointmentPage = () => {
       return
     }
 
+    // Validate recurring appointment fields
+    if (isRecurring) {
+      if (!recurringStartDate) {
+        toast.error('Please select a start date for recurring appointments')
+        return
+      }
+      if (!recurringFrequency) {
+        toast.error('Please select a frequency for recurring appointments')
+        return
+      }
+    }
+
     setBooking(true)
     try {
-      // Create appointment
       const appointmentDateTime = new Date(selectedDate)
       const [hours, minutes] = selectedTime.split(':')
       appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
-      console.log('Booking appointment:', {
-        workerId: selectedWorker._id,
-        services: servicesToBook.map(s => s._id),
-        dateTime: appointmentDateTime.toISOString()
-      })
+      // If recurring appointment, create recurring booking
+      if (isRecurring) {
+        const startDate = new Date(recurringStartDate)
+        const [startHours, startMinutes] = selectedTime.split(':')
+        startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0)
 
-      await appointmentService.createAppointment({
-        workerId: selectedWorker._id,
-        serviceId: servicesToBook[0]._id, // Keep for backward compatibility
-        services: servicesToBook.map(service => ({
-          serviceId: service._id,
-          name: service.name,
-          price: service.price,
-          duration: service.duration
-        })),
-        dateTime: appointmentDateTime.toISOString(),
-        notes: ''
-      })
+        const recurringData = {
+          salonId: salonIdParam,
+          workerId: selectedWorker._id,
+          serviceId: servicesToBook[0]._id, // Primary service
+          services: servicesToBook.map(service => ({
+            serviceId: service._id,
+            name: service.name,
+            price: service.price,
+            duration: service.duration
+          })),
+          frequency: recurringFrequency,
+          startDate: startDate.toISOString(),
+          endDate: recurringEndDate ? new Date(recurringEndDate).toISOString() : null,
+          dayOfWeek: recurringDayOfWeek !== null ? recurringDayOfWeek : startDate.getDay(),
+          timeSlot: selectedTime
+        }
 
-      toast.success(`🎉 Appointment booked successfully for ${servicesToBook.length} service${servicesToBook.length > 1 ? 's' : ''}!`)
-      setTimeout(() => {
-        navigate('/appointments')
-      }, 2000)
+        await advancedBookingService.createRecurringAppointment(recurringData)
+        toast.success(`🎉 Recurring appointment created! Appointments will be automatically scheduled ${recurringFrequency === 'weekly' ? 'every week' : recurringFrequency === 'biweekly' ? 'every 2 weeks' : 'every month'}.`)
+        setTimeout(() => {
+          navigate('/client/advanced-booking')
+        }, 2000)
+      } else {
+        // Regular appointment or group booking
+        await appointmentService.createAppointment({
+          workerId: selectedWorker._id,
+          serviceId: servicesToBook[0]._id, // Keep for backward compatibility
+          services: servicesToBook.map(service => ({
+            serviceId: service._id,
+            name: service.name,
+            price: service.price,
+            duration: service.duration
+          })),
+          dateTime: appointmentDateTime.toISOString(),
+          notes: ''
+        })
+
+        toast.success(`🎉 Appointment booked successfully for ${servicesToBook.length} service${servicesToBook.length > 1 ? 's' : ''}!`)
+        setTimeout(() => {
+          navigate('/appointments')
+        }, 2000)
+      }
     } catch (error) {
       console.error('Error booking:', error)
       toast.error(error.response?.data?.message || 'Failed to book appointment')
@@ -662,19 +717,82 @@ const BookAppointmentPage = () => {
                 </div>
               )}
 
+              {/* Recurring Appointment Options */}
+              {(recurringParam === 'true' || isRecurring) && (
+                <Card className="border-2 border-primary-200 bg-primary-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <input
+                        type="checkbox"
+                        id="recurring-toggle"
+                        checked={isRecurring}
+                        onChange={(e) => setIsRecurring(e.target.checked)}
+                        className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                      />
+                      <label htmlFor="recurring-toggle" className="flex items-center gap-2 cursor-pointer">
+                        <Repeat className="text-primary-600" size={20} />
+                        <span className="font-semibold text-primary-900">Set Up Recurring Appointment</span>
+                      </label>
+                    </div>
+
+                    {isRecurring && (
+                      <div className="space-y-4 mt-4 pl-8 border-l-2 border-primary-300">
+                        <Select
+                          label="Frequency"
+                          value={recurringFrequency}
+                          onChange={(e) => setRecurringFrequency(e.target.value)}
+                          options={[
+                            { value: 'weekly', label: '📅 Every Week' },
+                            { value: 'biweekly', label: '📅 Every 2 Weeks' },
+                            { value: 'monthly', label: '📅 Every Month' }
+                          ]}
+                        />
+
+                        <Input
+                          label="Start Date"
+                          type="date"
+                          min={minDate}
+                          value={recurringStartDate}
+                          onChange={(e) => {
+                            setRecurringStartDate(e.target.value)
+                            const date = new Date(e.target.value)
+                            setRecurringDayOfWeek(date.getDay())
+                          }}
+                        />
+
+                        <Input
+                          label="End Date (Optional)"
+                          type="date"
+                          min={recurringStartDate || minDate}
+                          value={recurringEndDate}
+                          onChange={(e) => setRecurringEndDate(e.target.value)}
+                        />
+
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                          <p className="font-semibold mb-1">ℹ️ How it works:</p>
+                          <p>• Appointments will be automatically created {recurringFrequency === 'weekly' ? 'every week' : recurringFrequency === 'biweekly' ? 'every 2 weeks' : 'every month'}</p>
+                          <p>• Same time slot will be used for all appointments</p>
+                          <p>• You can cancel the series anytime from Advanced Booking</p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(2)}>
                   Back
                 </Button>
                 <Button
                   onClick={handleBookAppointment}
-                  disabled={!selectedDate || !selectedTime}
+                  disabled={!selectedDate || !selectedTime || (isRecurring && !recurringStartDate)}
                   loading={booking}
                   fullWidth
                   className={selectedDate && selectedTime ? "btn-confirm-booking" : ""}
                 >
                   <CheckCircle size={18} />
-                  Confirm Booking
+                  {isRecurring ? 'Create Recurring Appointment' : 'Confirm Booking'}
                 </Button>
               </div>
             </div>
