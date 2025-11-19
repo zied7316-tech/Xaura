@@ -11,7 +11,8 @@ import {
   DollarSign,
   Bell,
   TrendingUp,
-  QrCode
+  QrCode,
+  Clock
 } from 'lucide-react'
 
 /**
@@ -40,6 +41,7 @@ const MobileBottomNav = () => {
 
   const workerNav = [
     { to: '/worker/dashboard', icon: LayoutDashboard, label: t('common.dashboard', 'Dashboard') },
+    { to: '/worker/availability', icon: Clock, label: t('worker.myAvailability', 'Availability') },
     { to: '/worker/appointments', icon: Calendar, label: t('worker.myAppointments', 'Appointments') },
     { to: '/messages', icon: MessageSquare, label: t('chat.messages', 'Messages') },
     { to: '/worker/finances', icon: DollarSign, label: t('worker.myFinances', 'Finances') },
