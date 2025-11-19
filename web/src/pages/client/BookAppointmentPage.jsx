@@ -16,7 +16,7 @@ import Modal from '../../components/ui/Modal'
 import WorkerDetailsModal from '../../components/worker/WorkerDetailsModal'
 import { 
   Calendar, Clock, User, Scissors, DollarSign, 
-  ArrowLeft, CheckCircle, X, Repeat
+  ArrowLeft, CheckCircle, X, Repeat, Users, Plus, Minus
 } from 'lucide-react'
 import { formatCurrency, formatDuration } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -57,12 +57,41 @@ const BookAppointmentPage = () => {
   const [selectedServiceImage, setSelectedServiceImage] = useState(null)
   const [showImageModal, setShowImageModal] = useState(false)
   
+  // Multi-person booking state
+  const [numberOfPeople, setNumberOfPeople] = useState(1)
+  const [peopleServices, setPeopleServices] = useState([{ personIndex: 0, services: [] }]) // Array of { personIndex, services }
+  
   // Recurring appointment state
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringFrequency, setRecurringFrequency] = useState('weekly') // weekly, biweekly, monthly
   const [recurringStartDate, setRecurringStartDate] = useState(defaultDate)
   const [recurringEndDate, setRecurringEndDate] = useState('')
   const [recurringDayOfWeek, setRecurringDayOfWeek] = useState(null) // 0-6 (Sunday-Saturday)
+
+  // Sync numberOfPeople with peopleServices
+  useEffect(() => {
+    if (numberOfPeople > peopleServices.length) {
+      // Add new person entries
+      const newPeople = []
+      for (let i = peopleServices.length; i < numberOfPeople; i++) {
+        newPeople.push({ personIndex: i, services: [] })
+      }
+      setPeopleServices(prev => [...prev, ...newPeople])
+    } else if (numberOfPeople < peopleServices.length) {
+      // Remove extra person entries
+      setPeopleServices(prev => prev.slice(0, numberOfPeople))
+    }
+  }, [numberOfPeople])
+
+  // Sync selectedServices with peopleServices[0] when single person
+  useEffect(() => {
+    if (numberOfPeople === 1 && peopleServices[0]) {
+      setSelectedServices(peopleServices[0].services)
+      if (peopleServices[0].services.length === 1) {
+        setSelectedService(peopleServices[0].services[0])
+      }
+    }
+  }, [peopleServices, numberOfPeople])
 
   useEffect(() => {
     const loadSalon = async () => {
@@ -118,10 +147,14 @@ const BookAppointmentPage = () => {
   }, [recurringParam, groupParam])
 
   useEffect(() => {
-    if (selectedWorker && selectedDate && (selectedService || selectedServices.length > 0)) {
-      loadAvailableSlots()
+    if (selectedWorker && selectedDate) {
+      if (numberOfPeople === 1 && (selectedService || selectedServices.length > 0)) {
+        loadAvailableSlots()
+      } else if (numberOfPeople > 1 && peopleServices.some(p => p.services.length > 0)) {
+        loadAvailableSlots()
+      }
     }
-  }, [selectedWorker, selectedDate, selectedService, selectedServices])
+  }, [selectedWorker, selectedDate, selectedService, selectedServices, numberOfPeople, peopleServices])
 
   const loadSalonDetails = async () => {
     try {
@@ -149,8 +182,16 @@ const BookAppointmentPage = () => {
   const loadAvailableSlots = async () => {
     setLoadingSlots(true)
     try {
-      // Calculate total duration for multiple services
-      const servicesToCheck = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])
+      // Calculate total duration - handle both single and multi-person
+      let servicesToCheck = []
+      if (numberOfPeople === 1) {
+        servicesToCheck = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])
+      } else {
+        // For multiple people, use the longest duration (since all appointments are at the same time)
+        const allServices = peopleServices.flatMap(person => person.services)
+        servicesToCheck = allServices
+      }
+      
       const totalDuration = servicesToCheck.reduce((sum, service) => sum + (service.duration || 0), 0)
       
       // Use first service ID for API (or we can update API to accept totalDuration)
@@ -172,9 +213,20 @@ const BookAppointmentPage = () => {
   }
 
   const handleBookAppointment = async () => {
-    const servicesToBook = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])
+    // Get services to book - handle both single and multi-person
+    let servicesToBook = []
+    if (numberOfPeople === 1) {
+      servicesToBook = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])
+    } else {
+      // For multiple people, check if all have services
+      const allPeopleHaveServices = peopleServices.every(person => person.services.length > 0)
+      if (!allPeopleHaveServices) {
+        toast.error('Please select at least one service for each person')
+        return
+      }
+    }
     
-    if (servicesToBook.length === 0 || !selectedWorker || !selectedDate || !selectedTime) {
+    if ((numberOfPeople === 1 && servicesToBook.length === 0) || !selectedWorker || !selectedDate || !selectedTime) {
       toast.error('Please complete all booking steps')
       return
     }
@@ -197,8 +249,14 @@ const BookAppointmentPage = () => {
       const [hours, minutes] = selectedTime.split(':')
       appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
-      // If recurring appointment, create recurring booking
+      // If recurring appointment, create recurring booking (only for single person for now)
       if (isRecurring) {
+        if (numberOfPeople > 1) {
+          toast.error('Recurring appointments for multiple people are not yet supported')
+          setBooking(false)
+          return
+        }
+        
         const startDate = new Date(recurringStartDate)
         const [startHours, startMinutes] = selectedTime.split(':')
         startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0)
@@ -226,21 +284,48 @@ const BookAppointmentPage = () => {
           navigate('/client/advanced-booking')
         }, 2000)
       } else {
-        // Regular appointment or group booking
-        await appointmentService.createAppointment({
-          workerId: selectedWorker._id,
-          serviceId: servicesToBook[0]._id, // Keep for backward compatibility
-          services: servicesToBook.map(service => ({
-            serviceId: service._id,
-            name: service.name,
-            price: service.price,
-            duration: service.duration
-          })),
-          dateTime: appointmentDateTime.toISOString(),
-          notes: ''
-        })
+        // Regular appointment - handle single or multiple people
+        if (numberOfPeople === 1) {
+          // Single person booking
+          await appointmentService.createAppointment({
+            workerId: selectedWorker._id,
+            serviceId: servicesToBook[0]._id, // Keep for backward compatibility
+            services: servicesToBook.map(service => ({
+              serviceId: service._id,
+              name: service.name,
+              price: service.price,
+              duration: service.duration
+            })),
+            dateTime: appointmentDateTime.toISOString(),
+            notes: ''
+          })
 
-        toast.success(`🎉 Appointment booked successfully for ${servicesToBook.length} service${servicesToBook.length > 1 ? 's' : ''}!`)
+          toast.success(`🎉 Appointment booked successfully for ${servicesToBook.length} service${servicesToBook.length > 1 ? 's' : ''}!`)
+        } else {
+          // Multiple people booking - create one appointment per person
+          const appointmentPromises = peopleServices.map(async (person, personIdx) => {
+            if (person.services.length === 0) return null
+            
+            return await appointmentService.createAppointment({
+              workerId: selectedWorker._id,
+              serviceId: person.services[0]._id,
+              services: person.services.map(service => ({
+                serviceId: service._id,
+                name: service.name,
+                price: service.price,
+                duration: service.duration
+              })),
+              dateTime: appointmentDateTime.toISOString(),
+              notes: `Person ${personIdx + 1} of ${numberOfPeople} - Multi-person booking`
+            })
+          })
+
+          const results = await Promise.all(appointmentPromises)
+          const successfulBookings = results.filter(r => r !== null)
+          
+          toast.success(`🎉 Successfully booked ${successfulBookings.length} appointment${successfulBookings.length > 1 ? 's' : ''} for ${numberOfPeople} ${numberOfPeople === 1 ? 'person' : 'people'}!`)
+        }
+        
         setTimeout(() => {
           navigate('/appointments')
         }, 2000)
@@ -316,22 +401,76 @@ const BookAppointmentPage = () => {
             <CardTitle>Step 1: Choose Service(s)</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Number of People Selector */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-lg">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <Users className="text-purple-600" size={24} />
+                  <div>
+                    <p className="text-sm font-semibold text-purple-900 mb-1">
+                      How many people are booking?
+                    </p>
+                    <p className="text-xs text-purple-700">
+                      Select the number of people (e.g., father + 2 kids, or friend + friend)
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (numberOfPeople > 1) {
+                        setNumberOfPeople(numberOfPeople - 1)
+                      }
+                    }}
+                    disabled={numberOfPeople <= 1}
+                    className="w-10 h-10 p-0"
+                  >
+                    <Minus size={18} />
+                  </Button>
+                  <span className="text-2xl font-bold text-purple-900 min-w-[3rem] text-center">
+                    {numberOfPeople}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (numberOfPeople < 10) {
+                        setNumberOfPeople(numberOfPeople + 1)
+                      }
+                    }}
+                    disabled={numberOfPeople >= 10}
+                    className="w-10 h-10 p-0"
+                  >
+                    <Plus size={18} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
               <div className="flex items-start gap-3">
                 <span className="text-2xl">💡</span>
                 <div>
                   <p className="text-sm font-semibold text-blue-900 mb-1">
-                    Choose One or Multiple Services
+                    Choose One or Multiple Services {numberOfPeople > 1 ? 'for Each Person' : ''}
                   </p>
                   <p className="text-xs text-blue-700">
-                    You can select <strong className="text-blue-900">one service</strong> (e.g., Haircut) or 
-                    <strong className="text-blue-900"> multiple services</strong> for the same appointment (e.g., Haircut + Barber + Styling). 
-                    Click on services to select/deselect them.
+                    {numberOfPeople === 1 ? (
+                      <>You can select <strong className="text-blue-900">one service</strong> (e.g., Haircut) or 
+                      <strong className="text-blue-900"> multiple services</strong> for the same appointment (e.g., Haircut + Barber + Styling). 
+                      Click on services to select/deselect them.</>
+                    ) : (
+                      <>Select services for each person. Each person can have one or multiple services. 
+                      All appointments will be scheduled at the same time.</>
+                    )}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Service Selection - Show per person if multiple people */}
+            {numberOfPeople === 1 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {salonDetails?.services.map((service) => {
                 const isSelected = selectedServices.some(s => s._id === service._id) || selectedService?._id === service._id
                 return (
@@ -343,13 +482,18 @@ const BookAppointmentPage = () => {
                       // Remove from selection
                       const newServices = selectedServices.filter(s => s._id !== service._id)
                       setSelectedServices(newServices)
+                      // Update peopleServices for single person
+                      setPeopleServices([{ personIndex: 0, services: newServices }])
                       // Also clear selectedService if it matches
                       if (selectedService?._id === service._id) {
                         setSelectedService(null)
                       }
                     } else {
                       // Add to selection
-                      setSelectedServices(prev => [...prev, service])
+                      const newServices = [...selectedServices, service]
+                      setSelectedServices(newServices)
+                      // Update peopleServices for single person
+                      setPeopleServices([{ personIndex: 0, services: newServices }])
                     }
                   }}
                   className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -420,7 +564,130 @@ const BookAppointmentPage = () => {
                 </div>
               )})}
             </div>
-            {selectedServices.length > 0 && (
+            ) : (
+              /* Multi-person service selection */
+              <div className="space-y-6">
+                {peopleServices.map((person, personIdx) => (
+                  <Card key={personIdx} className="border-2 border-purple-200">
+                    <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="text-purple-600" size={20} />
+                        Person {personIdx + 1} - Select Services
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {salonDetails?.services.map((service) => {
+                          const isSelected = person.services.some(s => s._id === service._id)
+                          return (
+                            <div
+                              key={service._id}
+                              onClick={() => {
+                                const personServices = person.services
+                                if (isSelected) {
+                                  const newServices = personServices.filter(s => s._id !== service._id)
+                                  setPeopleServices(prev => prev.map((p, idx) => 
+                                    idx === personIdx ? { ...p, services: newServices } : p
+                                  ))
+                                } else {
+                                  const newServices = [...personServices, service]
+                                  setPeopleServices(prev => prev.map((p, idx) => 
+                                    idx === personIdx ? { ...p, services: newServices } : p
+                                  ))
+                                }
+                              }}
+                              className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'border-primary-500 bg-primary-50 shadow-md'
+                                  : 'border-gray-200 hover:border-primary-300 hover:shadow-sm'
+                              }`}
+                            >
+                              {/* Checkbox in top-right corner */}
+                              <div className="absolute top-3 right-3">
+                                <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                                  isSelected
+                                    ? 'bg-primary-600 border-primary-600'
+                                    : 'bg-white border-gray-300'
+                                }`}>
+                                  {isSelected && (
+                                    <CheckCircle size={18} className="text-white" fill="white" />
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-start gap-3 pr-8">
+                                <div
+                                  className="w-32 h-32 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (service.image) {
+                                      setSelectedServiceImage(service.image)
+                                      setShowImageModal(true)
+                                    }
+                                  }}
+                                >
+                                  <SafeImage
+                                    src={service.image ? uploadService.getImageUrl(service.image, { width: 1080, height: 1080 }) : null}
+                                    alt={service.name}
+                                    className="w-full h-full object-cover"
+                                    fallbackType="service"
+                                  />
+                                </div>
+                                
+                                <div className="flex-1">
+                                  <div className="text-center mb-2">
+                                    <h3>
+                                      <ShinyText
+                                        size="2xl"
+                                        weight="bold"
+                                        baseColor="#667eea"
+                                        shineColor="#764ba2"
+                                        speed={3}
+                                        intensity={1}
+                                        direction="left-to-right"
+                                        shineWidth={30}
+                                        className="tracking-wide"
+                                      >
+                                        {capitalizeFirst(service.name)}
+                                      </ShinyText>
+                                    </h3>
+                                  </div>
+                                  <div className="text-center">
+                                    <Badge variant="default" size="sm">{service.category}</Badge>
+                                  </div>
+                                  <div className="flex items-center justify-center gap-3 mt-2 text-sm text-gray-600">
+                                    <span>⏱️ {formatDuration(service.duration)}</span>
+                                    <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {person.services.length > 0 && (
+                        <div className="mt-4 p-3 bg-primary-50 rounded-lg border border-primary-200">
+                          <p className="text-sm font-semibold text-primary-800 mb-2">
+                            Person {personIdx + 1} Selected: {person.services.length} service{person.services.length > 1 ? 's' : ''}
+                          </p>
+                          <div className="space-y-1">
+                            {person.services.map((service, idx) => (
+                              <div key={service._id || idx} className="flex items-center justify-between text-xs bg-white p-2 rounded">
+                                <span>{capitalizeFirst(service.name)}</span>
+                                <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Summary Card - Single Person */}
+            {numberOfPeople === 1 && selectedServices.length > 0 && (
               <div className="mt-4 p-4 bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg border-2 border-primary-300 shadow-md">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-bold text-primary-800">
@@ -487,12 +754,93 @@ const BookAppointmentPage = () => {
                 </Button>
               </div>
             )}
+
+            {/* Summary Card - Multiple People */}
+            {numberOfPeople > 1 && (
+              <div className="mt-6 p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-purple-300 shadow-md">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-lg font-bold text-purple-900">
+                    <Users className="inline mr-2" size={20} />
+                    Booking Summary: {numberOfPeople} {numberOfPeople === 1 ? 'Person' : 'People'}
+                  </p>
+                  <Badge variant="default" className="bg-purple-200 text-purple-800">
+                    Multi-Person
+                  </Badge>
+                </div>
+                <div className="space-y-3 mb-4">
+                  {peopleServices.map((person, personIdx) => {
+                    const totalDuration = person.services.reduce((sum, s) => sum + (s.duration || 0), 0)
+                    const totalPrice = person.services.reduce((sum, s) => sum + (s.price || 0), 0)
+                    return (
+                      <div key={personIdx} className="bg-white p-3 rounded-lg border border-purple-200">
+                        <p className="font-semibold text-purple-800 mb-2">Person {personIdx + 1}</p>
+                        {person.services.length > 0 ? (
+                          <>
+                            <div className="space-y-1 mb-2">
+                              {person.services.map((service, idx) => (
+                                <div key={service._id || idx} className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-700">{capitalizeFirst(service.name)}</span>
+                                  <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-200">
+                              <span className="text-gray-600">⏱️ {formatDuration(totalDuration)}</span>
+                              <span className="text-green-600 font-bold">Total: {formatCurrency(totalPrice)}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500 italic">No services selected yet</p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex items-center justify-between text-sm font-bold pt-3 border-t-2 border-purple-300 bg-white p-3 rounded-lg">
+                  <div>
+                    <span className="text-gray-600 block text-xs mb-1">Total People</span>
+                    <span className="text-gray-900 text-base">{numberOfPeople}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 block text-xs mb-1">Total Duration</span>
+                    <span className="text-gray-900 text-base">
+                      {formatDuration(peopleServices.reduce((sum, person) => 
+                        sum + person.services.reduce((s, service) => s + (service.duration || 0), 0), 0
+                      ))}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-gray-600 block text-xs mb-1">Total Price</span>
+                    <span className="text-green-600 text-xl">
+                      {formatCurrency(peopleServices.reduce((sum, person) => 
+                        sum + person.services.reduce((s, service) => s + (service.price || 0), 0), 0
+                      ))}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => {
+                    // Check if all people have at least one service
+                    const allHaveServices = peopleServices.every(person => person.services.length > 0)
+                    if (allHaveServices) {
+                      setStep(2)
+                    } else {
+                      toast.error('Please select at least one service for each person')
+                    }
+                  }}
+                  className="mt-3 w-full"
+                  disabled={!peopleServices.every(person => person.services.length > 0)}
+                >
+                  Continue with {numberOfPeople} {numberOfPeople === 1 ? 'Person' : 'People'} →
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Step 2: Select Worker */}
-      {step === 2 && (selectedService || selectedServices.length > 0) && (
+      {step === 2 && ((numberOfPeople === 1 && (selectedService || selectedServices.length > 0)) || (numberOfPeople > 1 && peopleServices.some(p => p.services.length > 0))) && (
         <Card>
           <CardHeader>
             <CardTitle>Step 2: Choose Your Worker</CardTitle>
