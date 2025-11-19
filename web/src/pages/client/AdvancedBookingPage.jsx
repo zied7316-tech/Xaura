@@ -42,10 +42,16 @@ const AdvancedBookingPage = () => {
       if (salonData) {
         setSalon(salonData)
         // Load services and workers
-        const servicesData = await salonService.getSalonServices(salonData._id)
-        const workersData = await salonService.getSalonWorkers(salonData._id)
-        setServices(servicesData)
-        setWorkers(workersData)
+        const salonId = salonData._id || salonData.id
+        if (salonId) {
+          try {
+            const servicesData = await salonService.getSalonServices(salonId)
+            setServices(servicesData)
+          } catch (error) {
+            console.error('Error loading services:', error)
+          }
+          // Note: getSalonWorkers might not exist, skip for now
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error)

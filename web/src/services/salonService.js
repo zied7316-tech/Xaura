@@ -1,4 +1,5 @@
 import api from './api'
+import { salonClientService } from './salonClientService'
 
 export const salonService = {
   // Create salon
@@ -53,6 +54,22 @@ export const salonService = {
   getWorkerServices: async () => {
     const response = await api.get('/services/my-services')
     return response.data?.data?.services || response.data?.services || []
+  },
+
+  // Get the client's joined salon (returns first salon from my-salons)
+  getJoinedSalon: async () => {
+    try {
+      const mySalons = await salonClientService.getMySalons()
+      if (mySalons && mySalons.length > 0) {
+        // Return the salon object from the first salon-client relationship
+        const salonClient = mySalons[0]
+        return salonClient.salonId || salonClient.salon || null
+      }
+      return null
+    } catch (error) {
+      console.error('Error getting joined salon:', error)
+      return null
+    }
   },
 }
 
