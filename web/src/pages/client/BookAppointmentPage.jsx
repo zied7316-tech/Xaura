@@ -435,20 +435,22 @@ const BookAppointmentPage = () => {
           </CardHeader>
           <CardContent>
             {/* Number of People Selector */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-lg">
+            <div className="mb-6 p-5 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border-2 border-purple-300 rounded-xl shadow-sm">
               <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-3">
-                  <Users className="text-purple-600" size={24} />
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/80 rounded-full shadow-sm">
+                    <Users className="text-purple-600" size={28} />
+                  </div>
                   <div>
-                    <p className="text-sm font-semibold text-purple-900 mb-1">
+                    <p className="text-base font-bold text-purple-900 mb-1">
                       How many people are booking?
                     </p>
-                    <p className="text-xs text-purple-700">
-                      Select the number of people (e.g., father + 2 kids, or friend + friend)
+                    <p className="text-xs text-purple-700/80">
+                      Perfect for families or groups (e.g., father + 2 kids, friends together)
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 bg-white/80 px-4 py-2 rounded-lg shadow-sm">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -457,11 +459,11 @@ const BookAppointmentPage = () => {
                       }
                     }}
                     disabled={numberOfPeople <= 1}
-                    className="w-10 h-10 p-0"
+                    className="w-10 h-10 p-0 rounded-full hover:bg-purple-100 disabled:opacity-40"
                   >
                     <Minus size={18} />
                   </Button>
-                  <span className="text-2xl font-bold text-purple-900 min-w-[3rem] text-center">
+                  <span className="text-3xl font-extrabold text-purple-900 min-w-[3rem] text-center bg-gradient-to-br from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     {numberOfPeople}
                   </span>
                   <Button
@@ -472,7 +474,7 @@ const BookAppointmentPage = () => {
                       }
                     }}
                     disabled={numberOfPeople >= 10}
-                    className="w-10 h-10 p-0"
+                    className="w-10 h-10 p-0 rounded-full hover:bg-purple-100 disabled:opacity-40"
                   >
                     <Plus size={18} />
                   </Button>
@@ -480,21 +482,23 @@ const BookAppointmentPage = () => {
               </div>
             </div>
 
-            <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">💡</span>
-                <div>
-                  <p className="text-sm font-semibold text-blue-900 mb-1">
-                    Choose One or Multiple Services {numberOfPeople > 1 ? 'for Each Person' : ''}
+            <div className="mb-6 p-5 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-300 rounded-xl shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-white/80 rounded-lg shadow-sm">
+                  <span className="text-2xl">💡</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-blue-900 mb-2">
+                    {numberOfPeople === 1 ? 'Choose Your Service(s)' : 'Choose Services for Each Person'}
                   </p>
-                  <p className="text-xs text-blue-700">
+                  <p className="text-sm text-blue-800/90 leading-relaxed">
                     {numberOfPeople === 1 ? (
-                      <>You can select <strong className="text-blue-900">one service</strong> (e.g., Haircut) or 
-                      <strong className="text-blue-900"> multiple services</strong> for the same appointment (e.g., Haircut + Barber + Styling). 
-                      Click on services to select/deselect them.</>
+                      <>Select <strong className="text-blue-900">one or multiple services</strong> for your appointment. 
+                      You can combine services like Haircut + Styling + Beard Trim. 
+                      Click on service cards to select or deselect them.</>
                     ) : (
-                      <>Select services for each person. Each person can have one or multiple services. 
-                      All appointments will be scheduled at the same time.</>
+                      <>Each person can select their own services. All appointments will be scheduled at the <strong className="text-blue-900">same time</strong>, 
+                      making it perfect for families or groups visiting together.</>
                     )}
                   </p>
                 </div>
@@ -601,14 +605,19 @@ const BookAppointmentPage = () => {
               /* Multi-person service selection */
               <div className="space-y-6">
                 {peopleServices.map((person, personIdx) => (
-                  <Card key={personIdx} className="border-2 border-purple-200">
-                    <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="text-purple-600" size={20} />
-                        Person {personIdx + 1} - Select Services
+                  <Card key={personIdx} className="border-2 border-purple-300 shadow-lg overflow-hidden">
+                    <CardHeader className="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 border-b-2 border-purple-300">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                          {personIdx + 1}
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-purple-900">Person {personIdx + 1}</p>
+                          <p className="text-xs text-purple-700 font-normal">Select services for this person</p>
+                        </div>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-5">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {salonDetails?.services.map((service) => {
                           const isSelected = person.services.some(s => s._id === service._id)
@@ -699,17 +708,44 @@ const BookAppointmentPage = () => {
                         })}
                       </div>
                       {person.services.length > 0 && (
-                        <div className="mt-4 p-3 bg-primary-50 rounded-lg border border-primary-200">
-                          <p className="text-sm font-semibold text-primary-800 mb-2">
-                            Person {personIdx + 1} Selected: {person.services.length} service{person.services.length > 1 ? 's' : ''}
-                          </p>
-                          <div className="space-y-1">
-                            {person.services.map((service, idx) => (
-                              <div key={service._id || idx} className="flex items-center justify-between text-xs bg-white p-2 rounded">
-                                <span>{capitalizeFirst(service.name)}</span>
-                                <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+                        <div className="mt-5 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-300 shadow-sm">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-bold text-green-900 flex items-center gap-2">
+                              <CheckCircle className="text-green-600" size={18} />
+                              {person.services.length} Service{person.services.length > 1 ? 's' : ''} Selected
+                            </p>
+                            {person.services.length > 1 && (
+                              <Badge variant="default" className="bg-green-200 text-green-800">
+                                Multi-Service
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            {person.services.filter(s => s).map((service, idx) => (
+                              <div key={service?._id || idx} className="flex items-center justify-between text-sm bg-white p-3 rounded-lg border border-green-200 shadow-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="font-medium text-gray-800">{service ? capitalizeFirst(service.name) : 'Unknown Service'}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs text-gray-500">⏱️ {service ? formatDuration(service.duration) : 'N/A'}</span>
+                                  <span className="text-green-600 font-bold">{service ? formatCurrency(service.price) : 'N/A'}</span>
+                                </div>
                               </div>
                             ))}
+                          </div>
+                          <div className="mt-3 pt-3 border-t-2 border-green-300 flex items-center justify-between bg-white p-3 rounded-lg">
+                            <span className="text-sm font-semibold text-gray-700">Total:</span>
+                            <div className="flex items-center gap-4">
+                              <span className="text-sm text-gray-600">
+                                ⏱️ {formatDuration(person.services.reduce((sum, s) => sum + (s?.duration || 0), 0))}
+                              </span>
+                              <span className="text-base font-bold text-green-600">
+                                {formatCurrency(person.services.reduce((sum, s) => sum + (s?.price || 0), 0))}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -880,38 +916,120 @@ const BookAppointmentPage = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Selected Service{(selectedServices.length > 0 ? selectedServices : [selectedService]).length > 1 ? 's' : ''}:</p>
-                {(selectedServices.length > 0 ? selectedServices : [selectedService]).map((service, idx) => (
-                  <div key={service._id || idx} className="mb-2 text-center">
-                    <p className="mb-1">
-                      <ShinyText
-                        size="xl"
-                        weight="bold"
-                        baseColor="#667eea"
-                        shineColor="#764ba2"
-                        speed={3}
-                        intensity={1}
-                        direction="left-to-right"
-                        shineWidth={30}
-                      >
-                        {capitalizeFirst(service.name)}
-                      </ShinyText>
+              {/* Selected Services Summary */}
+              {numberOfPeople === 1 ? (
+                <div className="p-5 bg-gradient-to-br from-primary-50 to-purple-50 border-2 border-primary-200 rounded-xl shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Scissors className="text-primary-600" size={20} />
+                    <p className="text-base font-bold text-primary-900">
+                      Your Selected Service{selectedServices.length > 1 ? 's' : ''}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      Duration: {formatDuration(service.duration)} | Price: {formatCurrency(service.price)}
+                    {selectedServices.length > 1 && (
+                      <Badge variant="default" className="bg-purple-100 text-purple-700 ml-auto">
+                        Multi-Service
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    {(selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])).filter(s => s).map((service, idx) => (
+                      <div key={service?._id || idx} className="bg-white p-3 rounded-lg border border-primary-200 shadow-sm">
+                        <p className="mb-2 text-center">
+                          <ShinyText
+                            size="lg"
+                            weight="bold"
+                            baseColor="#667eea"
+                            shineColor="#764ba2"
+                            speed={3}
+                            intensity={1}
+                            direction="left-to-right"
+                            shineWidth={30}
+                          >
+                            {service ? capitalizeFirst(service.name) : 'Unknown Service'}
+                          </ShinyText>
+                        </p>
+                        <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <Clock size={14} />
+                            {service ? formatDuration(service.duration) : 'N/A'}
+                          </span>
+                          <span className="flex items-center gap-1 text-green-600 font-semibold">
+                            <DollarSign size={14} />
+                            {service ? formatCurrency(service.price) : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {selectedServices.length > 1 && (
+                      <div className="mt-3 pt-3 border-t-2 border-primary-300 bg-white p-3 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-700">Total Duration:</span>
+                          <span className="text-base font-bold text-gray-900">
+                            {formatDuration(selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0))}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-sm font-semibold text-gray-700">Total Price:</span>
+                          <span className="text-lg font-bold text-green-600">
+                            {formatCurrency(selectedServices.reduce((sum, s) => sum + (s.price || 0), 0))}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-5 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border-2 border-purple-200 rounded-xl shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Users className="text-purple-600" size={20} />
+                    <p className="text-base font-bold text-purple-900">
+                      Booking Summary: {numberOfPeople} {numberOfPeople === 1 ? 'Person' : 'People'}
                     </p>
                   </div>
-                ))}
-                {selectedServices.length > 1 && (
-                  <div className="mt-2 pt-2 border-t border-gray-300">
-                    <p className="text-sm font-semibold text-gray-900">
-                      Total: {formatDuration(selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0))} | 
-                      {formatCurrency(selectedServices.reduce((sum, s) => sum + (s.price || 0), 0))}
-                    </p>
+                  <div className="space-y-3">
+                    {peopleServices.map((person, personIdx) => {
+                      if (!person || !person.services || person.services.length === 0) return null
+                      const personTotalDuration = person.services.reduce((sum, s) => sum + (s.duration || 0), 0)
+                      const personTotalPrice = person.services.reduce((sum, s) => sum + (s.price || 0), 0)
+                      return (
+                        <div key={personIdx} className="bg-white p-4 rounded-lg border-2 border-purple-200 shadow-sm">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                              {personIdx + 1}
+                            </div>
+                            <p className="font-bold text-purple-900">Person {personIdx + 1}</p>
+                          </div>
+                          <div className="space-y-2 mb-3">
+                            {person.services.filter(s => s).map((service, idx) => (
+                              <div key={service?._id || idx} className="flex items-center justify-between text-sm bg-purple-50 p-2 rounded">
+                                <span className="text-gray-700 font-medium">
+                                  {service ? capitalizeFirst(service.name) : 'Unknown Service'}
+                                </span>
+                                <span className="text-green-600 font-semibold">
+                                  {service ? formatCurrency(service.price) : 'N/A'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between pt-2 border-t border-purple-200">
+                            <span className="text-xs text-gray-600">⏱️ {formatDuration(personTotalDuration)}</span>
+                            <span className="text-sm font-bold text-green-600">Total: {formatCurrency(personTotalPrice)}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <div className="mt-4 pt-4 border-t-2 border-purple-300 bg-white p-4 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-gray-700">All People Total:</span>
+                        <span className="text-lg font-bold text-green-600">
+                          {formatCurrency(peopleServices.reduce((sum, person) => 
+                            sum + (person?.services?.reduce((s, service) => s + (service?.price || 0), 0) || 0), 0
+                          ))}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Status Info */}
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
