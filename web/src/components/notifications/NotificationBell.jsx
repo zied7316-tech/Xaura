@@ -488,12 +488,19 @@ const NotificationBell = () => {
 
       {/* Dropdown Panel */}
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
+        <>
+          {/* Mobile Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setShowDropdown(false)}
+          />
+          
+          <div className="fixed lg:absolute inset-x-0 lg:inset-x-auto lg:right-0 top-16 lg:top-auto lg:mt-2 w-full lg:w-96 max-w-full lg:max-w-96 h-[calc(100vh-4rem)] lg:h-auto lg:max-h-[calc(100vh-8rem)] bg-white rounded-t-2xl lg:rounded-lg shadow-2xl border border-gray-200 z-50 flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
             <div className="flex items-center gap-2">
               <Bell size={20} className="text-primary-600" />
-              <h3 className="font-semibold text-gray-900">Notifications</h3>
+              <h3 className="font-semibold text-gray-900 text-base sm:text-lg">Notifications</h3>
               {unreadCount > 0 && (
                 <span className="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-600 rounded-full">
                   {unreadCount}
@@ -504,27 +511,27 @@ const NotificationBell = () => {
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                  className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1 px-2 py-1 rounded hover:bg-primary-50 active:bg-primary-100"
                   title="Mark all as read"
                 >
                   <CheckCheck size={14} />
-                  Mark all
+                  <span className="hidden sm:inline">Mark all</span>
                 </button>
               )}
               {notifications.length > 0 && (
                 <button
                   onClick={handleClearAll}
-                  className="text-xs text-red-600 hover:text-red-700"
+                  className="text-xs sm:text-sm text-red-600 hover:text-red-700 p-2 rounded hover:bg-red-50 active:bg-red-100"
                   title="Clear all"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={16} />
                 </button>
               )}
             </div>
           </div>
 
           {/* Notifications List */}
-          <div className="max-h-96 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {notifications.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Bell className="mx-auto mb-2 text-gray-400" size={32} />
@@ -534,12 +541,12 @@ const NotificationBell = () => {
               notifications.map((notification) => (
                 <div
                   key={notification._id}
-                  className={`p-4 border-b border-l-4 ${getPriorityColor(notification.priority)} ${
-                    !notification.isRead ? 'bg-primary-50' : 'hover:bg-gray-50'
+                  className={`p-3 sm:p-4 border-b border-l-4 ${getPriorityColor(notification.priority)} ${
+                    !notification.isRead ? 'bg-primary-50' : 'hover:bg-gray-50 active:bg-gray-100'
                   } cursor-pointer transition-colors`}
                   onClick={() => !notification.isRead && handleMarkAsRead(notification._id, { stopPropagation: () => {} })}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <div className="mt-1">
                       {getNotificationIcon(notification.type)}
                     </div>
@@ -597,9 +604,9 @@ const NotificationBell = () => {
                                       }
                                     }}
                                     disabled={isProcessing}
-                                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                                    className="flex-1 px-3 py-2.5 sm:py-1.5 text-sm sm:text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 active:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[32px]"
                                   >
-                                    <CheckCircle size={14} />
+                                    <CheckCircle size={16} className="sm:w-3.5 sm:h-3.5" />
                                     {isProcessing ? 'Processing...' : 'Accept'}
                                   </button>
                                   <button
@@ -612,9 +619,9 @@ const NotificationBell = () => {
                                       }
                                     }}
                                     disabled={isProcessing}
-                                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                                    className="flex-1 px-3 py-2.5 sm:py-1.5 text-sm sm:text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 active:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[32px]"
                                   >
-                                    <XCircle size={14} />
+                                    <XCircle size={16} className="sm:w-3.5 sm:h-3.5" />
                                     {isProcessing ? 'Processing...' : 'Reject'}
                                   </button>
                                 </div>
@@ -658,16 +665,17 @@ const NotificationBell = () => {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="p-3 bg-gray-50 text-center border-t">
+            <div className="p-4 bg-gray-50 text-center border-t flex-shrink-0">
               <button
                 onClick={() => setShowDropdown(false)}
-                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                className="w-full sm:w-auto px-6 py-2.5 sm:py-1.5 text-sm sm:text-base text-primary-600 hover:text-primary-700 active:text-primary-800 font-medium bg-white hover:bg-primary-50 active:bg-primary-100 rounded-lg border border-primary-200 transition-colors"
               >
                 Close
               </button>
             </div>
           )}
         </div>
+        </>
       )}
     </div>
     </>
