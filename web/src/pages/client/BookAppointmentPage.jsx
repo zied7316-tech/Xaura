@@ -30,6 +30,8 @@ const BookAppointmentPage = () => {
   const [searchParams] = useSearchParams()
   const salonIdParam = searchParams.get('salon')
   const serviceIdParam = searchParams.get('service')
+  const recurringParam = searchParams.get('recurring')
+  const groupParam = searchParams.get('group')
 
   // Default date to tomorrow
   const tomorrow = new Date()
@@ -53,10 +55,39 @@ const BookAppointmentPage = () => {
   const [showImageModal, setShowImageModal] = useState(false)
 
   useEffect(() => {
-    if (salonIdParam) {
-      loadSalonDetails()
+    const loadSalon = async () => {
+      if (salonIdParam) {
+        await loadSalonDetails()
+      } else if (recurringParam || groupParam) {
+        // For recurring/group bookings, load client's joined salon
+        try {
+          const joinedSalon = await salonService.getJoinedSalon()
+          if (joinedSalon) {
+            const salonId = joinedSalon._id || joinedSalon.id
+            if (salonId) {
+              // Update URL with salon parameter
+              navigate(`/book?salon=${salonId}${recurringParam ? '&recurring=true' : ''}${groupParam ? '&group=true' : ''}`, { replace: true })
+            } else {
+              toast.error('No salon found. Please join a salon first.')
+              navigate('/join-salon')
+            }
+          } else {
+            toast.error('No salon found. Please join a salon first.')
+            navigate('/join-salon')
+          }
+        } catch (error) {
+          console.error('Error loading joined salon:', error)
+          toast.error('Failed to load salon. Please try again.')
+          navigate('/client/advanced-booking')
+        }
+      } else {
+        // No salon parameter and not recurring/group - redirect to search
+        navigate('/search-salons')
+      }
     }
-  }, [salonIdParam])
+    
+    loadSalon()
+  }, [salonIdParam, recurringParam, groupParam])
 
   useEffect(() => {
     // Sync selectedService to selectedServices array for consistency
