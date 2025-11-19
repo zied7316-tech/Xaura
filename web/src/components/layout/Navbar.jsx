@@ -59,8 +59,8 @@ const Navbar = ({ onMenuClick }) => {
             {/* Owner Salon Switcher - Hidden on very small mobile, show on tablet+ */}
             {isOwner && <div className="hidden sm:block"><SalonSwitcher /></div>}
             
-            {/* Worker Status Toggle - Hidden on very small mobile */}
-            {isWorker && <div className="hidden sm:block"><WorkerStatusToggle /></div>}
+            {/* Worker Status Toggle - Visible on all devices */}
+            {isWorker && <div className="block"><WorkerStatusToggle /></div>}
             
             {/* Language Switcher - Desktop only */}
             <div className="hidden sm:block"><LanguageSwitcher /></div>

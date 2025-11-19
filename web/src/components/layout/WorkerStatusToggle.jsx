@@ -77,25 +77,25 @@ const WorkerStatusToggle = () => {
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         disabled={loading}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all ${current.bgColor} ${current.borderColor} ${current.hoverBg} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg border-2 transition-all ${current.bgColor} ${current.borderColor} ${current.hoverBg} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        <CurrentIcon size={18} className={current.color} />
-        <span className={`font-medium text-sm ${current.color}`}>
+        <CurrentIcon size={16} className={`${current.color} sm:w-[18px] sm:h-[18px]`} />
+        <span className={`font-medium text-xs sm:text-sm ${current.color} hidden xs:inline`}>
           {current.label}
         </span>
-        <ChevronDown size={16} className={current.color} />
+        <ChevronDown size={14} className={`${current.color} sm:w-4 sm:h-4`} />
       </button>
 
       {showDropdown && (
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-40"
             onClick={() => setShowDropdown(false)}
           />
           
           {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
+          <div className="absolute right-0 mt-2 w-56 sm:w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
             <div className="px-3 py-2 border-b border-gray-100">
               <p className="text-xs text-gray-500 font-medium">Change Status</p>
             </div>
@@ -109,10 +109,10 @@ const WorkerStatusToggle = () => {
                   key={status}
                   onClick={() => handleStatusChange(status)}
                   disabled={loading || isActive}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 sm:py-2.5 transition-colors min-h-[48px] sm:min-h-[40px] ${
                     isActive 
                       ? `${config.bgColor} cursor-default`
-                      : 'hover:bg-gray-50 cursor-pointer'
+                      : 'hover:bg-gray-50 active:bg-gray-100 cursor-pointer'
                   } ${loading ? 'opacity-50' : ''}`}
                 >
                   <Icon size={18} className={config.color} />
@@ -120,7 +120,7 @@ const WorkerStatusToggle = () => {
                     {config.label}
                   </span>
                   {isActive && (
-                    <span className="ml-auto text-xs text-gray-500">✓</span>
+                    <span className="ml-auto text-sm text-gray-500">✓</span>
                   )}
                 </button>
               )
