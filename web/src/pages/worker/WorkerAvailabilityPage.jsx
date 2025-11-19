@@ -176,7 +176,7 @@ const WorkerAvailabilityPage = () => {
                 <div key={day} className="border border-gray-200 rounded-lg p-3 md:p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                     <div className="flex items-center gap-2 md:gap-3">
-                      <Calendar size={18} md:size={20} className="text-primary-600 flex-shrink-0" />
+                      <Calendar size={18} className="text-primary-600 flex-shrink-0 md:w-5 md:h-5" />
                       <h3 className="font-semibold text-gray-900 text-base md:text-lg">{DAY_LABELS[day]}</h3>
                     </div>
                     
