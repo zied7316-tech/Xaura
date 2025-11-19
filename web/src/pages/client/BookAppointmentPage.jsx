@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { salonSearchService } from '../../services/salonSearchService'
+import { salonService } from '../../services/salonService'
 import { availabilityService } from '../../services/availabilityService'
 import { appointmentService } from '../../services/appointmentService'
 import { uploadService } from '../../services/uploadService'
