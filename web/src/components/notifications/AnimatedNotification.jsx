@@ -239,24 +239,27 @@ const AnimatedNotification = ({
             }
           }
           .notification-enter {
-            animation: notification-enter var(--animation-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: notification-enter var(--animation-duration, 800ms) cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+            opacity: 0;
           }
           .notification-exit {
-            animation: notification-exit var(--animation-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: notification-exit var(--animation-duration, 800ms) cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
           }
         `
       }} />
       <div className={cn(getPositionStyles(), className)}>
         <Flipper flipKey={notes.map((note) => note.id).join("")}>
           <div className="flex flex-col gap-4 items-center" style={{ width }}>
-            {notes.map((note) => (
+            {notes.map((note, index) => (
               <Flipped key={note.id} flipId={note.id}>
                 <div
                   className={cn(
-                    "notification-item",
                     note.fadingOut ? "notification-exit" : "notification-enter"
                   )}
-                  style={{ '--animation-duration': `${animationDuration}ms` }}
+                  style={{ 
+                    '--animation-duration': `${animationDuration}ms`,
+                    animationDelay: note.fadingOut ? '0ms' : `${index * 100}ms`
+                  }}
                 >
                   <Notification
                     notification={note}
