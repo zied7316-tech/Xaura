@@ -25,10 +25,12 @@ const serviceValidation = [
 
 // Public routes
 router.get('/', getAllServices);
-router.get('/:id', getServiceById);
 
-// Protected routes - Worker
+// Protected routes - Worker (must be before /:id to avoid route conflict)
 router.get('/my-services', protect, authorize('Worker'), getMyServices);
+
+// Public routes (must be after specific routes)
+router.get('/:id', getServiceById);
 
 // Protected routes - Owner only
 router.post('/', protect, authorize('Owner'), serviceValidation, createService);
