@@ -115,53 +115,6 @@ const AdvancedBookingPage = () => {
         <p className="text-gray-600 mt-1">Recurring appointments and group bookings</p>
       </div>
 
-      {/* Feature Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-2 border-primary-200 bg-primary-50">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
-                <Repeat className="text-white" size={32} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-gray-900">Recurring Appointments</h3>
-                <p className="text-gray-600 mt-1">Book weekly, bi-weekly, or monthly appointments automatically</p>
-              </div>
-            </div>
-            <Button 
-              onClick={() => navigate('/book?recurring=true')}
-              fullWidth
-              className="mt-4"
-            >
-              <Plus size={18} />
-              Set Up Recurring
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-blue-200 bg-blue-50">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                <Users className="text-white" size={32} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-gray-900">Group Bookings</h3>
-                <p className="text-gray-600 mt-1">Book multiple services in one session</p>
-              </div>
-            </div>
-            <Button 
-              onClick={() => navigate('/book?group=true')}
-              fullWidth
-              className="mt-4 bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus size={18} />
-              Book Multiple Services
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Tabs */}
       <div className="border-b">
         <div className="flex gap-4">
