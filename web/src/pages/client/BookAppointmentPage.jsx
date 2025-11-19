@@ -264,13 +264,26 @@ const BookAppointmentPage = () => {
                       setSelectedServices(prev => [...prev, service])
                     }
                   }}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     isSelected
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-200 hover:border-primary-300'
+                      ? 'border-primary-500 bg-primary-50 shadow-md'
+                      : 'border-gray-200 hover:border-primary-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-start gap-3">
+                  {/* Checkbox in top-right corner */}
+                  <div className="absolute top-3 right-3">
+                    <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                      isSelected
+                        ? 'bg-primary-600 border-primary-600'
+                        : 'bg-white border-gray-300'
+                    }`}>
+                      {isSelected && (
+                        <CheckCircle size={18} className="text-white" fill="white" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 pr-8">
                     <div
                       className="w-32 h-32 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0"
                       onClick={(e) => {
@@ -306,14 +319,11 @@ const BookAppointmentPage = () => {
                             {capitalizeFirst(service.name)}
                           </ShinyText>
                         </h3>
-                        {isSelected && (
-                          <span className="text-primary-600 font-bold text-xl">✓</span>
-                        )}
                       </div>
                       <div className="text-center">
                         <Badge variant="default" size="sm">{service.category}</Badge>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
+                      <div className="flex items-center justify-center gap-3 mt-2 text-sm text-gray-600">
                         <span>⏱️ {formatDuration(service.duration)}</span>
                         <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
                       </div>
