@@ -48,5 +48,11 @@ export const salonService = {
     const response = await api.get(`/salons/${salonId}/qr-image`)
     return response.data
   },
+
+  // Get services for the current worker's salon
+  getWorkerServices: async () => {
+    const response = await api.get('/services/my-services')
+    return response.data?.data?.services || response.data?.services || []
+  },
 }
 

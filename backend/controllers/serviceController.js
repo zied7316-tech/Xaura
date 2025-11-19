@@ -184,11 +184,47 @@ const getAllServices = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get services for the current worker's salon
+ * @route   GET /api/services/my-services
+ * @access  Private (Worker)
+ */
+const getMyServices = async (req, res, next) => {
+  try {
+    const User = require('../models/User');
+    const worker = await User.findById(req.user.id).select('salonId');
+    
+    if (!worker || !worker.salonId) {
+      return res.json({
+        success: true,
+        count: 0,
+        data: { services: [] }
+      });
+    }
+
+    const services = await Service.find({
+      salonId: worker.salonId,
+      isActive: true
+    })
+      .select('name description image category duration price')
+      .sort({ category: 1, name: 1 });
+
+    res.json({
+      success: true,
+      count: services.length,
+      data: { services }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createService,
   getServiceById,
   updateService,
   deleteService,
-  getAllServices
+  getAllServices,
+  getMyServices
 };
 

@@ -6,7 +6,8 @@ const {
   getServiceById,
   updateService,
   deleteService,
-  getAllServices
+  getAllServices,
+  getMyServices
 } = require('../controllers/serviceController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -25,6 +26,9 @@ const serviceValidation = [
 // Public routes
 router.get('/', getAllServices);
 router.get('/:id', getServiceById);
+
+// Protected routes - Worker
+router.get('/my-services', protect, authorize('Worker'), getMyServices);
 
 // Protected routes - Owner only
 router.post('/', protect, authorize('Owner'), serviceValidation, createService);
