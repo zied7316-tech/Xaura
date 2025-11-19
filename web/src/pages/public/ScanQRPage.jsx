@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { salonService } from '../../services/salonService'
+import { salonClientService } from '../../services/salonClientService'
 import { useAuth } from '../../context/AuthContext'
 import Button from '../../components/ui/Button'
-import { MapPin, Phone, Mail, Clock } from 'lucide-react'
+import { MapPin, Phone, Mail, Clock, Check, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const ScanQRPage = () => {
@@ -12,12 +13,28 @@ const ScanQRPage = () => {
   const navigate = useNavigate()
   const [salon, setSalon] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [joining, setJoining] = useState(false)
+  const [isJoined, setIsJoined] = useState(false)
 
   useEffect(() => {
     const fetchSalon = async () => {
       try {
         const data = await salonService.getSalonByQRCode(qrCode)
         setSalon(data)
+        
+        // Check if client is already joined to this salon
+        if (user && user.role === 'Client' && data._id) {
+          try {
+            const mySalons = await salonClientService.getMySalons()
+            const isClientOfSalon = mySalons.some(s => 
+              (s.salonId?._id || s.salonId) === data._id || 
+              (s.salonId?.id || s.salonId) === data._id
+            )
+            setIsJoined(isClientOfSalon)
+          } catch (error) {
+            console.error('Error checking salon membership:', error)
+          }
+        }
       } catch (error) {
         toast.error('Salon not found')
       } finally {
@@ -28,7 +45,38 @@ const ScanQRPage = () => {
     if (qrCode) {
       fetchSalon()
     }
-  }, [qrCode])
+  }, [qrCode, user])
+
+  const handleJoinSalon = async () => {
+    if (!user) {
+      toast.error('Please login to join a salon')
+      navigate('/login')
+      return
+    }
+
+    if (user.role !== 'Client') {
+      toast.error('Only clients can join salons')
+      return
+    }
+
+    setJoining(true)
+    try {
+      const result = await salonClientService.joinSalonViaQR(qrCode)
+      
+      if (result.alreadyJoined) {
+        toast.success('You are already a client of this salon!')
+        setIsJoined(true)
+      } else {
+        toast.success(result.message || 'Successfully joined salon!')
+        setIsJoined(true)
+      }
+    } catch (error) {
+      console.error('Error joining salon:', error)
+      toast.error(error.response?.data?.message || 'Failed to join salon')
+    } finally {
+      setJoining(false)
+    }
+  }
 
   const handleBook = () => {
     if (!user) {
@@ -39,6 +87,12 @@ const ScanQRPage = () => {
 
     if (user.role !== 'Client') {
       toast.error('Only clients can book appointments')
+      return
+    }
+
+    // If not joined, suggest joining first
+    if (!isJoined) {
+      toast.error('Please join this salon first to book appointments')
       return
     }
 
@@ -155,13 +209,51 @@ const ScanQRPage = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" fullWidth onClick={handleBook}>
-                Book an Appointment
-              </Button>
-              <Button variant="outline" size="lg" fullWidth onClick={() => navigate('/')}>
-                Browse Services
-              </Button>
+              {user && user.role === 'Client' ? (
+                <>
+                  {!isJoined ? (
+                    <Button 
+                      size="lg" 
+                      fullWidth 
+                      onClick={handleJoinSalon}
+                      loading={joining}
+                    >
+                      <UserPlus size={20} className="mr-2" />
+                      Join This Salon
+                    </Button>
+                  ) : (
+                    <Button size="lg" fullWidth onClick={handleBook}>
+                      <Check size={20} className="mr-2" />
+                      Book an Appointment
+                    </Button>
+                  )}
+                  {isJoined && (
+                    <Button variant="outline" size="lg" fullWidth onClick={() => navigate(`/salon/${salon._id}`)}>
+                      View Salon Details
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Button size="lg" fullWidth onClick={handleBook}>
+                    Book an Appointment
+                  </Button>
+                  <Button variant="outline" size="lg" fullWidth onClick={() => navigate('/')}>
+                    Browse Services
+                  </Button>
+                </>
+              )}
             </div>
+            
+            {/* Join Status Message */}
+            {user && user.role === 'Client' && isJoined && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                <Check className="text-green-600" size={18} />
+                <span className="text-sm text-green-700 font-medium">
+                  You are a client of this salon
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
