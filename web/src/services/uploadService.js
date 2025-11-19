@@ -201,29 +201,39 @@ export const uploadService = {
           // Verify the transformation was applied
           const transformationApplied = transformedUrl !== imagePath
           
-          console.log('🖼️ Cloudinary URL transformation:', {
+          // Debug: Log full URLs to see what's happening
+          console.log('🖼️ Cloudinary URL transformation DEBUG:', {
             original: imagePath,
             transformed: transformedUrl,
+            areEqual: transformedUrl === imagePath,
             width,
             height,
             firstPart,
             isTransform,
             isVersion,
             transformationApplied,
-            baseUrl,
-            afterUpload,
+            baseUrlLength: baseUrl.length,
+            afterUploadLength: afterUpload.length,
             newTransform
           })
           
-          // Return transformed URL only if it's different
-          if (transformationApplied) {
-            return transformedUrl
-          } else {
-            // Fallback: force transformation by reconstructing URL
-            console.warn('⚠️ Transformation not applied, forcing transformation...')
-            // Reconstruct with transformation
-            return `${baseUrl}/${newTransform}/${afterUpload}`
+          // Always apply transformation - don't rely on comparison
+          // The issue might be that the URLs are being compared incorrectly
+          if (isVersion || !isTransform) {
+            // Force the transformation
+            const finalUrl = `${baseUrl}/${newTransform}/${afterUpload}`
+            console.log('✅ Final transformed URL:', finalUrl.substring(0, 100) + '...')
+            return finalUrl
+          } else if (isTransform) {
+            // Replace existing transformation
+            parts[0] = newTransform
+            const finalUrl = `${baseUrl}/${parts.join('/')}`
+            console.log('✅ Final transformed URL (replaced):', finalUrl.substring(0, 100) + '...')
+            return finalUrl
           }
+          
+          // Fallback
+          return `${baseUrl}/${newTransform}/${afterUpload}`
         }
       }
       return imagePath
