@@ -191,11 +191,15 @@ export const uploadService = {
             transformedUrl = `${baseUrl}/${parts.join('/')}`
           } else if (isVersion) {
             // Insert transformation before version
+            // Format: /image/upload/{transform}/v{version}/{public_id}
             transformedUrl = `${baseUrl}/${newTransform}/${afterUpload}`
           } else {
             // No transformation or version - insert transformation before public_id
             transformedUrl = `${baseUrl}/${newTransform}/${afterUpload}`
           }
+          
+          // Verify the transformation was applied
+          const transformationApplied = transformedUrl !== imagePath
           
           console.log('🖼️ Cloudinary URL transformation:', {
             original: imagePath,
@@ -204,10 +208,22 @@ export const uploadService = {
             height,
             firstPart,
             isTransform,
-            isVersion
+            isVersion,
+            transformationApplied,
+            baseUrl,
+            afterUpload,
+            newTransform
           })
           
-          return transformedUrl
+          // Return transformed URL only if it's different
+          if (transformationApplied) {
+            return transformedUrl
+          } else {
+            // Fallback: force transformation by reconstructing URL
+            console.warn('⚠️ Transformation not applied, forcing transformation...')
+            // Reconstruct with transformation
+            return `${baseUrl}/${newTransform}/${afterUpload}`
+          }
         }
       }
       return imagePath
