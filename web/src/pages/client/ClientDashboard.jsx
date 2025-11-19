@@ -233,11 +233,18 @@ const ClientDashboard = () => {
 
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => handleViewSalon(item.salonId._id)}
+                        onClick={() => navigate(`/book?salon=${item.salonId._id}`)}
                         className="flex-1"
                       >
                         <Calendar size={16} />
                         Book Appointment
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleViewSalon(item.salonId._id)}
+                        className="flex-1"
+                      >
+                        View Details
                       </Button>
                       {item.salonId.qrCode && (
                         <Button
