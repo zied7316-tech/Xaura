@@ -111,11 +111,16 @@ class EmailService {
 
       const info = await sendMailWithTimeout(mailOptions);
 
-      console.log(`[EMAIL] Email sent successfully to ${to}. MessageId: ${info.messageId}`);
+      console.log(`[EMAIL] ✅ Email sent successfully to ${to}`);
+      console.log(`[EMAIL] MessageId: ${info.messageId}`);
+      console.log(`[EMAIL] Response: ${info.response || 'N/A'}`);
+      console.log(`[EMAIL] From: ${mailOptions.from}`);
+      console.log(`[EMAIL] Subject: ${mailOptions.subject}`);
       
       return {
         success: true,
-        messageId: info.messageId
+        messageId: info.messageId,
+        response: info.response
       };
     } catch (error) {
       console.error('[EMAIL] Error sending email:', error.message);

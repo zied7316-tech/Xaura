@@ -416,7 +416,9 @@ const forgotPassword = async (req, res, next) => {
       }
 
       // Log successful email send (but don't expose email in response for security)
-      console.log(`[AUTH] Password reset email sent successfully to ${user.email.substring(0, 3)}***`);
+      console.log(`[AUTH] ✅ Password reset email sent successfully to ${user.email.substring(0, 3)}***`);
+      console.log(`[AUTH] Email MessageId: ${emailResult.messageId || 'N/A'}`);
+      console.log(`[AUTH] Reset token generated for user: ${user._id}`);
       
       res.json({
         success: true,
