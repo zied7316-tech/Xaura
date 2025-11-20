@@ -34,7 +34,13 @@ const ForgotPasswordPage = () => {
       
       if (result && result.success) {
         setEmailSent(true)
-        toast.success(result.message || 'Password reset email sent! Please check your inbox.')
+        if (result.emailSent) {
+          toast.success(result.message || 'Password reset email sent! Please check your inbox.')
+        } else {
+          // Email service unavailable but token was generated
+          toast.success('Password reset request processed. If you don\'t receive an email, please contact support with your email address.')
+          console.warn('[ForgotPassword] Email not sent but token generated. Check Railway logs for reset link.')
+        }
       } else {
         const errorMsg = result?.message || 'Failed to send password reset email'
         toast.error(errorMsg)
@@ -117,11 +123,20 @@ const ForgotPasswordPage = () => {
                 <Mail className="text-green-600" size={32} />
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Check Your Email</h2>
-              <p className="text-gray-600 mb-6">
-                We've sent a password reset link to your email address. Please check your inbox and click the link to reset your password.
+              <p className="text-gray-600 mb-4">
+                We've processed your password reset request. Please check your email inbox for the reset link.
               </p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mb-6">
+                <p className="font-medium mb-2">⚠️ Didn't receive the email?</p>
+                <ul className="text-left space-y-1 list-disc list-inside">
+                  <li>Check your spam/junk folder</li>
+                  <li>Wait 1-2 minutes for delivery</li>
+                  <li>If still not received, contact support with your email address</li>
+                  <li>Support can provide the reset link from system logs</li>
+                </ul>
+              </div>
               <p className="text-sm text-gray-500 mb-6">
-                The link will expire in 1 hour. If you don't see the email, check your spam folder.
+                The reset link will expire in 1 hour.
               </p>
               <Button onClick={() => setEmailSent(false)} fullWidth variant="outline">
                 Send Another Email
