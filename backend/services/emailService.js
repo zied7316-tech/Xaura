@@ -10,7 +10,13 @@ class EmailService {
         auth: {
           user: config.smtpUser,
           pass: config.smtpPassword
-        }
+        },
+        connectionTimeout: 10000, // 10 seconds connection timeout
+        greetingTimeout: 10000, // 10 seconds greeting timeout
+        socketTimeout: 10000, // 10 seconds socket timeout
+        pool: false, // Disable connection pooling to avoid hanging connections
+        maxConnections: 1,
+        maxMessages: 1
       });
       this.fromEmail = config.fromEmail;
       this.fromName = config.fromName || 'Xaura';
@@ -93,7 +99,17 @@ class EmailService {
         mailOptions.text = body;
       }
 
-      const info = await this.transporter.sendMail(mailOptions);
+      // Add timeout wrapper to prevent hanging
+      const sendMailWithTimeout = (mailOptions, timeoutMs = 15000) => {
+        return Promise.race([
+          this.transporter.sendMail(mailOptions),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Email sending timed out after 15 seconds')), timeoutMs)
+          )
+        ]);
+      };
+
+      const info = await sendMailWithTimeout(mailOptions);
 
       console.log(`[EMAIL] Email sent successfully to ${to}. MessageId: ${info.messageId}`);
       
