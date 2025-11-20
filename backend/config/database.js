@@ -9,7 +9,9 @@ const connectDB = async () => {
       console.error('❌ CRITICAL ERROR: MongoDB connection string not found!');
       console.error('Please set MONGODB_URI environment variable in Railway');
       console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('MONGO') || k.includes('DATABASE')));
-      process.exit(1);
+      // Don't exit immediately - let server start and show error on requests
+      console.error('⚠️  Server will start but database operations will fail until MONGODB_URI is set');
+      return;
     }
 
     console.log('🔄 Attempting MongoDB connection...');
@@ -18,12 +20,16 @@ const connectDB = async () => {
     const conn = await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000, // 10 second timeout
+      socketTimeoutMS: 45000, // 45 second socket timeout
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
+    console.error('⚠️  Server will continue but database operations will fail');
+    console.error('⚠️  Please check MONGODB_URI in Railway environment variables');
+    // Don't exit - let server start and show errors on requests
   }
 };
 

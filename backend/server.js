@@ -148,9 +148,37 @@ app.use((req, res) => {
   });
 });
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('❌ UNCAUGHT EXCEPTION! Shutting down...');
+  console.error('Error:', err.name, err.message);
+  console.error('Stack:', err.stack);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('❌ UNHANDLED REJECTION! Shutting down...');
+  console.error('Error:', err);
+  process.exit(1);
+});
+
+// Handle SIGTERM (Railway shutdown signal)
+process.on('SIGTERM', () => {
+  console.log('⚠️  SIGTERM received. Shutting down gracefully...');
+  process.exit(0);
+});
+
+// Handle SIGINT (Ctrl+C)
+process.on('SIGINT', () => {
+  console.log('⚠️  SIGINT received. Shutting down gracefully...');
+  process.exit(0);
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`✅ Server listening on 0.0.0.0:${PORT}`);
 });
 
