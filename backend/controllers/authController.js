@@ -56,16 +56,22 @@ const register = async (req, res, next) => {
     let emailSent = false;
     let emailError = null;
     try {
+      console.log(`[AUTH] Attempting to send verification email to ${user.email}`);
       const emailResult = await globalEmailService.sendVerificationEmail(user, verificationToken);
+      console.log(`[AUTH] Email result:`, { success: emailResult?.success, error: emailResult?.error, messageId: emailResult?.messageId });
+      
       if (emailResult && emailResult.success) {
         emailSent = true;
-        console.log(`[AUTH] Verification email sent successfully to ${user.email.substring(0, 3)}***`);
+        console.log(`[AUTH] ✅ Verification email sent successfully to ${user.email.substring(0, 3)}***`);
+        console.log(`[AUTH] Email MessageId: ${emailResult.messageId || 'N/A'}`);
       } else {
         emailError = emailResult?.error || 'Failed to send verification email';
-        console.error('[AUTH] Email sending failed:', emailError);
+        console.error('[AUTH] ❌ Email sending failed:', emailError);
+        console.error('[AUTH] Email result details:', emailResult);
       }
     } catch (emailError) {
-      console.error('[AUTH] Error sending verification email:', emailError);
+      console.error('[AUTH] ❌ Exception sending verification email:', emailError);
+      console.error('[AUTH] Error stack:', emailError.stack);
       emailError = emailError.message || 'Failed to send verification email';
     }
 

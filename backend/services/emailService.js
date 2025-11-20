@@ -148,8 +148,10 @@ class EmailService {
    * Send email verification email
    */
   async sendVerificationEmail(user, verificationToken) {
+    console.log(`[EMAIL] Preparing verification email for ${user.email}`);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+    console.log(`[EMAIL] Verification URL: ${verificationUrl}`);
 
     const content = `
       <h2 style="margin: 0 0 20px; color: #111827; font-size: 24px; font-weight: 600;">Verify Your Email Address</h2>
