@@ -139,14 +139,12 @@ function App() {
             <Route path="/owner/salon-clients" element={<ProtectedRoute roles={['Owner']}><SalonClientsPage /></ProtectedRoute>} />
             <Route path="/owner/reminders" element={<ProtectedRoute roles={['Owner']}><ReminderSettingsPage /></ProtectedRoute>} />
             <Route path="/owner/loyalty" element={<ProtectedRoute roles={['Owner']}><LoyaltySettingsPage /></ProtectedRoute>} />
-            <Route path="/owner/worker-tracking" element={<ProtectedRoute roles={['Owner']}><WorkerTrackingSettingsPage /></ProtectedRoute} />
-            <Route path="/owner/subscription" element={<ProtectedRoute roles={['Owner']}><SubscriptionPage /></ProtectedRoute} />
+            <Route path="/owner/worker-tracking" element={<ProtectedRoute roles={['Owner']}><WorkerTrackingSettingsPage /></ProtectedRoute>} />
+            <Route path="/owner/subscription" element={<ProtectedRoute roles={['Owner']}><SubscriptionPage /></ProtectedRoute>} />
             
-            {/* Worker Routes */}
-            <Route path="/worker/finances" element={<ProtectedRoute roles={['Worker']}><WorkerFinancePage /></ProtectedRoute} />
-
         {/* Worker routes */}
         <Route path="/worker/dashboard" element={<ProtectedRoute roles={['Worker']}><WorkerDashboard /></ProtectedRoute>} />
+        <Route path="/worker/finances" element={<ProtectedRoute roles={['Worker']}><WorkerFinancePage /></ProtectedRoute>} />
         <Route path="/worker/availability" element={<ProtectedRoute roles={['Worker']}><WorkerAvailabilityPage /></ProtectedRoute>} />
         <Route path="/worker/appointments" element={<ProtectedRoute roles={['Worker']}><WorkerAppointmentsPage /></ProtectedRoute>} />
         <Route path="/worker/walk-in" element={<ProtectedRoute roles={['Worker']}><WorkerWalkInPage /></ProtectedRoute>} />
