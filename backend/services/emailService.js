@@ -3,10 +3,15 @@ const nodemailer = require('nodemailer');
 class EmailService {
   constructor(config) {
     if (config && config.smtpHost) {
-      this.transporter = nodemailer.createTransport({
+      const port = config.smtpPort || 587;
+      const isSecure = port === 465;
+      
+      // For Railway: Try port 465 (SSL) if 587 is blocked
+      // Railway often blocks port 587 but allows 465
+      const transportConfig = {
         host: config.smtpHost,
-        port: config.smtpPort || 587,
-        secure: config.smtpPort === 465,
+        port: port,
+        secure: isSecure, // true for 465, false for other ports
         auth: {
           user: config.smtpUser,
           pass: config.smtpPassword
@@ -17,9 +22,21 @@ class EmailService {
         pool: false, // Disable connection pooling to avoid hanging connections
         maxConnections: 1,
         maxMessages: 1
-      });
+      };
+      
+      // For non-secure ports (587), require TLS
+      if (!isSecure && port === 587) {
+        transportConfig.requireTLS = true;
+        transportConfig.tls = {
+          rejectUnauthorized: false // Allow self-signed certificates if needed
+        };
+      }
+      
+      this.transporter = nodemailer.createTransport(transportConfig);
       this.fromEmail = config.fromEmail;
       this.fromName = config.fromName || 'Xaura';
+      
+      console.log(`[EMAIL] Transporter configured: ${config.smtpHost}:${port} (secure: ${isSecure})`);
     }
   }
 
