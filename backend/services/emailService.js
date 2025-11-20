@@ -70,10 +70,11 @@ class EmailService {
   async sendEmail(to, subject, body, isHTML = false) {
     try {
       if (!this.transporter) {
-        console.log('[EMAIL] Email not configured. Would send:', subject);
+        console.error('[EMAIL] Email service not configured! Missing SMTP settings.');
+        console.error('[EMAIL] Required env vars: EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS');
         return {
-          success: true,
-          message: 'Email service not configured (test mode)',
+          success: false,
+          error: 'Email service is not configured. Please set EMAIL_HOST, EMAIL_PORT, EMAIL_USER, and EMAIL_PASS environment variables.',
           mock: true
         };
       }
@@ -94,15 +95,30 @@ class EmailService {
 
       const info = await this.transporter.sendMail(mailOptions);
 
+      console.log(`[EMAIL] Email sent successfully to ${to}. MessageId: ${info.messageId}`);
+      
       return {
         success: true,
         messageId: info.messageId
       };
     } catch (error) {
       console.error('[EMAIL] Error sending email:', error.message);
+      console.error('[EMAIL] Full error:', error);
+      
+      // Provide more helpful error messages
+      let errorMessage = error.message;
+      if (error.code === 'EAUTH') {
+        errorMessage = 'Email authentication failed. Please check EMAIL_USER and EMAIL_PASS.';
+      } else if (error.code === 'ECONNECTION') {
+        errorMessage = 'Could not connect to email server. Please check EMAIL_HOST and EMAIL_PORT.';
+      } else if (error.code === 'ETIMEDOUT') {
+        errorMessage = 'Email server connection timed out. Please check your network and email server settings.';
+      }
+      
       return {
         success: false,
-        error: error.message
+        error: errorMessage,
+        code: error.code
       };
     }
   }

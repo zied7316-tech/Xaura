@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { financialService } from '../../services/financialService'
 import { appointmentService } from '../../services/appointmentService'
+import { subscriptionService } from '../../services/subscriptionService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
-import { Store, Calendar, Users, Scissors, TrendingUp, DollarSign, AlertCircle, Package, TrendingDown } from 'lucide-react'
+import { Store, Calendar, Users, Scissors, TrendingUp, DollarSign, AlertCircle, Package, TrendingDown, CreditCard, Clock, CheckCircle, Crown, Zap } from 'lucide-react'
 import { formatDate, formatTime, formatCurrency } from '../../utils/helpers'
 import { StatusBadge } from '../../components/ui/Badge'
 
@@ -13,6 +14,7 @@ const OwnerDashboard = () => {
   const { user } = useAuth()
   const [analytics, setAnalytics] = useState(null)
   const [appointments, setAppointments] = useState([])
+  const [subscription, setSubscription] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -25,6 +27,15 @@ const OwnerDashboard = () => {
         // Fetch recent appointments
         const appointmentsData = await appointmentService.getAppointments()
         setAppointments(appointmentsData.slice(0, 5))
+
+        // Fetch subscription status
+        try {
+          const subscriptionData = await subscriptionService.getMySubscription()
+          setSubscription(subscriptionData.data)
+        } catch (error) {
+          console.error('Error fetching subscription:', error)
+          // Subscription might not exist yet, that's okay
+        }
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -57,6 +68,73 @@ const OwnerDashboard = () => {
           </Button>
         </Link>
       </div>
+
+      {/* Subscription Status Card */}
+      {subscription && (
+        <Card className="border-2 border-primary-200 bg-gradient-to-r from-primary-50 to-blue-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {subscription.status === 'trial' ? (
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <Clock className="text-yellow-600" size={32} />
+                  </div>
+                ) : subscription.plan === 'basic' ? (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="text-green-600" size={32} />
+                  </div>
+                ) : subscription.plan === 'pro' ? (
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Zap className="text-blue-600" size={32} />
+                  </div>
+                ) : subscription.plan === 'enterprise' ? (
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                    <Crown className="text-purple-600" size={32} />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                    <CreditCard className="text-gray-600" size={32} />
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {subscription.status === 'trial' 
+                      ? 'Free Trial Active' 
+                      : subscription.plan 
+                        ? `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan`
+                        : 'No Active Plan'}
+                  </h3>
+                  {subscription.status === 'trial' ? (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {subscription.trialDaysRemaining || 0} days remaining
+                      {subscription.needsConfirmation && (
+                        <span className="ml-2 text-yellow-600 font-semibold">• Confirmation needed</span>
+                      )}
+                    </p>
+                  ) : subscription.plan ? (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {subscription.billingInterval === 'year' 
+                        ? `Annual billing • ${formatCurrency(subscription.price || 0)}/year`
+                        : `Monthly billing • ${formatCurrency(subscription.monthlyFee || subscription.price || 0)}/month`}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-red-600 mt-1">Please choose a plan to continue</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={subscription.status} />
+                <Link to="/owner/subscription">
+                  <Button variant="primary">
+                    <CreditCard size={18} className="mr-2" />
+                    Manage Plan
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Grid - ENHANCED with Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -223,6 +301,13 @@ const OwnerDashboard = () => {
                 <TrendingUp className="text-pink-600 mb-2" size={28} />
                 <span className="text-sm font-medium text-center">Reports</span>
                 <span className="text-xs text-pink-600 font-bold">NEW</span>
+              </button>
+            </Link>
+            <Link to="/owner/subscription">
+              <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
+                <CreditCard className="text-indigo-600 mb-2" size={28} />
+                <span className="text-sm font-medium text-center">Subscription</span>
+                <span className="text-xs text-indigo-600 font-bold">NEW</span>
               </button>
             </Link>
             <Link to="/appointments">

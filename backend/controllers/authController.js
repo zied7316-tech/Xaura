@@ -368,13 +368,33 @@ const forgotPassword = async (req, res, next) => {
 
     // Send reset email
     try {
-      await globalEmailService.sendPasswordResetEmail(user, resetToken);
+      const emailResult = await globalEmailService.sendPasswordResetEmail(user, resetToken);
+      
+      // Check if email was actually sent
+      if (!emailResult || !emailResult.success) {
+        console.error('[AUTH] Email sending failed:', emailResult?.error || 'Unknown error');
+        
+        // Clear the token if email fails
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save();
+
+        return res.status(500).json({
+          success: false,
+          message: emailResult?.error || 'Failed to send password reset email. Please contact support.',
+        });
+      }
+
+      // Log successful email send (but don't expose email in response for security)
+      console.log(`[AUTH] Password reset email sent successfully to ${user.email.substring(0, 3)}***`);
+      
       res.json({
         success: true,
         message: 'If an account exists with this email, a password reset link has been sent.',
       });
     } catch (emailError) {
-      console.error('Error sending password reset email:', emailError);
+      console.error('[AUTH] Error sending password reset email:', emailError);
+      
       // Clear the token if email fails
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
@@ -382,7 +402,7 @@ const forgotPassword = async (req, res, next) => {
 
       res.status(500).json({
         success: false,
-        message: 'Failed to send password reset email',
+        message: 'Failed to send password reset email. Please check your email configuration or contact support.',
       });
     }
   } catch (error) {
