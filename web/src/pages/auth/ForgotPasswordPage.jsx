@@ -14,7 +14,18 @@ const ForgotPasswordPage = () => {
   
   const { register, handleSubmit, formState: { errors } } = useForm()
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data, event) => {
+    // Explicitly prevent default form submission
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    
+    // Prevent multiple submissions
+    if (loading) {
+      return
+    }
+    
     setLoading(true)
     try {
       console.log('[ForgotPassword] Sending request for:', data.email)
@@ -34,6 +45,12 @@ const ForgotPasswordPage = () => {
       setLoading(false)
     }
   }
+  
+  const handleFormSubmit = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    return handleSubmit(onSubmit)(e)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -50,7 +67,7 @@ const ForgotPasswordPage = () => {
         {/* Form Card */}
         <div className="bg-white rounded-lg shadow-xl p-8">
           {!emailSent ? (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+            <form onSubmit={handleFormSubmit} className="space-y-6" noValidate>
               <div>
                 <Input
                   label="Email Address"
