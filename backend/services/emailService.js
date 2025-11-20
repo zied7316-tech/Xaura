@@ -111,28 +111,59 @@ class EmailService {
             ? body.replace(/<[^>]*>/g, '').replace(/\n\s*\n/g, '\n').trim()
             : body;
 
-          const result = await this.resend.emails.send({
+          const emailData = {
             from: `${this.fromName} <${this.fromEmail}>`,
             to: to,
             subject: subject,
             html: isHTML ? body : undefined,
             text: plainText
-          });
+          };
+
+          console.log(`[EMAIL] Sending via Resend to ${to}`);
+          console.log(`[EMAIL] From: ${emailData.from}`);
+          console.log(`[EMAIL] Subject: ${subject}`);
+
+          const result = await this.resend.emails.send(emailData);
+
+          // Check if result has error
+          if (result.error) {
+            console.error('[EMAIL] Resend API returned error:', result.error);
+            return {
+              success: false,
+              error: result.error.message || 'Resend API returned an error',
+              code: result.error.name || 'RESEND_ERROR'
+            };
+          }
+
+          // Check if result has data
+          if (!result.data || !result.data.id) {
+            console.error('[EMAIL] Resend API response missing data:', JSON.stringify(result));
+            return {
+              success: false,
+              error: 'Resend API response missing email ID',
+              code: 'RESEND_INVALID_RESPONSE'
+            };
+          }
 
           console.log(`[EMAIL] ✅ Email sent successfully via Resend to ${to}`);
-          console.log(`[EMAIL] MessageId: ${result.data?.id || 'N/A'}`);
+          console.log(`[EMAIL] MessageId: ${result.data.id}`);
+          console.log(`[EMAIL] Full response:`, JSON.stringify(result, null, 2));
           
           return {
             success: true,
-            messageId: result.data?.id,
+            messageId: result.data.id,
             response: 'Resend API'
           };
         } catch (resendError) {
-          console.error('[EMAIL] Resend API error:', resendError.message);
+          console.error('[EMAIL] Resend API exception:', resendError);
+          console.error('[EMAIL] Error message:', resendError.message);
+          console.error('[EMAIL] Error stack:', resendError.stack);
+          console.error('[EMAIL] Full error:', JSON.stringify(resendError, Object.getOwnPropertyNames(resendError)));
+          
           return {
             success: false,
             error: resendError.message || 'Failed to send email via Resend API',
-            code: resendError.name
+            code: resendError.name || 'RESEND_EXCEPTION'
           };
         }
       }
