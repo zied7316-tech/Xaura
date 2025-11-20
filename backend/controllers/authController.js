@@ -396,49 +396,44 @@ const forgotPassword = async (req, res, next) => {
     user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
 
-    // Send reset email (non-blocking - don't fail if email can't be sent)
-    let emailSent = false;
+    // Send reset email
     try {
       const emailResult = await globalEmailService.sendPasswordResetEmail(user, resetToken);
       
-      if (emailResult && emailResult.success) {
-        emailSent = true;
-        console.log(`[AUTH] ✅ Password reset email sent successfully to ${user.email.substring(0, 3)}***`);
-        console.log(`[AUTH] Email MessageId: ${emailResult.messageId || 'N/A'}`);
-      } else {
-        console.error('[AUTH] ⚠️  Email sending failed:', emailResult?.error || 'Unknown error');
-        // Don't clear token - keep it so admin can manually send the link
+      if (!emailResult || !emailResult.success) {
+        console.error('[AUTH] Email sending failed:', emailResult?.error || 'Unknown error');
+        
+        // Clear the token if email fails
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save();
+
+        return res.status(500).json({
+          success: false,
+          message: emailResult?.error || 'Failed to send password reset email. Please try again later.',
+        });
       }
+
+      console.log(`[AUTH] ✅ Password reset email sent successfully to ${user.email.substring(0, 3)}***`);
+      console.log(`[AUTH] Email MessageId: ${emailResult.messageId || 'N/A'}`);
+      
+      res.json({
+        success: true,
+        message: 'If an account exists with this email, a password reset link has been sent.',
+      });
     } catch (emailError) {
-      console.error('[AUTH] ⚠️  Exception sending password reset email:', emailError.message);
-      // Don't clear token - keep it so admin can manually send the link
-    }
+      console.error('[AUTH] Error sending password reset email:', emailError);
+      
+      // Clear the token if email fails
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
 
-    // Log reset token in Railway logs for manual recovery (if email fails)
-    if (!emailSent) {
-      const frontendUrl = process.env.FRONTEND_URL || 'https://www.xaura.pro';
-      const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('🔐 PASSWORD RESET TOKEN (Email service unavailable)');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`User: ${user.email}`);
-      console.log(`Reset URL: ${resetUrl}`);
-      console.log(`Token: ${resetToken}`);
-      console.log(`Expires: ${new Date(user.resetPasswordExpire).toISOString()}`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('⚠️  Copy the Reset URL above and send it manually to the user');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send password reset email. Please try again later.',
+      });
     }
-
-    // Always return success - token is saved and can be used even if email fails
-    // Admin can check Railway logs to get the reset URL if needed
-    res.json({
-      success: true,
-      message: emailSent 
-        ? 'If an account exists with this email, a password reset link has been sent.'
-        : 'Password reset token generated. Please check Railway logs for the reset link if email is not received.',
-      emailSent
-    });
   } catch (error) {
     next(error);
   }
