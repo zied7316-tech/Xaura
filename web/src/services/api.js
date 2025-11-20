@@ -7,6 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds timeout
 })
 
 // Request interceptor - add auth token
@@ -27,7 +28,26 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || error.message || 'Something went wrong'
+    let message = 'Something went wrong'
+    
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      message = 'Request timed out. Please check your connection and try again.'
+    } else if (error.response) {
+      // Server responded with error status
+      message = error.response?.data?.message || error.message || 'Something went wrong'
+    } else if (error.request) {
+      // Request was made but no response received
+      message = 'No response from server. Please check your connection.'
+    } else {
+      message = error.message || 'Something went wrong'
+    }
+    
+    console.error('[API Error]', {
+      message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url
+    })
     
     // If unauthorized, clear token and redirect to login
     if (error.response?.status === 401) {

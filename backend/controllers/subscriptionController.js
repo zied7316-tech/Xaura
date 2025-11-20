@@ -2,7 +2,7 @@ const Subscription = require('../models/Subscription');
 const Salon = require('../models/Salon');
 const User = require('../models/User');
 const { getAllPlans, getPlanDetails, getAllAddOns, TRIAL_CONFIG, calculateAnnualPrice } = require('../config/subscriptionPlans');
-const getOwnerSalon = require('../utils/getOwnerSalon');
+const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
  * @desc    Get all subscriptions

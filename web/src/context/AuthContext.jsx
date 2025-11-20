@@ -144,8 +144,14 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await authService.register(userData)
       setUser(data.user)
-      toast.success('Registration successful!')
-      return { success: true, user: data.user }
+      // Don't show toast here - let the RegisterPage handle it based on email status
+      return { 
+        success: true, 
+        user: data.user,
+        emailSent: data.emailSent || false,
+        emailError: data.emailError || null,
+        message: data.message
+      }
     } catch (error) {
       toast.error(error.message || 'Registration failed')
       return { success: false, error: error.message }

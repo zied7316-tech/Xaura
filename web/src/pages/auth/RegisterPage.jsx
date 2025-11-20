@@ -15,6 +15,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [userEmail, setUserEmail] = useState('')
+  const [emailError, setEmailError] = useState(null)
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     defaultValues: {
@@ -33,17 +34,45 @@ const RegisterPage = () => {
   const onSubmit = async (data) => {
     setLoading(true)
     try {
-    const result = await registerUser(data)
-    setLoading(false)
+      const result = await registerUser(data)
+      setLoading(false)
 
-    if (result.success) {
+      if (result.success) {
         setUserEmail(data.email)
         setEmailSent(true)
-        toast.success('Registration successful! Please check your email to verify your account.')
+        setEmailError(result.emailError || null)
+        
+        // Check if email was actually sent
+        if (result.emailSent) {
+          toast.success('Registration successful! Please check your email to verify your account.')
+        } else {
+          const errorMsg = result.emailError || 'Email service is not configured'
+          toast.error('Registration successful, but verification email could not be sent. Please use the resend option below.')
+        }
       }
     } catch (error) {
       setLoading(false)
       // Error is already handled by AuthContext
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!userEmail) return
+    
+    setLoading(true)
+    try {
+      const { authService } = await import('../../services/authService')
+      const result = await authService.resendVerification(userEmail)
+      
+      if (result.success) {
+        toast.success('Verification email sent! Please check your inbox.')
+      } else {
+        toast.error(result.message || 'Failed to resend verification email')
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to resend verification email')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -164,20 +193,41 @@ const RegisterPage = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
                 <CheckCircle className="text-green-600" size={32} />
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Check Your Email</h2>
-              <p className="text-gray-600 mb-4">
-                We've sent a verification email to <strong>{userEmail}</strong>
-              </p>
-              <p className="text-sm text-gray-500 mb-6">
-                Please click the link in the email to verify your account and complete registration.
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                {emailError ? 'Registration Successful' : 'Check Your Email'}
+              </h2>
+              {emailError ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mb-4">
+                  <p className="font-medium mb-2">⚠️ Verification email could not be sent</p>
+                  <p className="mb-2">{emailError}</p>
+                  <p className="text-xs">Please use the "Resend Verification Email" button below to try again.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-gray-600 mb-4">
+                    We've sent a verification email to <strong>{userEmail}</strong>
+                  </p>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Please click the link in the email to verify your account and complete registration.
+                  </p>
+                </>
+              )}
               <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-primary-800 mb-6">
                 <p className="font-medium mb-2">Didn't receive the email?</p>
-                <ul className="text-left space-y-1 list-disc list-inside">
+                <ul className="text-left space-y-1 list-disc list-inside mb-3">
                   <li>Check your spam/junk folder</li>
                   <li>Make sure the email address is correct</li>
                   <li>Wait a few minutes and check again</li>
                 </ul>
+                <Button 
+                  onClick={handleResendVerification}
+                  loading={loading}
+                  variant="outline"
+                  fullWidth
+                  className="mt-2"
+                >
+                  Resend Verification Email
+                </Button>
               </div>
               <div className="space-y-3">
                 <Button onClick={() => navigate('/login')} fullWidth>

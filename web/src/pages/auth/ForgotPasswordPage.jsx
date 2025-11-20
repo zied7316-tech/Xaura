@@ -17,11 +17,19 @@ const ForgotPasswordPage = () => {
   const onSubmit = async (data) => {
     setLoading(true)
     try {
-      await authService.forgotPassword(data.email)
-      setEmailSent(true)
-      toast.success('Password reset email sent! Please check your inbox.')
+      console.log('[ForgotPassword] Sending request for:', data.email)
+      const result = await authService.forgotPassword(data.email)
+      console.log('[ForgotPassword] Response:', result)
+      
+      if (result && result.success) {
+        setEmailSent(true)
+        toast.success(result.message || 'Password reset email sent! Please check your inbox.')
+      } else {
+        toast.error(result?.message || 'Failed to send password reset email')
+      }
     } catch (error) {
-      toast.error(error.message || 'Failed to send password reset email')
+      console.error('[ForgotPassword] Error:', error)
+      toast.error(error.message || 'Failed to send password reset email. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -42,7 +50,7 @@ const ForgotPasswordPage = () => {
         {/* Form Card */}
         <div className="bg-white rounded-lg shadow-xl p-8">
           {!emailSent ? (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
               <div>
                 <Input
                   label="Email Address"

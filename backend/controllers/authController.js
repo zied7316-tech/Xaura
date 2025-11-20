@@ -53,16 +53,26 @@ const register = async (req, res, next) => {
     });
 
     // Send verification email
+    let emailSent = false;
+    let emailError = null;
     try {
-      await globalEmailService.sendVerificationEmail(user, verificationToken);
+      const emailResult = await globalEmailService.sendVerificationEmail(user, verificationToken);
+      if (emailResult && emailResult.success) {
+        emailSent = true;
+        console.log(`[AUTH] Verification email sent successfully to ${user.email.substring(0, 3)}***`);
+      } else {
+        emailError = emailResult?.error || 'Failed to send verification email';
+        console.error('[AUTH] Email sending failed:', emailError);
+      }
     } catch (emailError) {
-      console.error('Error sending verification email:', emailError);
-      // Don't fail registration if email fails
+      console.error('[AUTH] Error sending verification email:', emailError);
+      emailError = emailError.message || 'Failed to send verification email';
     }
 
     // Generate token
     const token = generateToken(user._id);
 
+    // Return response with email status
     res.status(201).json({
       success: true,
       token,
@@ -76,7 +86,11 @@ const register = async (req, res, next) => {
         avatar: user.avatar,
         emailVerified: user.emailVerified,
       },
-      message: 'Registration successful! Please check your email to verify your account.',
+      message: emailSent 
+        ? 'Registration successful! Please check your email to verify your account.'
+        : 'Registration successful! However, we could not send the verification email. Please use the resend option.',
+      emailSent,
+      emailError: emailSent ? null : emailError
     });
   } catch (error) {
     next(error);
@@ -314,16 +328,26 @@ const resendVerification = async (req, res, next) => {
 
     // Send verification email
     try {
-      await globalEmailService.sendVerificationEmail(user, verificationToken);
-      res.json({
-        success: true,
-        message: 'Verification email sent successfully',
-      });
+      const emailResult = await globalEmailService.sendVerificationEmail(user, verificationToken);
+      if (emailResult && emailResult.success) {
+        console.log(`[AUTH] Verification email resent successfully to ${user.email.substring(0, 3)}***`);
+        res.json({
+          success: true,
+          message: 'Verification email sent successfully',
+        });
+      } else {
+        const errorMsg = emailResult?.error || 'Failed to send verification email';
+        console.error('[AUTH] Email sending failed:', errorMsg);
+        res.status(500).json({
+          success: false,
+          message: errorMsg || 'Failed to send verification email. Please check email service configuration.',
+        });
+      }
     } catch (emailError) {
-      console.error('Error sending verification email:', emailError);
+      console.error('[AUTH] Error sending verification email:', emailError);
       res.status(500).json({
         success: false,
-        message: 'Failed to send verification email',
+        message: emailError.message || 'Failed to send verification email. Please check email service configuration.',
       });
     }
   } catch (error) {

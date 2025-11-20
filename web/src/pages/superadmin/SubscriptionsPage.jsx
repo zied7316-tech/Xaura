@@ -8,7 +8,7 @@ import Modal from '../../components/ui/Modal'
 import Select from '../../components/ui/Select'
 import {
   Crown, DollarSign, Calendar, TrendingUp, AlertCircle,
-  CheckCircle, XCircle, Clock, Edit, Ban, Play
+  CheckCircle, XCircle, Clock, Edit, Ban, Play, RefreshCw
 } from 'lucide-react'
 import { formatDate, formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -37,12 +37,33 @@ const SubscriptionsPage = () => {
   const loadSubscriptions = async () => {
     try {
       setLoading(true)
+      console.log('[SubscriptionsPage] Loading subscriptions with filters:', filters)
       const data = await superAdminService.getAllSubscriptions(filters)
-      setSubscriptions(data.data || [])
-      setAnalytics(data.analytics)
+      console.log('[SubscriptionsPage] Response data:', data)
+      console.log('[SubscriptionsPage] Subscriptions array:', data.data)
+      console.log('[SubscriptionsPage] Analytics:', data.analytics)
+      
+      // Handle different response structures
+      const subscriptionsList = data.data || data.subscriptions || data || []
+      const analyticsData = data.analytics || {
+        mrr: 0,
+        activeCount: 0,
+        trialCount: 0,
+        planDistribution: {}
+      }
+      
+      setSubscriptions(Array.isArray(subscriptionsList) ? subscriptionsList : [])
+      setAnalytics(analyticsData)
+      
+      if (subscriptionsList.length === 0) {
+        console.log('[SubscriptionsPage] No subscriptions found')
+      }
     } catch (error) {
-      console.error('Error loading subscriptions:', error)
-      toast.error('Failed to load subscriptions')
+      console.error('[SubscriptionsPage] Error loading subscriptions:', error)
+      console.error('[SubscriptionsPage] Error details:', error.message, error.response)
+      toast.error(error.message || 'Failed to load subscriptions')
+      setSubscriptions([])
+      setAnalytics(null)
     } finally {
       setLoading(false)
     }
@@ -150,13 +171,24 @@ const SubscriptionsPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Subscription Management</h1>
-        <p className="text-gray-600 mt-1">Manage salon subscriptions and billing</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Subscription Management</h1>
+          <p className="text-gray-600 mt-1">Manage salon subscriptions and billing</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={loadSubscriptions}
+          disabled={loading}
+          title="Refresh subscriptions"
+        >
+          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          <span className="ml-2">Refresh</span>
+        </Button>
       </div>
 
       {/* Revenue Stats */}
-      {analytics && (
+      {analytics && subscriptions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
             <div className="p-6">
@@ -253,98 +285,120 @@ const SubscriptionsPage = () => {
           <CardTitle>Subscriptions ({subscriptions.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4">Salon</th>
-                  <th className="text-left py-3 px-4">Owner</th>
-                  <th className="text-left py-3 px-4">Plan</th>
-                  <th className="text-left py-3 px-4">Status</th>
-                  <th className="text-left py-3 px-4">MRR</th>
-                  <th className="text-left py-3 px-4">Trial End</th>
-                  <th className="text-left py-3 px-4">Next Billing</th>
-                  <th className="text-right py-3 px-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subscriptions.map((sub) => (
-                  <tr key={sub._id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-gray-900">{sub.salonId?.name}</div>
-                      <div className="text-sm text-gray-500">{sub.salonId?.address?.city}</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm text-gray-900">{sub.ownerId?.name}</div>
-                      <div className="text-xs text-gray-500">{sub.ownerId?.email}</div>
-                    </td>
-                    <td className="py-3 px-4">{getPlanBadge(sub.plan)}</td>
-                    <td className="py-3 px-4">{getStatusBadge(sub.status)}</td>
-                    <td className="py-3 px-4">
-                      <span className="font-semibold text-green-600">{formatCurrency(sub.monthlyFee)}</span>
-                      <span className="text-xs text-gray-500">/mo</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm text-gray-600">
-                        {sub.status === 'trial' ? formatDate(sub.trial?.extendedEndDate || sub.trial?.endDate) : '-'}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm text-gray-600">
-                        {sub.status === 'active' ? formatDate(sub.currentPeriodEnd) : '-'}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-2">
-                        {sub.status !== 'cancelled' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleChangePlan(sub)}
-                              title="Change Plan"
-                            >
-                              <Edit size={16} />
-                            </Button>
-                            {sub.status === 'trial' && (
+          {subscriptions.length === 0 && !loading ? (
+            <div className="text-center py-12">
+              <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Subscriptions Found</h3>
+              <p className="text-gray-600 mb-4">
+                {filters.status !== 'all' || filters.plan !== 'all'
+                  ? 'No subscriptions match your current filters. Try adjusting your filters.'
+                  : 'There are no subscriptions in the system yet. Subscriptions will appear here when salons are created.'}
+              </p>
+              {(filters.status !== 'all' || filters.plan !== 'all') && (
+                <Button
+                  variant="outline"
+                  onClick={() => setFilters({ status: 'all', plan: 'all' })}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4">Salon</th>
+                    <th className="text-left py-3 px-4">Owner</th>
+                    <th className="text-left py-3 px-4">Plan</th>
+                    <th className="text-left py-3 px-4">Status</th>
+                    <th className="text-left py-3 px-4">MRR</th>
+                    <th className="text-left py-3 px-4">Trial End</th>
+                    <th className="text-left py-3 px-4">Next Billing</th>
+                    <th className="text-right py-3 px-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscriptions.map((sub) => (
+                    <tr key={sub._id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-gray-900">{sub.salonId?.name || 'N/A'}</div>
+                        <div className="text-sm text-gray-500">{sub.salonId?.address?.city || ''}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm text-gray-900">{sub.ownerId?.name || 'N/A'}</div>
+                        <div className="text-xs text-gray-500">{sub.ownerId?.email || ''}</div>
+                      </td>
+                      <td className="py-3 px-4">{getPlanBadge(sub.plan)}</td>
+                      <td className="py-3 px-4">{getStatusBadge(sub.status)}</td>
+                      <td className="py-3 px-4">
+                        <span className="font-semibold text-green-600">{formatCurrency(sub.monthlyFee || 0)}</span>
+                        <span className="text-xs text-gray-500">/mo</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm text-gray-600">
+                          {sub.status === 'trial' 
+                            ? formatDate(sub.trialEndDate || sub.trial?.extendedEndDate || sub.trial?.endDate) 
+                            : '-'}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm text-gray-600">
+                          {sub.status === 'active' ? formatDate(sub.currentPeriodEnd) : '-'}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-end gap-2">
+                          {sub.status !== 'cancelled' && (
+                            <>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleExtendTrial(sub)}
-                                title="Extend Trial"
+                                onClick={() => handleChangePlan(sub)}
+                                title="Change Plan"
                               >
-                                <Clock size={16} />
+                                <Edit size={16} />
                               </Button>
-                            )}
+                              {sub.status === 'trial' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleExtendTrial(sub)}
+                                  title="Extend Trial"
+                                >
+                                  <Clock size={16} />
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCancelSubscription(sub._id)}
+                                className="text-red-600 hover:bg-red-50"
+                                title="Cancel"
+                              >
+                                <Ban size={16} />
+                              </Button>
+                            </>
+                          )}
+                          {sub.status === 'cancelled' && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleCancelSubscription(sub._id)}
-                              className="text-red-600 hover:bg-red-50"
-                              title="Cancel"
+                              onClick={() => handleReactivateSubscription(sub._id)}
+                              className="text-green-600 hover:bg-green-50"
+                              title="Reactivate"
                             >
-                              <Ban size={16} />
+                              <Play size={16} />
                             </Button>
-                          </>
-                        )}
-                        {sub.status === 'cancelled' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleReactivateSubscription(sub._id)}
-                            className="text-green-600 hover:bg-green-50"
-                            title="Reactivate"
-                          >
-                            <Play size={16} />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -452,7 +506,7 @@ const SubscriptionsPage = () => {
       )}
 
       {/* Plan Distribution */}
-      {analytics && analytics.planDistribution && (
+      {analytics && analytics.planDistribution && subscriptions.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Plan Distribution</CardTitle>
