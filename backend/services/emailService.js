@@ -3,14 +3,26 @@ const { Resend } = require('resend');
 
 class EmailService {
   constructor(config) {
+    // Store config for later use
+    this.config = config;
+    
     // Priority 1: Use Resend API (works on Railway, no SMTP needed)
     if (config && config.resendApiKey) {
+      // Validate API key format
+      if (!config.resendApiKey.startsWith('re_')) {
+        console.error('[EMAIL] ❌ WARNING: Invalid Resend API key format!');
+        console.error('[EMAIL] API key should start with "re_"');
+        console.error('[EMAIL] Current key starts with:', config.resendApiKey.substring(0, 3));
+      }
+      
       this.resend = new Resend(config.resendApiKey);
       this.fromEmail = config.fromEmail || 'onboarding@resend.dev';
       this.fromName = config.fromName || 'Xaura';
       this.useResend = true;
       console.log('[EMAIL] ✅ Using Resend API (no SMTP required)');
       console.log(`[EMAIL] From: ${this.fromName} <${this.fromEmail}>`);
+      console.log(`[EMAIL] API Key length: ${config.resendApiKey.length} characters`);
+      console.log(`[EMAIL] API Key format: ${config.resendApiKey.substring(0, 3)}...${config.resendApiKey.substring(config.resendApiKey.length - 4)}`);
       return;
     }
 
