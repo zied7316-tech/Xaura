@@ -2,10 +2,7 @@
 nixPkgs = ['nodejs_18']
 
 [phases.install]
-cmds = ['cd web && npm ci --omit=dev || npm install --omit=dev']
-
-[phases.build]
-cmds = ['cd web && npm run build']
+cmds = ['cd backend && npm ci --omit=dev || npm install --omit=dev']
 
 [start]
-cmd = 'cd web && npm run start'
+cmd = 'cd backend && NODE_ENV=production node server.js'
