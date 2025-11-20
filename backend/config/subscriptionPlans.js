@@ -2,109 +2,309 @@
  * Subscription Plans Configuration for Tunisia
  * Currency: Tunisian Dinar (TND)
  * 
- * Exchange Rate Reference (approximate):
- * 1 USD ≈ 3.1 TND
+ * Updated: New pricing and feature structure
+ * Trial: 45 days (with confirmation at day 15)
  */
 
 const SUBSCRIPTION_PLANS = {
-  free: {
-    name: 'Free',
-    nameAr: 'مجاني',
-    price: 0,
-    currency: 'TND',
-    interval: 'month',
-    features: {
-      maxWorkers: 1,
-      maxServices: 10,
-      maxClients: 50,
-      basicAnalytics: true,
-      advancedAnalytics: false,
-      smsReminders: false,
-      emailReminders: true,
-      loyaltyProgram: false,
-      customBranding: false,
-      prioritySupport: false,
-      multiLocation: false,
-    },
-    description: 'Perfect for solo professionals',
-    descriptionAr: 'مثالي للمحترفين المستقلين',
-  },
   basic: {
     name: 'Basic',
     nameAr: 'أساسي',
-    price: 90, // ~$29 USD = 90 TND
+    price: {
+      month: 49,
+      year: 470.4, // 49 * 12 * 0.8 (20% discount)
+    },
     currency: 'TND',
     interval: 'month',
     features: {
-      maxWorkers: 5,
-      maxServices: 50,
-      maxClients: 200,
-      basicAnalytics: true,
-      advancedAnalytics: true,
-      smsReminders: true,
-      emailReminders: true,
-      loyaltyProgram: true,
-      customBranding: false,
-      prioritySupport: false,
+      // Team & Branches
+      maxLocations: 1,
+      maxWorkers: 3,
+      
+      // Operations
+      unlimitedAppointments: true,
+      unlimitedServices: true,
+      clientCRM: true,
+      calendarBooking: true,
+      qrCodeBooking: true,
+      basicDashboard: true,
+      
+      // Finance
+      fullFinanceSystem: true,
+      workerCommissions: true,
+      workerPayments: true,
+      revenueTracking: true,
+      cashCardTracking: true,
+      
+      // Inventory
+      basicInventory: true,
+      manualAlerts: true,
+      
+      // Reporting
+      basicReports: true,
+      
+      // Notifications
+      inAppNotifications: true,
+      
+      // Not Included
+      loyaltyProgram: false,
+      adsManager: false,
+      advancedAnalytics: false,
+      aiInsights: false,
       multiLocation: false,
+      pixelTracking: false,
+      prioritySupport: false,
+      whiteLabel: false,
+      pushNotifications: false,
+      emailNotifications: false,
+      apiAccess: false,
     },
-    description: 'Great for small salons',
-    descriptionAr: 'رائع للصالونات الصغيرة',
+    description: 'Perfect for small barbers & beauty salons starting out',
+    descriptionAr: 'مثالي للحلاقين الصغار وصالونات التجميل الناشئة',
   },
-  professional: {
-    name: 'Professional',
+  
+  pro: {
+    name: 'Pro',
     nameAr: 'احترافي',
-    price: 250, // ~$79 USD = 250 TND
+    price: {
+      month: 99,
+      year: 950.4, // 99 * 12 * 0.8 (20% discount)
+    },
     currency: 'TND',
     interval: 'month',
     features: {
-      maxWorkers: -1, // Unlimited
-      maxServices: -1, // Unlimited
-      maxClients: -1, // Unlimited
-      basicAnalytics: true,
+      // Everything in Basic
+      unlimitedAppointments: true,
+      unlimitedServices: true,
+      clientCRM: true,
+      calendarBooking: true,
+      qrCodeBooking: true,
+      basicDashboard: true,
+      fullFinanceSystem: true,
+      workerCommissions: true,
+      workerPayments: true,
+      revenueTracking: true,
+      cashCardTracking: true,
+      basicInventory: true,
+      inAppNotifications: true,
+      
+      // Team & Branches (upgraded)
+      maxLocations: 3,
+      maxWorkers: 10,
+      
+      // Analytics (new)
       advancedAnalytics: true,
-      smsReminders: true,
-      emailReminders: true,
+      workerPerformanceDashboard: true,
+      clientInsights: true,
+      heatmaps: true,
+      revenuePerService: true,
+      revenuePerWorker: true,
+      
+      // Finance (upgraded)
+      advancedFinanceBreakdown: true,
+      profitabilityIndicators: true,
+      workerLeaderboard: true,
+      
+      // Inventory Pro (upgraded)
+      autoAlerts: true,
+      automaticCostCalculation: true,
+      productUsageInsights: true,
+      
+      // Loyalty (new)
       loyaltyProgram: true,
-      customBranding: true,
+      loyaltyProgramPro: true,
+      
+      // Ads Manager Basic (new)
+      adsManager: true,
+      adsManagerBasic: true,
+      boostSuggestions: true,
+      basicCampaignTracking: true,
+      adPerformanceDashboard: true,
+      ctrCpcEstimation: true,
+      
+      // Notifications (upgraded)
+      pushNotifications: true,
+      emailNotifications: true,
+      
+      // Not Included
+      pixelTracking: false,
+      adsManagerPro: false,
+      unlimitedWorkers: false,
+      unlimitedBranches: false,
+      apiAccess: false,
+      whiteLabel: false,
       prioritySupport: false,
-      multiLocation: true,
+      aiInsights: false,
     },
-    description: 'For growing businesses',
-    descriptionAr: 'للشركات المتنامية',
+    description: 'For growing salons that want full automation & analytics',
+    descriptionAr: 'للصالونات المتنامية التي تريد الأتمتة الكاملة والتحليلات',
   },
+  
   enterprise: {
     name: 'Enterprise',
     nameAr: 'مؤسسي',
-    price: 620, // ~$199 USD = 620 TND
+    price: {
+      month: 299,
+      year: 2870.4, // 299 * 12 * 0.8 (20% discount)
+    },
     currency: 'TND',
     interval: 'month',
     features: {
-      maxWorkers: -1, // Unlimited
-      maxServices: -1, // Unlimited
-      maxClients: -1, // Unlimited
-      basicAnalytics: true,
+      // Everything in Pro
+      unlimitedAppointments: true,
+      unlimitedServices: true,
+      clientCRM: true,
+      calendarBooking: true,
+      qrCodeBooking: true,
+      basicDashboard: true,
+      fullFinanceSystem: true,
+      workerCommissions: true,
+      workerPayments: true,
+      revenueTracking: true,
+      cashCardTracking: true,
+      basicInventory: true,
+      inAppNotifications: true,
       advancedAnalytics: true,
-      smsReminders: true,
-      emailReminders: true,
+      workerPerformanceDashboard: true,
+      clientInsights: true,
+      heatmaps: true,
+      revenuePerService: true,
+      revenuePerWorker: true,
+      advancedFinanceBreakdown: true,
+      profitabilityIndicators: true,
+      workerLeaderboard: true,
+      autoAlerts: true,
+      automaticCostCalculation: true,
+      productUsageInsights: true,
       loyaltyProgram: true,
-      customBranding: true,
-      prioritySupport: true,
-      multiLocation: true,
-      whiteLabel: true,
+      loyaltyProgramPro: true,
+      adsManager: true,
+      adsManagerBasic: true,
+      boostSuggestions: true,
+      basicCampaignTracking: true,
+      adPerformanceDashboard: true,
+      ctrCpcEstimation: true,
+      pushNotifications: true,
+      emailNotifications: true,
+      
+      // Team & Branches (unlimited)
+      maxLocations: -1, // Unlimited
+      maxWorkers: -1, // Unlimited
+      multiBranchControlPanel: true,
+      
+      // AI & Advanced Analytics (new)
+      aiInsights: true,
+      priceOptimizationAI: true,
+      workerPerformanceAI: true,
+      clientPredictionScoring: true,
+      
+      // Ads Manager PRO (new)
+      adsManagerPro: true,
+      multiPlatformIntegration: true,
+      pixelTracking: true,
+      facebookPixel: true,
+      tiktokPixel: true,
+      googleTag: true,
+      budgetOptimizerAI: true,
+      audienceSegmentation: true,
+      smartRetargeting: true,
+      campaignAutomation: true,
+      roiHeatmaps: true,
+      crossPlatformAttribution: true,
+      automatedDailyReporting: true,
+      conversionTracking: true,
+      
+      // Finance (upgraded)
+      multiBranchFinancialConsolidation: true,
+      advancedProfitLoss: true,
+      exportExcelPdf: true,
+      
+      // Loyalty Full (upgraded)
+      multiTierLoyaltyLevels: true,
+      vipSegmentation: true,
+      aiDrivenRewards: true,
+      
+      // DevTools (new)
       apiAccess: true,
-      dedicatedSupport: true,
+      whiteLabel: true,
+      
+      // Notifications (upgraded)
+      webhooks: true,
+      smsNotifications: true, // Via add-on
+      
+      // Support (upgraded)
+      prioritySupport: true,
+      supportResponseTime: '2 hours',
     },
-    description: 'For large chains & franchises',
-    descriptionAr: 'للسلاسل والامتيازات الكبيرة',
+    description: 'For large salon chains & beauty franchises',
+    descriptionAr: 'لسلاسل الصالونات الكبيرة وامتيازات التجميل',
   },
+};
+
+/**
+ * Add-ons configuration
+ */
+const ADD_ONS = {
+  smsCredits: {
+    name: 'SMS Credits',
+    nameAr: 'رصيد الرسائل النصية',
+    packages: [
+      { credits: 100, price: 5, currency: 'TND' },
+      { credits: 500, price: 20, currency: 'TND' },
+      { credits: 2000, price: 60, currency: 'TND' },
+    ],
+    autoRecharge: true,
+    deliveryReports: true,
+    freeTrial: 50, // New salons get 50 free SMS
+  },
+  
+  pixelTracking: {
+    name: 'Pixel Tracking',
+    nameAr: 'تتبع البكسل',
+    price: 15,
+    currency: 'TND',
+    interval: 'month',
+    features: {
+      facebookPixel: true,
+      tiktokPixel: true,
+      googleTag: true,
+      conversionTrackingDashboard: true,
+    },
+    availableFor: ['pro'], // Available as add-on for PRO plan
+    includedIn: ['enterprise'], // Already included in Enterprise
+  },
+};
+
+/**
+ * Trial configuration
+ */
+const TRIAL_CONFIG = {
+  initialTrialDays: 45,
+  confirmationDay: 15, // Ask for confirmation at day 15
+  extendedTrialDays: 30, // Additional days if confirmed (total 75 days)
+  freeSmsCredits: 50, // Free SMS credits for new salons
 };
 
 /**
  * Get plan details by name
  */
-const getPlanDetails = (planName) => {
-  return SUBSCRIPTION_PLANS[planName.toLowerCase()] || SUBSCRIPTION_PLANS.free;
+const getPlanDetails = (planName, interval = 'month') => {
+  const plan = SUBSCRIPTION_PLANS[planName.toLowerCase()];
+  if (!plan) return null;
+  
+  // Return plan with price for specified interval
+  return {
+    ...plan,
+    price: typeof plan.price === 'object' ? plan.price[interval] : plan.price,
+    interval
+  };
+};
+
+/**
+ * Calculate annual discount (20%)
+ */
+const calculateAnnualPrice = (monthlyPrice) => {
+  return monthlyPrice * 12 * 0.8; // 20% discount
 };
 
 /**
@@ -113,8 +313,22 @@ const getPlanDetails = (planName) => {
 const getAllPlans = () => {
   return Object.entries(SUBSCRIPTION_PLANS).map(([key, value]) => ({
     id: key,
-    ...value,
+    name: value.name,
+    nameAr: value.nameAr,
+    price: value.price, // Object with month and year
+    currency: value.currency,
+    interval: value.interval,
+    features: value.features,
+    description: value.description,
+    descriptionAr: value.descriptionAr,
   }));
+};
+
+/**
+ * Get all add-ons
+ */
+const getAllAddOns = () => {
+  return ADD_ONS;
 };
 
 /**
@@ -181,10 +395,12 @@ const TUNISIA_PAYMENT_METHODS = {
 
 module.exports = {
   SUBSCRIPTION_PLANS,
+  ADD_ONS,
+  TRIAL_CONFIG,
   getPlanDetails,
   getAllPlans,
+  getAllAddOns,
   formatCurrency,
+  calculateAnnualPrice,
   TUNISIA_PAYMENT_METHODS,
 };
-
-

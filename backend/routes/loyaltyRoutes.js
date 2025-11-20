@@ -7,10 +7,11 @@ const {
   redeemReward
 } = require('../controllers/loyaltyController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { checkSubscriptionFeature } = require('../middleware/subscriptionMiddleware');
 
 // Owner - Program management
-router.get('/program', protect, authorize('Owner'), getLoyaltyProgram);
-router.put('/program', protect, authorize('Owner'), updateLoyaltyProgram);
+router.get('/program', protect, authorize('Owner'), checkSubscriptionFeature('loyaltyProgram'), getLoyaltyProgram);
+router.put('/program', protect, authorize('Owner'), checkSubscriptionFeature('loyaltyProgram'), updateLoyaltyProgram);
 
 // Client - Points and rewards
 router.get('/my-points', protect, authorize('Client'), getMyLoyaltyPoints);

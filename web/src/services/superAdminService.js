@@ -78,5 +78,36 @@ export const superAdminService = {
   reactivateSubscription: async (subscriptionId) => {
     const response = await api.put(`/super-admin/subscriptions/${subscriptionId}/reactivate`)
     return response
+  },
+
+  // Approval endpoints
+  getPendingUpgrades: async () => {
+    const response = await api.get('/super-admin/subscriptions/pending-upgrades')
+    return response
+  },
+
+  approveUpgrade: async (subscriptionId) => {
+    const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/approve-upgrade`)
+    return response
+  },
+
+  getPendingSmsPurchases: async () => {
+    const response = await api.get('/super-admin/subscriptions/pending-sms')
+    return response
+  },
+
+  approveSmsPurchase: async (subscriptionId) => {
+    const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/approve-sms`)
+    return response
+  },
+
+  getPendingPixelPurchases: async () => {
+    const response = await api.get('/super-admin/subscriptions/pending-pixel')
+    return response
+  },
+
+  approvePixelPurchase: async (subscriptionId) => {
+    const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/approve-pixel`)
+    return response
   }
 }

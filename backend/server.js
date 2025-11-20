@@ -128,6 +128,7 @@ app.use('/api/tickets', require('./routes/supportTicketRoutes'));
 app.use('/api/chats', require('./routes/chatRoutes'));
 app.use('/api/my-salons', require('./routes/salonOwnershipRoutes'));
 app.use('/api/billing', require('./routes/billingRoutes'));
+app.use('/api/owner/subscription', require('./routes/ownerSubscriptionRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

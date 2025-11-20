@@ -17,7 +17,13 @@ const {
   extendTrial,
   cancelSubscription,
   reactivateSubscription,
-  createSubscription
+  createSubscription,
+  getPendingUpgrades,
+  approveUpgrade,
+  getPendingSmsPurchases,
+  approveSmsPurchase,
+  getPendingPixelPurchases,
+  approvePixelPurchase
 } = require('../controllers/subscriptionController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -39,6 +45,14 @@ router.put('/subscriptions/:id/plan', protect, authorize('SuperAdmin'), updateSu
 router.post('/subscriptions/:id/extend-trial', protect, authorize('SuperAdmin'), extendTrial);
 router.put('/subscriptions/:id/cancel', protect, authorize('SuperAdmin'), cancelSubscription);
 router.put('/subscriptions/:id/reactivate', protect, authorize('SuperAdmin'), reactivateSubscription);
+
+// Approval routes
+router.get('/subscriptions/pending-upgrades', protect, authorize('SuperAdmin'), getPendingUpgrades);
+router.post('/subscriptions/:id/approve-upgrade', protect, authorize('SuperAdmin'), approveUpgrade);
+router.get('/subscriptions/pending-sms', protect, authorize('SuperAdmin'), getPendingSmsPurchases);
+router.post('/subscriptions/:id/approve-sms', protect, authorize('SuperAdmin'), approveSmsPurchase);
+router.get('/subscriptions/pending-pixel', protect, authorize('SuperAdmin'), getPendingPixelPurchases);
+router.post('/subscriptions/:id/approve-pixel', protect, authorize('SuperAdmin'), approvePixelPurchase);
 
 module.exports = router;
 

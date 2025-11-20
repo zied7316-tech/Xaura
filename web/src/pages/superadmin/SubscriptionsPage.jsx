@@ -14,10 +14,9 @@ import { formatDate, formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const PLAN_PRICING = {
-  free: { label: 'مجاني - Free', labelEn: 'Free', price: 0, color: 'gray' },
-  basic: { label: 'أساسي - Basic', labelEn: 'Basic', price: 90, color: 'blue' },
-  professional: { label: 'احترافي - Professional', labelEn: 'Professional', price: 250, color: 'purple' },
-  enterprise: { label: 'مؤسسي - Enterprise', labelEn: 'Enterprise', price: 620, color: 'yellow' }
+  basic: { label: 'أساسي - Basic', labelEn: 'Basic', price: { month: 49, year: 470.4 }, color: 'green' },
+  pro: { label: 'احترافي - Pro', labelEn: 'Pro', price: { month: 99, year: 950.4 }, color: 'blue' },
+  enterprise: { label: 'مؤسسي - Enterprise', labelEn: 'Enterprise', price: { month: 299, year: 2870.4 }, color: 'purple' }
 }
 
 const SubscriptionsPage = () => {
@@ -59,9 +58,13 @@ const SubscriptionsPage = () => {
     if (!selectedSubscription || !newPlan) return
 
     try {
+      const planPrice = typeof PLAN_PRICING[newPlan]?.price === 'object' 
+        ? PLAN_PRICING[newPlan].price.month 
+        : PLAN_PRICING[newPlan]?.price || 0
+      
       await superAdminService.updateSubscriptionPlan(selectedSubscription._id, {
         plan: newPlan,
-        monthlyFee: PLAN_PRICING[newPlan].price
+        monthlyFee: planPrice
       })
       toast.success('Subscription plan updated successfully')
       setShowPlanModal(false)
@@ -130,8 +133,10 @@ const SubscriptionsPage = () => {
   }
 
   const getPlanBadge = (plan) => {
-    const config = PLAN_PRICING[plan] || PLAN_PRICING.free
-    return <Badge variant={config.color === 'yellow' ? 'warning' : 'primary'}>{config.label}</Badge>
+    if (!plan) return <Badge variant="default">Trial</Badge>
+    const config = PLAN_PRICING[plan]
+    if (!config) return <Badge variant="default">{plan}</Badge>
+    return <Badge variant={config.color === 'yellow' ? 'warning' : 'primary'}>{config.labelEn || config.label}</Badge>
   }
 
   if (loading && subscriptions.length === 0) {
@@ -227,14 +232,14 @@ const SubscriptionsPage = () => {
             {/* Plan Filter */}
             <div className="flex gap-2">
               <span className="text-sm font-medium text-gray-700 my-auto">Plan:</span>
-              {['all', 'free', 'basic', 'professional', 'enterprise'].map((plan) => (
+              {['all', 'basic', 'pro', 'enterprise'].map((plan) => (
                 <Button
                   key={plan}
                   size="sm"
                   variant={filters.plan === plan ? 'primary' : 'outline'}
                   onClick={() => setFilters({ ...filters, plan })}
                 >
-                  {plan === 'all' ? 'All' : PLAN_PRICING[plan]?.label || plan}
+                  {plan === 'all' ? 'All' : PLAN_PRICING[plan]?.labelEn || plan}
                 </Button>
               ))}
             </div>
@@ -281,7 +286,7 @@ const SubscriptionsPage = () => {
                     </td>
                     <td className="py-3 px-4">
                       <div className="text-sm text-gray-600">
-                        {sub.status === 'trial' ? formatDate(sub.trialEndDate) : '-'}
+                        {sub.status === 'trial' ? formatDate(sub.trial?.extendedEndDate || sub.trial?.endDate) : '-'}
                       </div>
                     </td>
                     <td className="py-3 px-4">
@@ -414,7 +419,7 @@ const SubscriptionsPage = () => {
                 Salon: <strong>{selectedSubscription.salonId?.name}</strong>
               </p>
               <p className="text-sm text-gray-600 mb-4">
-                Current Trial End: <strong>{formatDate(selectedSubscription.trialEndDate)}</strong>
+                Current Trial End: <strong>{formatDate(selectedSubscription.trial?.extendedEndDate || selectedSubscription.trial?.endDate)}</strong>
               </p>
             </div>
 

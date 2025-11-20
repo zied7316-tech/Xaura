@@ -34,6 +34,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/super-admin/users', icon: Users, label: t('superAdmin.allUsers', 'All Users') },
     { to: '/super-admin/analytics', icon: TrendingUp, label: t('superAdmin.growthAnalytics', 'Growth Analytics') },
     { to: '/super-admin/subscriptions', icon: DollarSign, label: t('superAdmin.subscriptions', 'Subscriptions') },
+    { to: '/super-admin/pending-approvals', icon: Clock, label: 'Pending Approvals', badge: 'NEW' },
     { to: '/super-admin/billing', icon: CreditCard, label: t('superAdmin.billing', 'Billing & Revenue'), badge: 'NEW' },
     { to: '/super-admin/reports', icon: FileText, label: t('superAdmin.reports', 'Advanced Reports'), badge: 'NEW' },
     { to: '/super-admin/campaigns', icon: Bell, label: t('superAdmin.campaigns', 'Email Campaigns'), badge: 'NEW' },
@@ -58,6 +59,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/owner/reminders', icon: Bell, label: t('owner.reminders', 'SMS/Email Reminders'), badge: 'NEW' },
     { to: '/owner/loyalty', icon: Store, label: t('owner.loyalty', 'Loyalty & Rewards'), badge: 'NEW' },
     { to: '/owner/worker-tracking', icon: MapPin, label: 'Worker Tracking', badge: 'NEW' },
+    { to: '/owner/subscription', icon: CreditCard, label: 'Subscription', badge: 'NEW' },
   ]
 
   const workerLinks = [

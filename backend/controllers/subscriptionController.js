@@ -1,7 +1,8 @@
 const Subscription = require('../models/Subscription');
 const Salon = require('../models/Salon');
 const User = require('../models/User');
-const { getAllPlans, getPlanDetails } = require('../config/subscriptionPlans');
+const { getAllPlans, getPlanDetails, getAllAddOns, TRIAL_CONFIG, calculateAnnualPrice } = require('../config/subscriptionPlans');
+const getOwnerSalon = require('../utils/getOwnerSalon');
 
 /**
  * @desc    Get all subscriptions
@@ -99,11 +100,29 @@ const updateSubscriptionPlan = async (req, res, next) => {
 
     const oldPlan = subscription.plan;
     subscription.plan = plan;
-    subscription.monthlyFee = monthlyFee;
+    
+    // Get plan details with interval
+    const interval = subscription.billingInterval || 'month';
+    const planDetails = getPlanDetails(plan, interval);
+    const { SUBSCRIPTION_PLANS } = require('../config/subscriptionPlans');
+    const basePlan = SUBSCRIPTION_PLANS[plan.toLowerCase()];
+    
+    if (basePlan) {
+      subscription.price = basePlan.price[interval] || basePlan.price.month;
+      subscription.monthlyFee = interval === 'year' 
+        ? subscription.price / 12 
+        : subscription.price;
+    } else {
+      subscription.monthlyFee = monthlyFee || 0;
+      subscription.price = monthlyFee || 0;
+    }
     
     // If upgrading from trial, activate subscription
-    if (subscription.status === 'trial' && plan !== 'free') {
+    if (subscription.status === 'trial' && plan) {
       subscription.status = 'active';
+      subscription.currentPeriodStart = new Date();
+      const days = subscription.billingInterval === 'year' ? 365 : 30;
+      subscription.currentPeriodEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
     }
 
     await subscription.save();
@@ -136,10 +155,13 @@ const extendTrial = async (req, res, next) => {
       });
     }
 
-    const currentEndDate = new Date(subscription.trialEndDate);
+    const currentEndDate = subscription.trial.extended && subscription.trial.extendedEndDate
+      ? new Date(subscription.trial.extendedEndDate)
+      : new Date(subscription.trial.endDate);
     const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000);
     
-    subscription.trialEndDate = newEndDate;
+    subscription.trial.extended = true;
+    subscription.trial.extendedEndDate = newEndDate;
     await subscription.save();
 
     res.json({
@@ -234,7 +256,7 @@ const createSubscription = async (req, res, next) => {
     const subscription = await Subscription.create({
       salonId,
       ownerId,
-      plan: plan || 'free',
+      plan: plan || null, // No plan during trial
       monthlyFee: monthlyFee || 0,
       status: 'trial'
     });
@@ -249,14 +271,556 @@ const createSubscription = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get owner's subscription
+ * @route   GET /api/owner/subscription
+ * @access  Private (Owner)
+ */
+const getMySubscription = async (req, res, next) => {
+  try {
+    const { salonId } = await getOwnerSalon(req.user.id);
+    
+    if (!salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    let subscription = await Subscription.findOne({ salonId })
+      .populate('salonId', 'name')
+      .populate('ownerId', 'name email');
+
+    // If no subscription exists, create a trial one
+    if (!subscription) {
+      subscription = await Subscription.create({
+        salonId,
+        ownerId: req.user.id,
+        status: 'trial'
+      });
+    }
+
+    // Check trial status
+    await subscription.checkTrialStatus();
+
+    // Check if confirmation is due
+    const needsConfirmation = subscription.isConfirmationDue;
+
+    res.json({
+      success: true,
+      data: subscription,
+      needsConfirmation,
+      trialDaysRemaining: subscription.trialDaysRemaining,
+      isTrialActive: subscription.isTrialActive
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Confirm trial continuation (at day 15)
+ * @route   POST /api/owner/subscription/confirm-trial
+ * @access  Private (Owner)
+ */
+const confirmTrial = async (req, res, next) => {
+  try {
+    const { salonId } = await getOwnerSalon(req.user.id);
+    
+    if (!salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    const subscription = await Subscription.findOne({ salonId });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    if (subscription.status !== 'trial') {
+      return res.status(400).json({
+        success: false,
+        message: 'Subscription is not in trial status'
+      });
+    }
+
+    await subscription.confirmTrial();
+
+    res.json({
+      success: true,
+      message: 'Trial confirmed! You have received an additional 30 days free.',
+      data: subscription,
+      trialDaysRemaining: subscription.trialDaysRemaining
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Request plan upgrade (cash payment)
+ * @route   POST /api/owner/subscription/request-upgrade
+ * @access  Private (Owner)
+ */
+const requestPlanUpgrade = async (req, res, next) => {
+  try {
+    const { plan, billingInterval, paymentMethod, paymentNote } = req.body;
+    const { salonId } = await getOwnerSalon(req.user.id);
+    
+    if (!salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    const interval = billingInterval || 'month';
+    const planDetails = getPlanDetails(plan, interval);
+    if (!planDetails) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid plan selected'
+      });
+    }
+
+    const subscription = await Subscription.findOne({ salonId });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    // Get base plan to access price object
+    const { SUBSCRIPTION_PLANS } = require('../config/subscriptionPlans');
+    const basePlan = SUBSCRIPTION_PLANS[plan.toLowerCase()];
+    const price = interval === 'year' 
+      ? basePlan.price.year 
+      : basePlan.price.month;
+
+    // Store upgrade request
+    subscription.requestedPlan = plan;
+    subscription.requestedPlanPrice = price;
+    subscription.requestedBillingInterval = interval;
+    subscription.paymentMethod = paymentMethod || 'cash';
+    subscription.paymentNote = paymentNote;
+    subscription.upgradeStatus = 'pending'; // pending, approved, rejected
+    subscription.upgradeRequestedAt = new Date();
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'Upgrade request submitted. We will contact you to confirm payment.',
+      data: {
+        requestedPlan: plan,
+        price: price,
+        interval: interval,
+        status: 'pending'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get available plans
+ * @route   GET /api/owner/subscription/plans
+ * @access  Private (Owner)
+ */
+const getAvailablePlans = async (req, res, next) => {
+  try {
+    const plans = getAllPlans();
+    const addOns = getAllAddOns();
+
+    res.json({
+      success: true,
+      data: {
+        plans,
+        addOns,
+        trialConfig: TRIAL_CONFIG
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Purchase SMS credits
+ * @route   POST /api/owner/subscription/sms-credits/purchase
+ * @access  Private (Owner)
+ */
+const purchaseSmsCredits = async (req, res, next) => {
+  try {
+    const { packageType, paymentMethod, paymentNote } = req.body;
+    const { salonId } = await getOwnerSalon(req.user.id);
+    
+    if (!salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    const addOns = getAllAddOns();
+    const smsPackages = addOns.smsCredits.packages;
+    const selectedPackage = smsPackages.find(pkg => 
+      pkg.credits.toString() === packageType
+    );
+
+    if (!selectedPackage) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid SMS package selected'
+      });
+    }
+
+    const subscription = await Subscription.findOne({ salonId });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    // Store purchase request
+    subscription.smsCreditPurchase = {
+      packageType,
+      credits: selectedPackage.credits,
+      price: selectedPackage.price,
+      paymentMethod: paymentMethod || 'cash',
+      paymentNote,
+      status: 'pending',
+      requestedAt: new Date()
+    };
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'SMS credits purchase requested. We will contact you to confirm payment.',
+      data: {
+        package: selectedPackage,
+        status: 'pending'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Purchase Pixel Tracking add-on
+ * @route   POST /api/owner/subscription/pixel-tracking/purchase
+ * @access  Private (Owner)
+ */
+const purchasePixelTracking = async (req, res, next) => {
+  try {
+    const { paymentMethod, paymentNote } = req.body;
+    const { salonId } = await getOwnerSalon(req.user.id);
+    
+    if (!salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    const subscription = await Subscription.findOne({ salonId });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    // Check if already has pixel tracking (Enterprise includes it)
+    if (subscription.plan === 'enterprise') {
+      return res.status(400).json({
+        success: false,
+        message: 'Pixel Tracking is already included in your Enterprise plan'
+      });
+    }
+
+    // Check if already active
+    if (subscription.addOns.pixelTracking.active) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pixel Tracking is already active'
+      });
+    }
+
+    // Store purchase request
+    subscription.pixelTrackingPurchase = {
+      price: 15, // 15 TND/month
+      paymentMethod: paymentMethod || 'cash',
+      paymentNote,
+      status: 'pending',
+      requestedAt: new Date()
+    };
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'Pixel Tracking add-on requested. We will contact you to confirm payment.',
+      data: {
+        price: 15,
+        status: 'pending'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get pending upgrade requests
+ * @route   GET /api/super-admin/subscriptions/pending-upgrades
+ * @access  Private (SuperAdmin)
+ */
+const getPendingUpgrades = async (req, res, next) => {
+  try {
+    const subscriptions = await Subscription.find({
+      upgradeStatus: 'pending'
+    })
+      .populate('salonId', 'name')
+      .populate('ownerId', 'name email phone')
+      .sort({ upgradeRequestedAt: -1 });
+
+    res.json({
+      success: true,
+      count: subscriptions.length,
+      data: subscriptions
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Approve upgrade request
+ * @route   POST /api/super-admin/subscriptions/:id/approve-upgrade
+ * @access  Private (SuperAdmin)
+ */
+const approveUpgrade = async (req, res, next) => {
+  try {
+    const subscription = await Subscription.findById(req.params.id);
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    if (subscription.upgradeStatus !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Upgrade request is not pending'
+      });
+    }
+
+    // Activate subscription with requested plan
+    subscription.plan = subscription.requestedPlan;
+    subscription.price = subscription.requestedPlanPrice;
+    subscription.monthlyFee = subscription.requestedBillingInterval === 'year' 
+      ? subscription.requestedPlanPrice / 12 
+      : subscription.requestedPlanPrice;
+    subscription.billingInterval = subscription.requestedBillingInterval || 'month';
+    subscription.status = 'active';
+    subscription.upgradeStatus = 'approved';
+    subscription.currentPeriodStart = new Date();
+    
+    // Set period end based on interval
+    const days = subscription.billingInterval === 'year' ? 365 : 30;
+    subscription.currentPeriodEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    
+    // Apply annual discount if applicable
+    if (subscription.billingInterval === 'year') {
+      subscription.annualDiscount = 20; // 20% discount
+    }
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'Upgrade approved and subscription activated',
+      data: subscription
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get pending SMS credit purchases
+ * @route   GET /api/super-admin/subscriptions/pending-sms
+ * @access  Private (SuperAdmin)
+ */
+const getPendingSmsPurchases = async (req, res, next) => {
+  try {
+    const subscriptions = await Subscription.find({
+      'smsCreditPurchase.status': 'pending'
+    })
+      .populate('salonId', 'name')
+      .populate('ownerId', 'name email phone')
+      .sort({ 'smsCreditPurchase.requestedAt': -1 });
+
+    res.json({
+      success: true,
+      count: subscriptions.length,
+      data: subscriptions
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Approve SMS credits purchase
+ * @route   POST /api/super-admin/subscriptions/:id/approve-sms
+ * @access  Private (SuperAdmin)
+ */
+const approveSmsPurchase = async (req, res, next) => {
+  try {
+    const subscription = await Subscription.findById(req.params.id);
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    if (!subscription.smsCreditPurchase || subscription.smsCreditPurchase.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'SMS purchase request is not pending'
+      });
+    }
+
+    // Add credits
+    await subscription.addSmsCredits(
+      subscription.smsCreditPurchase.credits,
+      subscription.smsCreditPurchase.packageType
+    );
+
+    // Mark as approved
+    subscription.smsCreditPurchase.status = 'approved';
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'SMS credits approved and added',
+      data: subscription
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get pending Pixel Tracking purchases
+ * @route   GET /api/super-admin/subscriptions/pending-pixel
+ * @access  Private (SuperAdmin)
+ */
+const getPendingPixelPurchases = async (req, res, next) => {
+  try {
+    const subscriptions = await Subscription.find({
+      'pixelTrackingPurchase.status': 'pending'
+    })
+      .populate('salonId', 'name')
+      .populate('ownerId', 'name email phone')
+      .sort({ 'pixelTrackingPurchase.requestedAt': -1 });
+
+    res.json({
+      success: true,
+      count: subscriptions.length,
+      data: subscriptions
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Approve Pixel Tracking purchase
+ * @route   POST /api/super-admin/subscriptions/:id/approve-pixel
+ * @access  Private (SuperAdmin)
+ */
+const approvePixelPurchase = async (req, res, next) => {
+  try {
+    const subscription = await Subscription.findById(req.params.id);
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    if (!subscription.pixelTrackingPurchase || subscription.pixelTrackingPurchase.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Pixel Tracking purchase request is not pending'
+      });
+    }
+
+    // Activate Pixel Tracking
+    subscription.addOns.pixelTracking.active = true;
+    subscription.addOns.pixelTracking.startDate = new Date();
+    subscription.addOns.pixelTracking.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    // Mark as approved
+    subscription.pixelTrackingPurchase.status = 'approved';
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'Pixel Tracking approved and activated',
+      data: subscription
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
+  // Super Admin exports
   getAllSubscriptions,
   getSubscriptionDetails,
   updateSubscriptionPlan,
   extendTrial,
   cancelSubscription,
   reactivateSubscription,
-  createSubscription
+  createSubscription,
+  getPendingUpgrades,
+  approveUpgrade,
+  getPendingSmsPurchases,
+  approveSmsPurchase,
+  getPendingPixelPurchases,
+  approvePixelPurchase,
+  // Owner exports
+  getMySubscription,
+  confirmTrial,
+  requestPlanUpgrade,
+  getAvailablePlans,
+  purchaseSmsCredits,
+  purchasePixelTracking
 };
 
 

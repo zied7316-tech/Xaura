@@ -111,6 +111,17 @@ const createSalonAccount = async (req, res, next) => {
       await owner.save();
     }
 
+    // Step 5: Create trial subscription automatically
+    const Subscription = require('../models/Subscription');
+    await Subscription.create({
+      salonId: salon._id,
+      ownerId: owner._id,
+      plan: null, // No plan during trial
+      status: 'trial',
+      monthlyFee: 0,
+      price: 0
+    });
+
     // Generate authentication token
     const token = generateToken(owner._id);
 

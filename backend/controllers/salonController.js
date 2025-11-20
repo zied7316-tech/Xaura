@@ -83,6 +83,17 @@ const createSalon = async (req, res, next) => {
       }
     });
 
+    // Create trial subscription automatically
+    const Subscription = require('../models/Subscription');
+    await Subscription.create({
+      salonId: salon._id,
+      ownerId: req.user.id,
+      plan: null, // No plan during trial
+      status: 'trial',
+      monthlyFee: 0,
+      price: 0
+    });
+
     res.status(201).json({
       success: true,
       message: 'Salon created successfully',

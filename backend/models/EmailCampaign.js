@@ -27,7 +27,7 @@ const emailCampaignSchema = new mongoose.Schema(
     // Segmentation
     segmentation: {
       plan: {
-        type: [String], // ['Free', 'Basic', 'Professional', 'Enterprise']
+        type: [String], // ['Basic', 'Pro', 'Enterprise']
         default: [],
       },
       status: {

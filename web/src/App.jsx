@@ -31,6 +31,7 @@ import ReminderSettingsPage from './pages/owner/ReminderSettingsPage'
 import LoyaltySettingsPage from './pages/owner/LoyaltySettingsPage'
 import WorkerTrackingSettingsPage from './pages/owner/WorkerTrackingSettingsPage'
 import MySalonsPage from './pages/owner/MySalonsPage'
+import SubscriptionPage from './pages/owner/SubscriptionPage'
 
 // Super Admin pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -43,6 +44,7 @@ import BillingPage from './pages/superadmin/BillingPage'
 import SuperAdminReportsPage from './pages/superadmin/ReportsPage'
 import EmailCampaignsPage from './pages/superadmin/EmailCampaignsPage'
 import SupportTicketsPage from './pages/superadmin/SupportTicketsPage'
+import PendingApprovalsPage from './pages/superadmin/PendingApprovalsPage'
 
 // Worker pages
 import WorkerDashboard from './pages/worker/WorkerDashboard'
@@ -99,9 +101,9 @@ function App() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} /> : <LoginPage />} />
-      <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterPage />} />
-      <Route path="/register-salon" element={user ? <Navigate to={getDashboardRoute()} /> : <RegisterSalonPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/register-salon" element={<RegisterSalonPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -120,6 +122,7 @@ function App() {
         <Route path="/super-admin/reports" element={<ProtectedRoute roles={['SuperAdmin']}><SuperAdminReportsPage /></ProtectedRoute>} />
         <Route path="/super-admin/campaigns" element={<ProtectedRoute roles={['SuperAdmin']}><EmailCampaignsPage /></ProtectedRoute>} />
         <Route path="/super-admin/support" element={<ProtectedRoute roles={['SuperAdmin']}><SupportTicketsPage /></ProtectedRoute>} />
+        <Route path="/super-admin/pending-approvals" element={<ProtectedRoute roles={['SuperAdmin']}><PendingApprovalsPage /></ProtectedRoute>} />
         
         {/* Owner routes */}
         <Route path="/owner/dashboard" element={<ProtectedRoute roles={['Owner']}><OwnerDashboard /></ProtectedRoute>} />
@@ -136,10 +139,11 @@ function App() {
             <Route path="/owner/salon-clients" element={<ProtectedRoute roles={['Owner']}><SalonClientsPage /></ProtectedRoute>} />
             <Route path="/owner/reminders" element={<ProtectedRoute roles={['Owner']}><ReminderSettingsPage /></ProtectedRoute>} />
             <Route path="/owner/loyalty" element={<ProtectedRoute roles={['Owner']}><LoyaltySettingsPage /></ProtectedRoute>} />
-            <Route path="/owner/worker-tracking" element={<ProtectedRoute roles={['Owner']}><WorkerTrackingSettingsPage /></ProtectedRoute>} />
+            <Route path="/owner/worker-tracking" element={<ProtectedRoute roles={['Owner']}><WorkerTrackingSettingsPage /></ProtectedRoute} />
+            <Route path="/owner/subscription" element={<ProtectedRoute roles={['Owner']}><SubscriptionPage /></ProtectedRoute} />
             
             {/* Worker Routes */}
-            <Route path="/worker/finances" element={<ProtectedRoute roles={['Worker']}><WorkerFinancePage /></ProtectedRoute>} />
+            <Route path="/worker/finances" element={<ProtectedRoute roles={['Worker']}><WorkerFinancePage /></ProtectedRoute} />
 
         {/* Worker routes */}
         <Route path="/worker/dashboard" element={<ProtectedRoute roles={['Worker']}><WorkerDashboard /></ProtectedRoute>} />
@@ -150,12 +154,12 @@ function App() {
         {/* Client routes */}
         <Route path="/client/dashboard" element={<ProtectedRoute roles={['Client']}><ClientDashboard /></ProtectedRoute>} />
         <Route path="/search-salons" element={<ProtectedRoute roles={['Client']}><SalonSearchPage /></ProtectedRoute>} />
+        <Route path="/salon/:id" element={<SalonDetailsPage />} />
         <Route path="/join-salon" element={<ProtectedRoute roles={['Client']}><JoinSalonPage /></ProtectedRoute>} />
-        <Route path="/salon/:salonId" element={<ProtectedRoute roles={['Client']}><SalonDetailsPage /></ProtectedRoute>} />
         <Route path="/book" element={<ProtectedRoute roles={['Client']}><BookAppointmentPage /></ProtectedRoute>} />
-        <Route path="/client/book/:salonId" element={<ProtectedRoute roles={['Client']}><BookingPage /></ProtectedRoute>} />
-        <Route path="/client/rewards" element={<ProtectedRoute roles={['Client']}><ClientRewardsPage /></ProtectedRoute>} />
+        <Route path="/booking" element={<ProtectedRoute roles={['Client']}><BookingPage /></ProtectedRoute>} />
         <Route path="/client/advanced-booking" element={<ProtectedRoute roles={['Client']}><AdvancedBookingPage /></ProtectedRoute>} />
+        <Route path="/client/rewards" element={<ProtectedRoute roles={['Client']}><ClientRewardsPage /></ProtectedRoute>} />
 
         {/* Shared routes */}
         <Route path="/appointments" element={<AppointmentsPage />} />
@@ -163,11 +167,10 @@ function App() {
         <Route path="/messages" element={<ChatPage />} />
       </Route>
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to={getDashboardRoute()} />} />
+      {/* Default redirect */}
+      <Route path="*" element={<Navigate to={getDashboardRoute()} replace />} />
     </Routes>
   )
 }
 
 export default App
-

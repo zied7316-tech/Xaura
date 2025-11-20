@@ -33,8 +33,10 @@ router.get('/:id/qr-image', getQRCodeImage);
 
 // Protected routes - Owner only
 router.post('/', protect, authorize('Owner'), createSalonValidation, createSalon);
+const { checkSubscriptionLimit } = require('../middleware/subscriptionMiddleware');
+
 router.put('/:id', protect, authorize('Owner'), checkSalonOwnership, updateSalon);
-router.post('/:id/workers', protect, authorize('Owner'), checkSalonOwnership, addWorkerValidation, addWorker);
+router.post('/:id/workers', protect, authorize('Owner'), checkSalonOwnership, checkSubscriptionLimit('maxWorkers'), addWorkerValidation, addWorker);
 
 module.exports = router;
 
