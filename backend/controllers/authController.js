@@ -403,9 +403,15 @@ const forgotPassword = async (req, res, next) => {
         user.resetPasswordExpire = undefined;
         await user.save();
 
+        // Provide more helpful error message
+        let errorMessage = emailResult?.error || 'Failed to send password reset email.';
+        if (errorMessage.includes('not configured') || errorMessage.includes('timeout') || errorMessage.includes('connection')) {
+          errorMessage = 'Email service is not properly configured. Please contact support or try again later.';
+        }
+
         return res.status(500).json({
           success: false,
-          message: emailResult?.error || 'Failed to send password reset email. Please contact support.',
+          message: errorMessage,
         });
       }
 
@@ -424,9 +430,14 @@ const forgotPassword = async (req, res, next) => {
       user.resetPasswordExpire = undefined;
       await user.save();
 
+      let errorMessage = 'Failed to send password reset email.';
+      if (emailError.message && (emailError.message.includes('timeout') || emailError.message.includes('connection'))) {
+        errorMessage = 'Email service connection timed out. Please contact support or try again later.';
+      }
+
       res.status(500).json({
         success: false,
-        message: 'Failed to send password reset email. Please check your email configuration or contact support.',
+        message: errorMessage,
       });
     }
   } catch (error) {

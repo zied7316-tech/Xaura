@@ -36,11 +36,22 @@ const ForgotPasswordPage = () => {
         setEmailSent(true)
         toast.success(result.message || 'Password reset email sent! Please check your inbox.')
       } else {
-        toast.error(result?.message || 'Failed to send password reset email')
+        const errorMsg = result?.message || 'Failed to send password reset email'
+        toast.error(errorMsg)
+        console.error('[ForgotPassword] Email sending failed:', errorMsg)
       }
     } catch (error) {
       console.error('[ForgotPassword] Error:', error)
-      toast.error(error.message || 'Failed to send password reset email. Please try again.')
+      let errorMessage = error.message || 'Failed to send password reset email. Please try again.'
+      
+      // Provide more user-friendly error messages
+      if (errorMessage.includes('timeout') || errorMessage.includes('connection')) {
+        errorMessage = 'Email service is temporarily unavailable. Please try again later or contact support.'
+      } else if (errorMessage.includes('not configured')) {
+        errorMessage = 'Email service is not configured. Please contact support.'
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
