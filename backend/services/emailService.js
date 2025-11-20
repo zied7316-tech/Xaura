@@ -111,9 +111,13 @@ class EmailService {
             ? body.replace(/<[^>]*>/g, '').replace(/\n\s*\n/g, '\n').trim()
             : body;
 
+          // Resend requires "from" to be just email or "Name <email>" format
+          // Make sure email is valid
+          const fromEmail = this.fromEmail.includes('<') ? this.fromEmail : `${this.fromName} <${this.fromEmail}>`;
+          
           const emailData = {
-            from: `${this.fromName} <${this.fromEmail}>`,
-            to: to,
+            from: fromEmail,
+            to: Array.isArray(to) ? to : [to], // Resend expects array
             subject: subject,
             html: isHTML ? body : undefined,
             text: plainText
