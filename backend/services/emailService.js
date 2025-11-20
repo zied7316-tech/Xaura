@@ -1,42 +1,54 @@
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 class EmailService {
   constructor(config) {
+    // Priority 1: Use Resend API (works on Railway, no SMTP needed)
+    if (config && config.resendApiKey) {
+      this.resend = new Resend(config.resendApiKey);
+      this.fromEmail = config.fromEmail || 'onboarding@resend.dev';
+      this.fromName = config.fromName || 'Xaura';
+      this.useResend = true;
+      console.log('[EMAIL] ✅ Using Resend API (no SMTP required)');
+      console.log(`[EMAIL] From: ${this.fromName} <${this.fromEmail}>`);
+      return;
+    }
+
+    // Priority 2: Fallback to SMTP (for backward compatibility)
     if (config && config.smtpHost) {
       const port = config.smtpPort || 587;
       const isSecure = port === 465;
       
-      // For Railway: Try port 465 (SSL) if 587 is blocked
-      // Railway often blocks port 587 but allows 465
       const transportConfig = {
         host: config.smtpHost,
         port: port,
-        secure: isSecure, // true for 465, false for other ports
+        secure: isSecure,
         auth: {
           user: config.smtpUser,
           pass: config.smtpPassword
         },
-        connectionTimeout: 10000, // 10 seconds connection timeout
-        greetingTimeout: 10000, // 10 seconds greeting timeout
-        socketTimeout: 10000, // 10 seconds socket timeout
-        pool: false, // Disable connection pooling to avoid hanging connections
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
+        pool: false,
         maxConnections: 1,
         maxMessages: 1
       };
       
-      // For non-secure ports (587), require TLS
       if (!isSecure && port === 587) {
         transportConfig.requireTLS = true;
         transportConfig.tls = {
-          rejectUnauthorized: false // Allow self-signed certificates if needed
+          rejectUnauthorized: false
         };
       }
       
       this.transporter = nodemailer.createTransport(transportConfig);
       this.fromEmail = config.fromEmail;
       this.fromName = config.fromName || 'Xaura';
+      this.useResend = false;
       
-      console.log(`[EMAIL] Transporter configured: ${config.smtpHost}:${port} (secure: ${isSecure})`);
+      console.log(`[EMAIL] ⚠️  Using SMTP (may not work on Railway): ${config.smtpHost}:${port}`);
+      console.log(`[EMAIL] From: ${this.fromName} <${this.fromEmail}>`);
     }
   }
 
@@ -92,12 +104,46 @@ class EmailService {
    */
   async sendEmail(to, subject, body, isHTML = false) {
     try {
+      // Use Resend API if available (recommended for Railway)
+      if (this.useResend && this.resend) {
+        try {
+          const plainText = isHTML 
+            ? body.replace(/<[^>]*>/g, '').replace(/\n\s*\n/g, '\n').trim()
+            : body;
+
+          const result = await this.resend.emails.send({
+            from: `${this.fromName} <${this.fromEmail}>`,
+            to: to,
+            subject: subject,
+            html: isHTML ? body : undefined,
+            text: plainText
+          });
+
+          console.log(`[EMAIL] ✅ Email sent successfully via Resend to ${to}`);
+          console.log(`[EMAIL] MessageId: ${result.data?.id || 'N/A'}`);
+          
+          return {
+            success: true,
+            messageId: result.data?.id,
+            response: 'Resend API'
+          };
+        } catch (resendError) {
+          console.error('[EMAIL] Resend API error:', resendError.message);
+          return {
+            success: false,
+            error: resendError.message || 'Failed to send email via Resend API',
+            code: resendError.name
+          };
+        }
+      }
+
+      // Fallback to SMTP
       if (!this.transporter) {
-        console.error('[EMAIL] Email service not configured! Missing SMTP settings.');
-        console.error('[EMAIL] Required env vars: EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS');
+        console.error('[EMAIL] Email service not configured!');
+        console.error('[EMAIL] Set RESEND_API_KEY (recommended) or SMTP settings');
         return {
           success: false,
-          error: 'Email service is not configured. Please set EMAIL_HOST, EMAIL_PORT, EMAIL_USER, and EMAIL_PASS environment variables.',
+          error: 'Email service is not configured. Please set RESEND_API_KEY (recommended) or SMTP environment variables.',
           mock: true
         };
       }
@@ -110,13 +156,11 @@ class EmailService {
 
       if (isHTML) {
         mailOptions.html = body;
-        // Also include plain text version
         mailOptions.text = body.replace(/<[^>]*>/g, '').replace(/\n\s*\n/g, '\n');
       } else {
         mailOptions.text = body;
       }
 
-      // Add timeout wrapper to prevent hanging
       const sendMailWithTimeout = (mailOptions, timeoutMs = 15000) => {
         return Promise.race([
           this.transporter.sendMail(mailOptions),
@@ -128,11 +172,8 @@ class EmailService {
 
       const info = await sendMailWithTimeout(mailOptions);
 
-      console.log(`[EMAIL] ✅ Email sent successfully to ${to}`);
+      console.log(`[EMAIL] ✅ Email sent successfully via SMTP to ${to}`);
       console.log(`[EMAIL] MessageId: ${info.messageId}`);
-      console.log(`[EMAIL] Response: ${info.response || 'N/A'}`);
-      console.log(`[EMAIL] From: ${mailOptions.from}`);
-      console.log(`[EMAIL] Subject: ${mailOptions.subject}`);
       
       return {
         success: true,
@@ -141,16 +182,14 @@ class EmailService {
       };
     } catch (error) {
       console.error('[EMAIL] Error sending email:', error.message);
-      console.error('[EMAIL] Full error:', error);
       
-      // Provide more helpful error messages
       let errorMessage = error.message;
       if (error.code === 'EAUTH') {
-        errorMessage = 'Email authentication failed. Please check EMAIL_USER and EMAIL_PASS.';
+        errorMessage = 'Email authentication failed. Please check credentials.';
       } else if (error.code === 'ECONNECTION') {
-        errorMessage = 'Could not connect to email server. Please check EMAIL_HOST and EMAIL_PORT.';
+        errorMessage = 'Could not connect to email server.';
       } else if (error.code === 'ETIMEDOUT') {
-        errorMessage = 'Email server connection timed out. Please check your network and email server settings.';
+        errorMessage = 'Email server connection timed out.';
       }
       
       return {
