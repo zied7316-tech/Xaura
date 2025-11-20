@@ -122,32 +122,53 @@ class EmailService {
           console.log(`[EMAIL] Sending via Resend to ${to}`);
           console.log(`[EMAIL] From: ${emailData.from}`);
           console.log(`[EMAIL] Subject: ${subject}`);
+          console.log(`[EMAIL] API Key starts with: ${this.resend ? 're_...' : 'NOT SET'}`);
 
           const result = await this.resend.emails.send(emailData);
 
-          // Check if result has error
+          // Log full response for debugging
+          console.log(`[EMAIL] Resend API response:`, JSON.stringify(result, null, 2));
+
+          // Resend API returns { data, error } structure
           if (result.error) {
-            console.error('[EMAIL] Resend API returned error:', result.error);
+            console.error('[EMAIL] ❌ Resend API returned error:');
+            console.error('[EMAIL] Error object:', JSON.stringify(result.error, null, 2));
+            console.error('[EMAIL] Error message:', result.error.message);
+            console.error('[EMAIL] Error name:', result.error.name);
             return {
               success: false,
               error: result.error.message || 'Resend API returned an error',
-              code: result.error.name || 'RESEND_ERROR'
+              code: result.error.name || 'RESEND_ERROR',
+              details: result.error
             };
           }
 
           // Check if result has data
-          if (!result.data || !result.data.id) {
-            console.error('[EMAIL] Resend API response missing data:', JSON.stringify(result));
+          if (!result.data) {
+            console.error('[EMAIL] ❌ Resend API response missing data');
+            console.error('[EMAIL] Full response:', JSON.stringify(result, null, 2));
+            return {
+              success: false,
+              error: 'Resend API response missing data',
+              code: 'RESEND_INVALID_RESPONSE',
+              response: result
+            };
+          }
+
+          // Check if result.data has id
+          if (!result.data.id) {
+            console.error('[EMAIL] ❌ Resend API response missing email ID');
+            console.error('[EMAIL] Data object:', JSON.stringify(result.data, null, 2));
             return {
               success: false,
               error: 'Resend API response missing email ID',
-              code: 'RESEND_INVALID_RESPONSE'
+              code: 'RESEND_INVALID_RESPONSE',
+              data: result.data
             };
           }
 
           console.log(`[EMAIL] ✅ Email sent successfully via Resend to ${to}`);
           console.log(`[EMAIL] MessageId: ${result.data.id}`);
-          console.log(`[EMAIL] Full response:`, JSON.stringify(result, null, 2));
           
           return {
             success: true,
