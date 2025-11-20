@@ -128,10 +128,22 @@ class EmailService {
           console.log(`[EMAIL] Subject: ${subject}`);
           console.log(`[EMAIL] API Key starts with: ${this.resend ? 're_...' : 'NOT SET'}`);
 
+          // Verify API key is set
+          if (!this.config || !this.config.resendApiKey) {
+            console.error('[EMAIL] ❌ RESEND_API_KEY is not set!');
+            throw new Error('RESEND_API_KEY environment variable is missing');
+          }
+
+          console.log(`[EMAIL] Attempting to send email via Resend...`);
+          console.log(`[EMAIL] Email data:`, JSON.stringify({ ...emailData, html: emailData.html ? '[HTML content]' : undefined, text: emailData.text?.substring(0, 100) + '...' }, null, 2));
+
           const result = await this.resend.emails.send(emailData);
 
           // Log full response for debugging
+          console.log(`[EMAIL] Resend API response type:`, typeof result);
           console.log(`[EMAIL] Resend API response:`, JSON.stringify(result, null, 2));
+          console.log(`[EMAIL] Has error?:`, !!result.error);
+          console.log(`[EMAIL] Has data?:`, !!result.data);
 
           // Resend API returns { data, error } structure
           if (result.error) {
