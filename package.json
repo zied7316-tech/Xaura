@@ -1,0 +1,15 @@
+{
+  "name": "xaura-monorepo",
+  "version": "1.0.0",
+  "description": "Xaura Salon Management Platform - Monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "web"
+  ],
+  "scripts": {
+    "build:web": "cd web && npm install && npm run build",
+    "start:web": "cd web && npm run start"
+  }
+}
+

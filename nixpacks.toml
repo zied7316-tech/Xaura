@@ -1,8 +1,23 @@
+# Railway Configuration
+# This file is for BACKEND service (default)
+# For WEB service: Set Root Directory to "web" in Railway dashboard
+
 [phases.setup]
 nixPkgs = ['nodejs_18']
 
+# Check if we're in web directory (for web service)
+# If package.json exists in current dir and name is "xaura-web", build web
+# Otherwise build backend
+
 [phases.install]
-cmds = ['cd backend && npm ci --omit=dev || npm install --omit=dev']
+cmds = [
+  'if [ -f "web/package.json" ] && grep -q "xaura-web" web/package.json; then cd web && npm ci --omit=dev || npm install --omit=dev; else cd backend && npm ci --omit=dev || npm install --omit=dev; fi'
+]
+
+[phases.build]
+cmds = [
+  'if [ -f "web/package.json" ] && grep -q "xaura-web" web/package.json; then cd web && npm run build; else echo "Backend build - skipping"; fi'
+]
 
 [start]
-cmd = 'cd backend && NODE_ENV=production node server.js'
+cmd = 'if [ -f "web/package.json" ] && grep -q "xaura-web" web/package.json; then cd web && npm run start; else cd backend && NODE_ENV=production node server.js; fi'
