@@ -87,7 +87,16 @@ const ForgotPasswordPage = () => {
                 </p>
               </div>
 
-              <Button type="submit" fullWidth loading={loading}>
+              <Button 
+                type="button" 
+                fullWidth 
+                loading={loading}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleSubmit(onSubmit)(e)
+                }}
+              >
                 Send Reset Link
               </Button>
             </form>
