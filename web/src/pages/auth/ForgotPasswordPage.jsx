@@ -34,13 +34,7 @@ const ForgotPasswordPage = () => {
       
       if (result && result.success) {
         setEmailSent(true)
-        if (result.emailSent) {
-          toast.success(result.message || 'Password reset email sent! Please check your inbox.')
-        } else {
-          // Email service unavailable but token was generated
-          toast.success('Password reset request processed. If you don\'t receive an email, please contact support with your email address.')
-          console.warn('[ForgotPassword] Email not sent but token generated. Check Railway logs for reset link.')
-        }
+        toast.success(result.message || 'Password reset email sent! Please check your inbox.')
       } else {
         const errorMsg = result?.message || 'Failed to send password reset email'
         toast.error(errorMsg)
