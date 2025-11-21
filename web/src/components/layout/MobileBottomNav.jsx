@@ -11,7 +11,6 @@ import {
   DollarSign,
   Bell,
   TrendingUp,
-  QrCode,
   Clock
 } from 'lucide-react'
 
