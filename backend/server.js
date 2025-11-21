@@ -208,17 +208,54 @@ process.on('unhandledRejection', (err) => {
   process.exit(1);
 });
 
+// Handle graceful shutdown
+let shuttingDown = false;
+
+function gracefulShutdown(signal) {
+  if (shuttingDown) {
+    console.log(`⚠️  ${signal} received again, forcing exit...`);
+    process.exit(0);
+    return;
+  }
+  shuttingDown = true;
+  
+  console.log(`⚠️  ${signal} received. Shutting down gracefully...`);
+  
+  if (server) {
+    server.close((err) => {
+      if (err) {
+        console.error('❌ Error closing server:', err.message);
+        process.exit(1);
+      }
+      console.log('✅ HTTP server closed gracefully');
+      
+      // Close MongoDB connection
+      const mongoose = require('mongoose');
+      if (mongoose.connection.readyState === 1) {
+        mongoose.connection.close(false, () => {
+          console.log('✅ MongoDB connection closed');
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    });
+    
+    // Force exit after 10 seconds
+    setTimeout(() => {
+      console.log('⚠️  Force exiting after timeout');
+      process.exit(0);
+    }, 10000);
+  } else {
+    process.exit(0);
+  }
+}
+
 // Handle SIGTERM (Railway shutdown signal)
-process.on('SIGTERM', () => {
-  console.log('⚠️  SIGTERM received. Shutting down gracefully...');
-  process.exit(0);
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Handle SIGINT (Ctrl+C)
-process.on('SIGINT', () => {
-  console.log('⚠️  SIGINT received. Shutting down gracefully...');
-  process.exit(0);
-});
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
 const PORT = process.env.PORT || 5000;
@@ -228,11 +265,21 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`✅ Server listening on 0.0.0.0:${PORT}`);
   console.log(`✅ Health check available at: http://0.0.0.0:${PORT}/`);
+  console.log(`✅ Server will stay alive and handle requests`);
 }).on('error', (err) => {
   console.error('❌ Server failed to start:', err.message);
   if (err.code === 'EADDRINUSE') {
     console.error(`Port ${PORT} is already in use`);
   }
   process.exit(1);
+});
+
+// Keep server alive - prevent unexpected exits
+server.on('close', () => {
+  console.log('⚠️  Server close event received');
+});
+
+server.on('listening', () => {
+  console.log('✅ Server is now listening and ready for connections');
 });
 

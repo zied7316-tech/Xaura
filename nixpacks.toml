@@ -20,4 +20,4 @@ cmds = [
 ]
 
 [start]
-cmd = 'if [ -f "web/package.json" ] && grep -q "xaura-web" web/package.json; then cd web && npm run start; else cd backend && NODE_ENV=production node server.js; fi'
+cmd = 'if [ -f "web/package.json" ] && grep -q "xaura-web" web/package.json; then cd web && node server.js; else cd backend && NODE_ENV=production node server.js; fi'
