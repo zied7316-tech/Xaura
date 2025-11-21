@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ['nodejs_18']
+
+[phases.install]
+cmds = ['npm ci --omit=dev || npm install --omit=dev']
+
+[phases.build]
+cmds = ['echo "Backend - no build step needed"']
+
+[start]
+cmd = 'NODE_ENV=production node server.js'
+
