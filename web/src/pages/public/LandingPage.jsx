@@ -64,7 +64,7 @@ const LandingPage = () => {
                     <Button variant="ghost">Login</Button>
                   </Link>
                   <Link to="/register">
-                    <Button>Get Started</Button>
+                    <Button className="btn-confirm-booking">Get Started</Button>
                   </Link>
                 </>
               )}

@@ -1,11 +1,11 @@
 import { useLayoutEffect } from 'react'
 
 const ParticlesBackground = ({
-  colors = ['#667eea', '#764ba2', '#f093fb'],
-  size = 3,
-  countDesktop = 60,
-  countTablet = 50,
-  countMobile = 40,
+  colors = ['#667eea', '#764ba2', '#f093fb', '#c471ed', '#f5576c'],
+  size = 4,
+  countDesktop = 80,
+  countTablet = 65,
+  countMobile = 50,
   zIndex = 0,
   height = '100vh',
 }) => {
@@ -64,23 +64,41 @@ const ParticlesBackground = ({
           type: 'circle',
         },
         opacity: {
-          value: 0.5,
+          value: 0.8,
           random: true,
+          anim: {
+            enable: true,
+            speed: 1,
+            opacity_min: 0.3,
+            sync: false
+          }
         },
         size: {
           value: size,
           random: true,
+          anim: {
+            enable: true,
+            speed: 2,
+            size_min: 2,
+            sync: false
+          }
         },
         line_linked: {
           enable: false,
         },
         move: {
           enable: true,
-          speed: 2,
+          speed: 3,
           direction: 'none',
           random: true,
           straight: false,
           out_mode: 'out',
+          bounce: false,
+          attract: {
+            enable: false,
+            rotateX: 600,
+            rotateY: 1200
+          }
         },
       },
       interactivity: {
