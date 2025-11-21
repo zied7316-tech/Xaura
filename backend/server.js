@@ -208,6 +208,12 @@ process.on('unhandledRejection', (err) => {
   process.exit(1);
 });
 
+// Start server
+const PORT = process.env.PORT || 5000;
+
+// Declare server variable first (will be assigned below)
+let server;
+
 // Handle graceful shutdown
 let shuttingDown = false;
 
@@ -257,11 +263,8 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 // Handle SIGINT (Ctrl+C)
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Start server
-const PORT = process.env.PORT || 5000;
-
 // Add error handler for server listen
-const server = app.listen(PORT, '0.0.0.0', () => {
+server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`✅ Server listening on 0.0.0.0:${PORT}`);
   console.log(`✅ Health check available at: http://0.0.0.0:${PORT}/`);
