@@ -956,7 +956,7 @@ const SubscriptionPage = () => {
 
       {/* Add-ons */}
       {addOns && (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-6 -mt-2">
           {/* SMS Credits */}
           <Card>
             <CardHeader>
