@@ -40,18 +40,20 @@ router.get('/analytics/growth', protect, authorize('SuperAdmin'), getGrowthAnaly
 // Subscription routes
 router.get('/subscriptions', protect, authorize('SuperAdmin'), getAllSubscriptions);
 router.post('/subscriptions', protect, authorize('SuperAdmin'), createSubscription);
+
+// Approval routes - MUST come before /subscriptions/:id to avoid route conflicts
+router.get('/subscriptions/pending-upgrades', protect, authorize('SuperAdmin'), getPendingUpgrades);
+router.get('/subscriptions/pending-sms', protect, authorize('SuperAdmin'), getPendingSmsPurchases);
+router.get('/subscriptions/pending-pixel', protect, authorize('SuperAdmin'), getPendingPixelPurchases);
+
+// Parameterized routes - MUST come after specific routes
 router.get('/subscriptions/:id', protect, authorize('SuperAdmin'), getSubscriptionDetails);
 router.put('/subscriptions/:id/plan', protect, authorize('SuperAdmin'), updateSubscriptionPlan);
 router.post('/subscriptions/:id/extend-trial', protect, authorize('SuperAdmin'), extendTrial);
 router.put('/subscriptions/:id/cancel', protect, authorize('SuperAdmin'), cancelSubscription);
 router.put('/subscriptions/:id/reactivate', protect, authorize('SuperAdmin'), reactivateSubscription);
-
-// Approval routes
-router.get('/subscriptions/pending-upgrades', protect, authorize('SuperAdmin'), getPendingUpgrades);
 router.post('/subscriptions/:id/approve-upgrade', protect, authorize('SuperAdmin'), approveUpgrade);
-router.get('/subscriptions/pending-sms', protect, authorize('SuperAdmin'), getPendingSmsPurchases);
 router.post('/subscriptions/:id/approve-sms', protect, authorize('SuperAdmin'), approveSmsPurchase);
-router.get('/subscriptions/pending-pixel', protect, authorize('SuperAdmin'), getPendingPixelPurchases);
 router.post('/subscriptions/:id/approve-pixel', protect, authorize('SuperAdmin'), approvePixelPurchase);
 
 module.exports = router;
