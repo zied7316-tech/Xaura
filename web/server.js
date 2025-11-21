@@ -92,12 +92,38 @@ function serveFile(filePath, res) {
 }
 
 const server = createServer((req, res) => {
-  // Health check endpoint - respond immediately (used by Railway)
+  // Log all incoming requests for debugging (especially health checks)
   const urlPath = req.url?.split('?')[0] || '';
+  const isHealthCheck = urlPath === '/health' || urlPath === '/healthcheck' || urlPath === '/';
   
+  if (isHealthCheck) {
+    console.log(`[HEALTH] ${req.method} ${urlPath} - User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
+    console.log(`[HEALTH] Headers: ${JSON.stringify({ host: req.headers.host, connection: req.headers.connection })}`);
+  }
+  
+  // Health check endpoint - respond immediately (used by Railway)
   if (urlPath === '/health' || urlPath === '/healthcheck') {
-    // Log health check requests for debugging
-    console.log(`[HEALTH] Health check requested from ${req.headers['user-agent'] || 'unknown'}`);
+    // Respond immediately without any delay
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Health-Check': 'ok'
+    });
+    const response = JSON.stringify({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      port: PORT
+    });
+    res.end(response);
+    console.log(`[HEALTH] ✅ Responded with 200 OK`);
+    return;
+  }
+  
+  // Also handle root path as health check if it's from Railway
+  if (urlPath === '/' && req.headers['user-agent']?.includes('Railway')) {
+    console.log(`[HEALTH] Root path health check from Railway`);
     res.writeHead(200, { 
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
@@ -105,9 +131,8 @@ const server = createServer((req, res) => {
     });
     res.end(JSON.stringify({ 
       status: 'ok', 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      port: PORT
+      service: 'xaura-web',
+      timestamp: new Date().toISOString()
     }));
     return;
   }
