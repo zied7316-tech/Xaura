@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useForm } from 'react-hook-form'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { QrCode } from 'lucide-react'
+import Logo from '../../components/ui/Logo'
 
 const LoginPage = () => {
   const { login } = useAuth()
@@ -36,8 +36,8 @@ const LoginPage = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-full mb-4">
-            <QrCode className="text-white" size={32} />
+          <div className="flex justify-center mb-4">
+            <Logo size="xl" showText={true} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-600 mt-2">Sign in to your Xaura account</p>
