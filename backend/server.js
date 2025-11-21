@@ -113,52 +113,66 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Routes - Load with error handling
-try {
-  console.log('📦 Loading API routes...');
-  app.use('/api/auth', require('./routes/authRoutes'));
-  app.use('/api/profile', require('./routes/profileRoutes'));
-  app.use('/api/salon-account', require('./routes/salonAccountRoutes'));
-  app.use('/api/salons', require('./routes/salonRoutes'));
-  app.use('/api/services', require('./routes/serviceRoutes'));
-  app.use('/api/appointments', require('./routes/appointmentRoutes'));
-  app.use('/api/appointment-management', require('./routes/appointmentManagementRoutes'));
-  app.use('/api/notifications', require('./routes/notificationRoutes'));
-  app.use('/api/payments', require('./routes/paymentRoutes'));
-  app.use('/api/expenses', require('./routes/expenseRoutes'));
-  app.use('/api/analytics', require('./routes/analyticsRoutes'));
-  app.use('/api/customers', require('./routes/customerRoutes'));
-  app.use('/api/inventory', require('./routes/inventoryRoutes'));
-  app.use('/api/reports', require('./routes/reportsRoutes'));
-  app.use('/api/qr', require('./routes/qrRoutes'));
-  app.use('/api/day-closure', require('./routes/dayClosureRoutes'));
-  app.use('/api/workers', require('./routes/workerRoutes'));
-  app.use('/api/upload', require('./routes/uploadRoutes'));
-  app.use('/api/worker-finance', require('./routes/workerFinanceRoutes'));
-  app.use('/api/salon-search', require('./routes/salonSearchRoutes'));
-  app.use('/api/availability', require('./routes/availabilityRoutes'));
-  app.use('/api/worker-status', require('./routes/workerStatusRoutes'));
-  app.use('/api/worker-tracking', require('./routes/workerTrackingRoutes'));
-  app.use('/api/salon-clients', require('./routes/salonClientRoutes'));
-  app.use('/api/reminders', require('./routes/reminderRoutes'));
-  app.use('/api/loyalty', require('./routes/loyaltyRoutes'));
-  app.use('/api/advanced-booking', require('./routes/advancedBookingRoutes'));
-  app.use('/api/reviews', require('./routes/reviewRoutes'));
-  app.use('/api/search', require('./routes/searchRoutes'));
-  app.use('/api/super-admin', require('./routes/superAdminRoutes'));
-  app.use('/api/super-admin/activity-logs', require('./routes/activityLogRoutes'));
-  app.use('/api/super-admin/reports', require('./routes/reportRoutes'));
-  app.use('/api/super-admin/campaigns', require('./routes/emailCampaignRoutes'));
-  app.use('/api/tickets', require('./routes/supportTicketRoutes'));
-  app.use('/api/chats', require('./routes/chatRoutes'));
-  app.use('/api/my-salons', require('./routes/salonOwnershipRoutes'));
-  app.use('/api/billing', require('./routes/billingRoutes'));
-  app.use('/api/owner/subscription', require('./routes/ownerSubscriptionRoutes'));
-  console.log('✅ All API routes loaded successfully');
-} catch (error) {
-  console.error('❌ Error loading API routes:', error.message);
-  console.error('Stack:', error.stack);
-  // Don't exit - let server start and show errors on requests
+// API Routes - Load with error handling for each route
+const loadRoute = (path, routeFile) => {
+  try {
+    app.use(path, require(routeFile));
+    console.log(`✅ Loaded route: ${path}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Failed to load route ${path}:`, error.message);
+    console.error(`   File: ${routeFile}`);
+    console.error(`   Stack: ${error.stack}`);
+    return false;
+  }
+};
+
+console.log('📦 Loading API routes...');
+let routesLoaded = 0;
+let routesFailed = 0;
+
+if (loadRoute('/api/auth', './routes/authRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/profile', './routes/profileRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/salon-account', './routes/salonAccountRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/salons', './routes/salonRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/services', './routes/serviceRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/appointments', './routes/appointmentRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/appointment-management', './routes/appointmentManagementRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/notifications', './routes/notificationRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/payments', './routes/paymentRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/expenses', './routes/expenseRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/analytics', './routes/analyticsRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/customers', './routes/customerRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/inventory', './routes/inventoryRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/reports', './routes/reportsRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/qr', './routes/qrRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/day-closure', './routes/dayClosureRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/workers', './routes/workerRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/upload', './routes/uploadRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/worker-finance', './routes/workerFinanceRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/salon-search', './routes/salonSearchRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/availability', './routes/availabilityRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/worker-status', './routes/workerStatusRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/worker-tracking', './routes/workerTrackingRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/salon-clients', './routes/salonClientRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/reminders', './routes/reminderRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/loyalty', './routes/loyaltyRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/advanced-booking', './routes/advancedBookingRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/reviews', './routes/reviewRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/search', './routes/searchRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/super-admin', './routes/superAdminRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/super-admin/activity-logs', './routes/activityLogRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/super-admin/reports', './routes/reportRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/super-admin/campaigns', './routes/emailCampaignRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/tickets', './routes/supportTicketRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/chats', './routes/chatRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/my-salons', './routes/salonOwnershipRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/billing', './routes/billingRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/owner/subscription', './routes/ownerSubscriptionRoutes')) routesLoaded++; else routesFailed++;
+
+console.log(`✅ Route loading complete: ${routesLoaded} loaded, ${routesFailed} failed`);
+if (routesFailed > 0) {
+  console.warn(`⚠️  ${routesFailed} route(s) failed to load. Server will continue but those endpoints will not work.`);
 }
 
 // Error handling middleware
