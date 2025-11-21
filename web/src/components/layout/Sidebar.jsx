@@ -165,3 +165,4 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 export default Sidebar
 
+// Force rebuild - QrCode import verified
