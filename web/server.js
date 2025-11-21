@@ -8,9 +8,16 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+// Get PORT from environment - Railway sets this dynamically
+const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PORT || '3000', 10);
 const distPath = resolve(__dirname, 'dist');
 const indexPath = join(distPath, 'index.html');
+
+// Log all environment variables related to port for debugging
+console.log('🔍 Port Configuration:');
+console.log(`   PORT env var: ${process.env.PORT || 'not set'}`);
+console.log(`   RAILWAY_PORT env var: ${process.env.RAILWAY_PORT || 'not set'}`);
+console.log(`   Using port: ${PORT}`);
 
 // CRITICAL: Validate dist folder exists BEFORE starting server
 console.log('🔍 Validating build files...');
