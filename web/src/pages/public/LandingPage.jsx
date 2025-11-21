@@ -72,7 +72,7 @@ const LandingPage = () => {
           </p>
           <div className="flex gap-4 justify-center">
             <Link to="/register-salon">
-              <Button size="lg">Create Salon Account</Button>
+              <Button size="lg" className="btn-confirm-booking">Create Salon Account</Button>
             </Link>
             <Link to="/login">
               <Button variant="outline" size="lg">Sign In</Button>
