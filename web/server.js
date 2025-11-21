@@ -144,12 +144,25 @@ const server = createServer((req, res) => {
 });
 
 // Start server with error handling
+let serverStarted = false;
+
 try {
   server.listen(PORT, '0.0.0.0', () => {
+    serverStarted = true;
     console.log(`✅ Server listening on http://0.0.0.0:${PORT}`);
     console.log(`✅ Health check: http://0.0.0.0:${PORT}/health`);
     console.log(`✅ Main page: http://0.0.0.0:${PORT}/`);
     console.log(`✅ Ready to serve requests!`);
+    console.log(`✅ Server will stay alive and handle requests`);
+    
+    // Test that server is actually listening
+    server.getConnections((err, count) => {
+      if (err) {
+        console.error('❌ Error checking server connections:', err.message);
+      } else {
+        console.log(`✅ Server is ready to accept connections (max: ${server.maxConnections || 'unlimited'})`);
+      }
+    });
   });
 } catch (error) {
   console.error('❌ Failed to start server:', error.message);
@@ -204,5 +217,27 @@ process.on('exit', (code) => {
   } else {
     console.log(`⚠️  Process exiting with code ${code}`);
   }
+});
+
+// Prevent the process from exiting unexpectedly
+// Keep the event loop alive
+const keepAlive = setInterval(() => {
+  if (serverStarted) {
+    // Server is running, just log periodically to show we're alive
+    // This interval keeps the process alive
+  }
+}, 30000); // Every 30 seconds
+
+// Log that we're keeping the process alive
+console.log('🔄 Process keep-alive initialized');
+
+// Handle server close events
+server.on('close', () => {
+  console.log('⚠️  Server closed event received');
+  clearInterval(keepAlive);
+});
+
+server.on('listening', () => {
+  console.log('✅ Server is now listening and ready for connections');
 });
 
