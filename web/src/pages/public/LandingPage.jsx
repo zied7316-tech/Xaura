@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { Calendar, QrCode, Users, TrendingUp } from 'lucide-react'
 import Button from '../../components/ui/Button'
+import ParticlesBackground from '../../components/background/ParticlesBackground'
 
 const LandingPage = () => {
   const { user } = useAuth()
@@ -30,7 +31,20 @@ const LandingPage = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-purple-50 relative overflow-hidden">
+      {/* Particles Background */}
+      <ParticlesBackground
+        colors={['#667eea', '#764ba2', '#f093fb']}
+        size={3}
+        countDesktop={60}
+        countTablet={50}
+        countMobile={40}
+        zIndex={0}
+        height="100%"
+      />
+      
+      {/* Content */}
+      <div className="relative z-10">
       {/* Navigation */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -109,11 +123,12 @@ const LandingPage = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-20">
+      <footer className="bg-gray-900 text-white py-8 mt-20 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p>&copy; 2024 Xaura. All rights reserved.</p>
         </div>
       </footer>
+      </div>
     </div>
   )
 }
