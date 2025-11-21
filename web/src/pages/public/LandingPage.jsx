@@ -34,11 +34,11 @@ const LandingPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-purple-50 relative overflow-hidden">
       {/* Particles Background */}
       <ParticlesBackground
-        colors={['#667eea', '#764ba2', '#f093fb']}
-        size={3}
-        countDesktop={60}
-        countTablet={50}
-        countMobile={40}
+        colors={['#667eea', '#764ba2', '#f093fb', '#c471ed', '#f5576c']}
+        size={4}
+        countDesktop={80}
+        countTablet={65}
+        countMobile={50}
         zIndex={0}
         height="100%"
       />
