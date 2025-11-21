@@ -15,37 +15,58 @@ const app = express();
 connectDB();
 
 // CORS Configuration for Production
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://xaura-production.up.railway.app',
+  'https://www.xaura.pro',
+  'https://xaura.pro',
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://xaura-production.up.railway.app', // Backend URL
-      'https://www.xaura.pro', // Custom domain
-      'https://xaura.pro', // Root domain
-    ];
-    
-    // Allow any Railway domain, custom domain, or exact matches
-    if (
-      allowedOrigins.indexOf(origin) !== -1 ||
-      origin.includes('.railway.app') ||
-      origin.includes('.up.railway.app') ||
-      origin.includes('.xaura.pro')
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
+    if (!origin) {
+      console.log('[CORS] Request with no origin - allowing');
+      return callback(null, true);
     }
+    
+    console.log(`[CORS] Checking origin: ${origin}`);
+    
+    // Check exact matches first
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`[CORS] ✅ Origin allowed (exact match): ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Allow any Railway domain
+    if (origin.includes('.railway.app') || origin.includes('.up.railway.app')) {
+      console.log(`[CORS] ✅ Origin allowed (Railway): ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Allow any xaura.pro subdomain
+    if (origin.includes('.xaura.pro') || origin === 'https://xaura.pro' || origin === 'https://www.xaura.pro') {
+      console.log(`[CORS] ✅ Origin allowed (xaura.pro): ${origin}`);
+      return callback(null, true);
+    }
+    
+    console.log(`[CORS] ❌ Origin NOT allowed: ${origin}`);
+    callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
-  optionsSuccessStatus: 200
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 };
 
-// Middleware
+// Apply CORS middleware
 app.use(cors(corsOptions));
+
+// Additional OPTIONS handler for preflight requests
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
