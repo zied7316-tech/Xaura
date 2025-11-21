@@ -229,28 +229,28 @@ const subscriptionSchema = new mongoose.Schema({
   },
   // Purchase requests (for cash payments)
   smsCreditPurchase: {
-    packageType: String,
-    credits: Number,
-    price: Number,
-    paymentMethod: String,
-    paymentNote: String,
+    packageType: { type: String, default: null },
+    credits: { type: Number, default: null },
+    price: { type: Number, default: null },
+    paymentMethod: { type: String, default: null },
+    paymentNote: { type: String, default: null },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
-      default: 'pending'
+      default: null
     },
-    requestedAt: Date
+    requestedAt: { type: Date, default: null }
   },
   pixelTrackingPurchase: {
-    price: Number,
-    paymentMethod: String,
-    paymentNote: String,
+    price: { type: Number, default: null },
+    paymentMethod: { type: String, default: null },
+    paymentNote: { type: String, default: null },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
-      default: 'pending'
+      default: null
     },
-    requestedAt: Date
+    requestedAt: { type: Date, default: null }
   },
   // Usage Limits (for different plans)
   limits: {

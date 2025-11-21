@@ -678,7 +678,10 @@ const approveUpgrade = async (req, res, next) => {
 const getPendingSmsPurchases = async (req, res, next) => {
   try {
     const subscriptions = await Subscription.find({
-      'smsCreditPurchase.status': 'pending'
+      'smsCreditPurchase.status': 'pending',
+      'smsCreditPurchase.credits': { $exists: true, $ne: null, $gt: 0 },
+      'smsCreditPurchase.price': { $exists: true, $ne: null, $gt: 0 },
+      'smsCreditPurchase.requestedAt': { $exists: true, $ne: null }
     })
       .populate('salonId', 'name')
       .populate('ownerId', 'name email phone')
@@ -746,7 +749,9 @@ const approveSmsPurchase = async (req, res, next) => {
 const getPendingPixelPurchases = async (req, res, next) => {
   try {
     const subscriptions = await Subscription.find({
-      'pixelTrackingPurchase.status': 'pending'
+      'pixelTrackingPurchase.status': 'pending',
+      'pixelTrackingPurchase.price': { $exists: true, $ne: null, $gt: 0 },
+      'pixelTrackingPurchase.requestedAt': { $exists: true, $ne: null }
     })
       .populate('salonId', 'name')
       .populate('ownerId', 'name email phone')
