@@ -581,11 +581,15 @@ const createWalkInAppointment = async (req, res, next) => {
         let client = await User.findOne({ phone: clientPhone, role: 'Client' });
         
         if (!client) {
+          // Validate email - must be non-empty and valid format
+          const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+          const isValidEmail = clientEmail && clientEmail.trim() && emailRegex.test(clientEmail.trim());
+          
           // Create new client account
           client = await User.create({
             name: clientName || 'Walk-in Client',
             phone: clientPhone,
-            email: clientEmail || `${clientPhone}@walkin.temp`,
+            email: isValidEmail ? clientEmail.trim() : `${clientPhone}@walkin.temp`,
             role: 'Client',
             password: Math.random().toString(36).slice(-8), // Temporary password
             isWalkIn: true // Flag for walk-in clients
