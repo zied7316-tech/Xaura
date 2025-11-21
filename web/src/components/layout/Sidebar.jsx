@@ -44,6 +44,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const ownerLinks = [
     { to: '/owner/dashboard', icon: LayoutDashboard, label: t('common.dashboard', 'Dashboard') },
+    { to: '/owner/subscription', icon: CreditCard, label: 'Subscription', badge: 'NEW' },
     { to: '/owner/salons', icon: Store, label: t('owner.mySalons', 'My Salons'), badge: 'NEW' },
     { to: '/owner/salon', icon: Store, label: t('owner.salonSettings', 'Salon Settings') },
     { to: '/owner/services', icon: Scissors, label: t('owner.services', 'Services') },
@@ -59,7 +60,6 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/owner/reminders', icon: Bell, label: t('owner.reminders', 'SMS/Email Reminders'), badge: 'NEW' },
     { to: '/owner/loyalty', icon: Store, label: t('owner.loyalty', 'Loyalty & Rewards'), badge: 'NEW' },
     { to: '/owner/worker-tracking', icon: MapPin, label: 'Worker Tracking', badge: 'NEW' },
-    { to: '/owner/subscription', icon: CreditCard, label: 'Subscription', badge: 'NEW' },
   ]
 
   const workerLinks = [

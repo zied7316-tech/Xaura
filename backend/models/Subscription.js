@@ -16,7 +16,7 @@ const subscriptionSchema = new mongoose.Schema({
   // Subscription Plan
   plan: {
     type: String,
-    enum: ['basic', 'pro', 'enterprise'], // Updated: removed 'free' and 'professional', added 'pro'
+    enum: ['basic', 'pro', 'enterprise', null], // Allow null during trial
     default: null // No default - must choose a plan after trial
   },
   // Pricing (in Tunisian Dinar - TND)
@@ -126,7 +126,7 @@ const subscriptionSchema = new mongoose.Schema({
   // Plan upgrade request (cash payment)
   requestedPlan: {
     type: String,
-    enum: ['basic', 'pro', 'enterprise'],
+    enum: ['basic', 'pro', 'enterprise', null], // Allow null when no request
     default: null
   },
   requestedPlanPrice: {
@@ -143,7 +143,7 @@ const subscriptionSchema = new mongoose.Schema({
   },
   upgradeStatus: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
+    enum: ['pending', 'approved', 'rejected', null], // Allow null when no upgrade request
     default: null
   },
   upgradeRequestedAt: {
@@ -202,7 +202,7 @@ const subscriptionSchema = new mongoose.Schema({
       },
       autoRechargePackage: {
         type: String,
-        enum: ['100', '500', '2000'],
+        enum: ['100', '500', '2000', null], // Allow null when auto-recharge is disabled
         default: null
       }
     }
