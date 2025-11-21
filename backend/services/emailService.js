@@ -163,9 +163,20 @@ class EmailService {
             console.error('[EMAIL] Error object:', JSON.stringify(result.error, null, 2));
             console.error('[EMAIL] Error message:', result.error.message);
             console.error('[EMAIL] Error name:', result.error.name);
+            
+            // Handle specific Resend validation errors
+            let errorMessage = result.error.message || 'Resend API returned an error';
+            if (result.error.name === 'validation_error' && result.error.message.includes('only send testing emails')) {
+              errorMessage = 'Resend free tier restriction: You can only send to your account email. Please verify your domain at resend.com/domains to send to other recipients.';
+              console.error('[EMAIL] ⚠️  DOMAIN VERIFICATION REQUIRED!');
+              console.error('[EMAIL] Go to: https://resend.com/domains');
+              console.error('[EMAIL] Add domain: xaura.pro');
+              console.error('[EMAIL] After verification, update EMAIL_FROM to use your domain');
+            }
+            
             return {
               success: false,
-              error: result.error.message || 'Resend API returned an error',
+              error: errorMessage,
               code: result.error.name || 'RESEND_ERROR',
               details: result.error
             };
