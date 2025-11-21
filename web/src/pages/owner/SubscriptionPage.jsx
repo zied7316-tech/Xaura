@@ -17,7 +17,21 @@ import {
   Zap,
   Crown,
   Gift,
-  ShoppingCart
+  ShoppingCart,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  Store,
+  Calendar,
+  DollarSign,
+  Package,
+  Bell,
+  Sparkles,
+  Brain,
+  Globe,
+  FileText,
+  Settings,
+  Infinity
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import { StatusBadge } from '../../components/ui/Badge'
@@ -37,6 +51,7 @@ const SubscriptionPage = () => {
   const [confirming, setConfirming] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [billingInterval, setBillingInterval] = useState('month') // 'month' or 'year'
+  const [currentPlanIndex, setCurrentPlanIndex] = useState(0) // For carousel
 
   useEffect(() => {
     loadData()
@@ -295,10 +310,10 @@ const SubscriptionPage = () => {
         </CardContent>
       </Card>
 
-      {/* Available Plans */}
+      {/* Available Plans - Carousel */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle>Available Plans</CardTitle>
             {/* Billing Interval Switcher */}
             <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
@@ -329,62 +344,612 @@ const SubscriptionPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            {plans.map((plan) => {
-              const price = getPlanPrice(plan)
-              const monthlyEquivalent = getMonthlyEquivalent(plan)
-              const savings = billingInterval === 'year' 
-                ? (plan.price?.month || 0) * 12 - price 
-                : 0
+          {/* Carousel Container */}
+          <div className="relative">
+            {/* Carousel Navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => setCurrentPlanIndex((prev) => (prev === 0 ? plans.length - 1 : prev - 1))}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Previous plan"
+              >
+                <ChevronLeft size={24} className="text-gray-600" />
+              </button>
+              
+              {/* Plan Indicators */}
+              <div className="flex gap-2">
+                {plans.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentPlanIndex(index)}
+                    className={`h-2 rounded-full transition-all ${
+                      index === currentPlanIndex
+                        ? 'w-8 bg-primary-600'
+                        : 'w-2 bg-gray-300 hover:bg-gray-400'
+                    }`}
+                    aria-label={`Go to plan ${index + 1}`}
+                  />
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPlanIndex((prev) => (prev === plans.length - 1 ? 0 : prev + 1))}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Next plan"
+              >
+                <ChevronRight size={24} className="text-gray-600" />
+              </button>
+            </div>
 
-              return (
-                <div
-                  key={plan.id}
-                  className={`p-6 border-2 rounded-lg transition-all ${
-                    currentPlan?.id === plan.id
-                      ? getPlanColor(plan.id)
-                      : 'border-gray-200 hover:border-primary-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    {getPlanIcon(plan.id)}
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg">{plan.name}</h3>
-                      <div>
-                        <p className="text-2xl font-bold text-primary-600">
-                          {formatCurrency(price)}
-                          <span className="text-sm font-normal text-gray-500">
-                            /{billingInterval === 'year' ? 'year' : 'month'}
-                          </span>
-                        </p>
-                        {billingInterval === 'year' && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatCurrency(monthlyEquivalent)}/month billed annually
-                          </p>
-                        )}
-                        {savings > 0 && (
-                          <p className="text-xs text-green-600 font-semibold mt-1">
-                            Save {formatCurrency(savings)} per year!
-                          </p>
-                        )}
+            {/* Carousel Content */}
+            <div className="overflow-hidden">
+              <div 
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${currentPlanIndex * 100}%)` }}
+              >
+                {plans.map((plan) => {
+                  const price = getPlanPrice(plan)
+                  const monthlyEquivalent = getMonthlyEquivalent(plan)
+                  const savings = billingInterval === 'year' 
+                    ? (plan.price?.month || 0) * 12 - price 
+                    : 0
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className="min-w-full px-2"
+                    >
+                      <div className={`p-8 border-2 rounded-xl transition-all ${
+                        currentPlan?.id === plan.id
+                          ? getPlanColor(plan.id)
+                          : 'border-gray-200 bg-white'
+                      }`}>
+                        {/* Plan Header */}
+                        <div className="flex items-start justify-between mb-6">
+                          <div className="flex items-center gap-4">
+                            {getPlanIcon(plan.id)}
+                            <div>
+                              <h3 className="font-bold text-2xl text-gray-900">{plan.name} Plan</h3>
+                              <p className="text-gray-600 mt-1">{plan.description}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-3xl font-bold text-primary-600">
+                              {formatCurrency(price)}
+                              <span className="text-lg font-normal text-gray-500">
+                                /{billingInterval === 'year' ? 'year' : 'month'}
+                              </span>
+                            </p>
+                            {billingInterval === 'year' && (
+                              <p className="text-sm text-gray-500 mt-1">
+                                {formatCurrency(monthlyEquivalent)}/month
+                              </p>
+                            )}
+                            {savings > 0 && (
+                              <p className="text-sm text-green-600 font-semibold mt-1">
+                                Save {formatCurrency(savings)}/year
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Plan Features - Detailed */}
+                        <div className="grid md:grid-cols-2 gap-6 mb-6">
+                          {/* Team & Branches */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <Users className="text-primary-600" size={20} />
+                              Team & Branches
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              <li className="flex items-start gap-2">
+                                <Store size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                <span>
+                                  {plan.features?.maxLocations === -1 ? (
+                                    <><Infinity size={14} className="inline text-primary-600" /> Unlimited Locations</>
+                                  ) : (
+                                    `${plan.features?.maxLocations || 1} Salon Location${(plan.features?.maxLocations || 1) > 1 ? 's' : ''}`
+                                  )}
+                                </span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <Users size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                <span>
+                                  {plan.features?.maxWorkers === -1 ? (
+                                    <><Infinity size={14} className="inline text-primary-600" /> Unlimited Workers</>
+                                  ) : (
+                                    `Up to ${plan.features?.maxWorkers || 3} Workers`
+                                  )}
+                                </span>
+                              </li>
+                              {plan.features?.multiBranchControlPanel && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Multi-branch Control Panel</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Operations */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <Calendar className="text-primary-600" size={20} />
+                              Operations
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              {plan.features?.unlimitedAppointments && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Unlimited Appointments</span>
+                                </li>
+                              )}
+                              {plan.features?.unlimitedServices && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Unlimited Services</span>
+                                </li>
+                              )}
+                              {plan.features?.clientCRM && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Client CRM (history, notes, visits)</span>
+                                </li>
+                              )}
+                              {plan.features?.calendarBooking && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Calendar + Booking Management</span>
+                                </li>
+                              )}
+                              {plan.features?.qrCodeBooking && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>QR-code Booking</span>
+                                </li>
+                              )}
+                              {plan.features?.basicDashboard && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Basic Dashboard Overview</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Finance */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <DollarSign className="text-primary-600" size={20} />
+                              Finance
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              {plan.features?.fullFinanceSystem && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Full Finance System</span>
+                                </li>
+                              )}
+                              {plan.features?.workerCommissions && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Worker Commissions</span>
+                                </li>
+                              )}
+                              {plan.features?.workerPayments && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Worker Payments</span>
+                                </li>
+                              )}
+                              {plan.features?.revenueTracking && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Revenue Tracking</span>
+                                </li>
+                              )}
+                              {plan.features?.cashCardTracking && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Cash vs Card Tracking</span>
+                                </li>
+                              )}
+                              {plan.features?.advancedFinanceBreakdown && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Advanced Finance Breakdown</span>
+                                </li>
+                              )}
+                              {plan.features?.profitabilityIndicators && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Profitability Indicators</span>
+                                </li>
+                              )}
+                              {plan.features?.workerLeaderboard && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Worker Leaderboard</span>
+                                </li>
+                              )}
+                              {plan.features?.multiBranchFinancialConsolidation && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Multi-branch Financial Consolidation</span>
+                                </li>
+                              )}
+                              {plan.features?.advancedProfitLoss && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Advanced Profit & Loss</span>
+                                </li>
+                              )}
+                              {plan.features?.exportExcelPdf && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Export to Excel / PDF</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Analytics & Reporting */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <TrendingUp className="text-primary-600" size={20} />
+                              Analytics & Reporting
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              {plan.features?.basicReports && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Basic Reports (appointments, revenue, workers)</span>
+                                </li>
+                              )}
+                              {plan.features?.advancedAnalytics && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Advanced Analytics</span>
+                                </li>
+                              )}
+                              {plan.features?.workerPerformanceDashboard && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Worker Performance Dashboard</span>
+                                </li>
+                              )}
+                              {plan.features?.clientInsights && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Client Insights</span>
+                                </li>
+                              )}
+                              {plan.features?.heatmaps && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Heatmaps: busy hours, peak days</span>
+                                </li>
+                              )}
+                              {plan.features?.revenuePerService && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Revenue per Service</span>
+                                </li>
+                              )}
+                              {plan.features?.revenuePerWorker && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Revenue per Worker</span>
+                                </li>
+                              )}
+                              {plan.features?.aiInsights && (
+                                <li className="flex items-start gap-2">
+                                  <Brain className="text-purple-600 mt-0.5 flex-shrink-0" size={16} />
+                                  <span>AI Insights (retention, predictions, upsell)</span>
+                                </li>
+                              )}
+                              {plan.features?.priceOptimizationAI && (
+                                <li className="flex items-start gap-2">
+                                  <Brain className="text-purple-600 mt-0.5 flex-shrink-0" size={16} />
+                                  <span>Price Optimization AI</span>
+                                </li>
+                              )}
+                              {plan.features?.workerPerformanceAI && (
+                                <li className="flex items-start gap-2">
+                                  <Brain className="text-purple-600 mt-0.5 flex-shrink-0" size={16} />
+                                  <span>Worker Performance AI</span>
+                                </li>
+                              )}
+                              {plan.features?.clientPredictionScoring && (
+                                <li className="flex items-start gap-2">
+                                  <Brain className="text-purple-600 mt-0.5 flex-shrink-0" size={16} />
+                                  <span>Client Prediction Scoring</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Inventory */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <Package className="text-primary-600" size={20} />
+                              Inventory
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              {plan.features?.basicInventory && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Basic Inventory (stock in/out)</span>
+                                </li>
+                              )}
+                              {plan.features?.manualAlerts && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Manual Alerts Only</span>
+                                </li>
+                              )}
+                              {plan.features?.autoAlerts && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Auto Alerts</span>
+                                </li>
+                              )}
+                              {plan.features?.automaticCostCalculation && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Automatic Cost Calculation</span>
+                                </li>
+                              )}
+                              {plan.features?.productUsageInsights && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Product Usage Insights</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Loyalty & Rewards */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <Gift className="text-primary-600" size={20} />
+                              Loyalty & Rewards
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              {plan.features?.loyaltyProgram ? (
+                                <>
+                                  <li className="flex items-start gap-2">
+                                    <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                    <span>Loyalty Program PRO (points, rewards, bonus tiers)</span>
+                                  </li>
+                                  {plan.features?.multiTierLoyaltyLevels && (
+                                    <li className="flex items-start gap-2">
+                                      <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                      <span>Multi-tier Loyalty Levels</span>
+                                    </li>
+                                  )}
+                                  {plan.features?.vipSegmentation && (
+                                    <li className="flex items-start gap-2">
+                                      <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                      <span>VIP Segmentation</span>
+                                    </li>
+                                  )}
+                                  {plan.features?.aiDrivenRewards && (
+                                    <li className="flex items-start gap-2">
+                                      <Brain className="text-purple-600 mt-0.5 flex-shrink-0" size={16} />
+                                      <span>AI-driven Rewards</span>
+                                    </li>
+                                  )}
+                                </>
+                              ) : (
+                                <li className="flex items-start gap-2">
+                                  <XCircle size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                                  <span className="text-gray-500">Not Included</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Ads Manager */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <BarChart3 className="text-primary-600" size={20} />
+                              Ads Manager
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              {plan.features?.adsManager ? (
+                                <>
+                                  {plan.features?.adsManagerBasic && (
+                                    <>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Ads Manager (Basic)</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Boost Suggestions</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Basic Campaign Tracking</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Ad Performance Dashboard</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>CTR & CPC Estimation</span>
+                                      </li>
+                                    </>
+                                  )}
+                                  {plan.features?.adsManagerPro && (
+                                    <>
+                                      <li className="flex items-start gap-2">
+                                        <Sparkles className="text-purple-600 mt-0.5 flex-shrink-0" size={16} />
+                                        <span>Ads Manager PRO</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Multi-platform Integration (FB/IG/Google)</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Budget Optimizer (AI)</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Audience Segmentation</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Smart Retargeting</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Campaign Automation</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>ROI Heatmaps</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Cross-platform Attribution</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Automated Daily Reporting</span>
+                                      </li>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Conversion Tracking</span>
+                                      </li>
+                                    </>
+                                  )}
+                                  {plan.features?.pixelTracking && (
+                                    <>
+                                      <li className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>Facebook Pixel / TikTok Pixel / Google Tag</span>
+                                      </li>
+                                    </>
+                                  )}
+                                </>
+                              ) : (
+                                <li className="flex items-start gap-2">
+                                  <XCircle size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                                  <span className="text-gray-500">Not Included</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Notifications */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <Bell className="text-primary-600" size={20} />
+                              Notifications
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              {plan.features?.inAppNotifications && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>In-App Notifications</span>
+                                </li>
+                              )}
+                              {plan.features?.pushNotifications && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Push Notifications (web + mobile)</span>
+                                </li>
+                              )}
+                              {plan.features?.emailNotifications && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Email Notifications</span>
+                                </li>
+                              )}
+                              {plan.features?.webhooks && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Webhooks</span>
+                                </li>
+                              )}
+                              {plan.features?.smsNotifications && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>SMS (via add-on)</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* DevTools & Support */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <Settings className="text-primary-600" size={20} />
+                              DevTools & Support
+                            </h4>
+                            <ul className="space-y-2 text-sm">
+                              {plan.features?.apiAccess && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Full API Access</span>
+                                </li>
+                              )}
+                              {plan.features?.whiteLabel && (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>White-label Branding</span>
+                                </li>
+                              )}
+                              {plan.features?.prioritySupport ? (
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>Priority Support ({plan.features?.supportResponseTime || '2 hours'})</span>
+                                </li>
+                              ) : (
+                                <li className="flex items-start gap-2">
+                                  <XCircle size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                                  <span className="text-gray-500">Standard Support</span>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="mt-6 pt-6 border-t">
+                          <Button
+                            fullWidth
+                            size="lg"
+                            variant={currentPlan?.id === plan.id ? 'outline' : 'primary'}
+                            onClick={() => {
+                              setSelectedPlan(plan)
+                              setShowUpgradeModal(true)
+                            }}
+                            disabled={currentPlan?.id === plan.id}
+                          >
+                            {currentPlan?.id === plan.id ? (
+                              <>
+                                <CheckCircle size={18} className="mr-2" />
+                                Current Plan
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard size={18} className="mr-2" />
+                                Upgrade to {plan.name}
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
-                  <Button
-                    fullWidth
-                    variant={currentPlan?.id === plan.id ? 'outline' : 'primary'}
-                    onClick={() => {
-                      setSelectedPlan(plan)
-                      setShowUpgradeModal(true)
-                    }}
-                    disabled={currentPlan?.id === plan.id}
-                  >
-                    {currentPlan?.id === plan.id ? 'Current Plan' : 'Upgrade Now'}
-                  </Button>
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
