@@ -6,6 +6,7 @@ import ParticlesBackground from '../../components/background/ParticlesBackground
 import Logo from '../../components/ui/Logo'
 
 const LandingPage = () => {
+  // Landing page component
   const { user } = useAuth()
 
   const features = [
