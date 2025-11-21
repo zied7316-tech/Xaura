@@ -795,6 +795,58 @@ const approvePixelPurchase = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Fix missing subscriptions for all salons (Migration helper)
+ * @route   POST /api/super-admin/subscriptions/fix-missing
+ * @access  Private (SuperAdmin)
+ */
+const fixMissingSubscriptions = async (req, res, next) => {
+  try {
+    const Salon = require('../models/Salon');
+    const salons = await Salon.find({}).populate('ownerId', '_id');
+    
+    let created = 0;
+    let skipped = 0;
+    let errors = [];
+
+    for (const salon of salons) {
+      try {
+        // Check if subscription exists
+        const existing = await Subscription.findOne({ salonId: salon._id });
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        // Get owner ID
+        const ownerId = salon.ownerId?._id || salon.ownerId;
+        if (!ownerId) {
+          errors.push(`Salon ${salon.name} (${salon._id}) has no owner`);
+          continue;
+        }
+
+        // Create trial subscription
+        await Subscription.create(createTrialSubscription(salon._id, ownerId));
+        created++;
+      } catch (error) {
+        errors.push(`Error creating subscription for salon ${salon.name}: ${error.message}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Fixed missing subscriptions: ${created} created, ${skipped} already exist`,
+      data: {
+        created,
+        skipped,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   // Super Admin exports
   getAllSubscriptions,
@@ -804,6 +856,7 @@ module.exports = {
   cancelSubscription,
   reactivateSubscription,
   createSubscription,
+  fixMissingSubscriptions,
   getPendingUpgrades,
   approveUpgrade,
   getPendingSmsPurchases,
