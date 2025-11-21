@@ -217,7 +217,7 @@ const SubscriptionPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Subscription & Plans</h1>
-          <p className="text-gray-600 mt-1">Manage your subscription, plans, and add-ons</p>
+          <p className="text-gray-600 mt-1">Choose your plan and optional add-ons - purchase only what you need</p>
         </div>
       </div>
 
@@ -954,82 +954,95 @@ const SubscriptionPage = () => {
         </CardContent>
       </Card>
 
-      {/* Add-ons */}
+      {/* Optional Add-ons */}
       {addOns && (
-        <div className="grid md:grid-cols-2 gap-6 -mt-2">
-          {/* SMS Credits */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="text-blue-600" size={20} />
-                SMS Credits
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 mb-4">
-                Purchase SMS credits for sending reminders and notifications
-              </p>
-              <div className="space-y-2 mb-4">
-                {addOns.smsCredits?.packages?.map((pkg) => (
-                  <div
-                    key={pkg.credits}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                    onClick={() => {
-                      setSelectedSmsPackage(pkg)
-                      setShowSmsModal(true)
-                    }}
-                  >
-                    <span className="font-medium">{pkg.credits} SMS</span>
-                    <span className="text-primary-600 font-semibold">
-                      {formatCurrency(pkg.price)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                fullWidth
-                onClick={() => {
-                  setShowSmsModal(true)
-                }}
-              >
-                <ShoppingCart size={16} className="mr-2" />
-                Purchase Credits
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Pixel Tracking */}
-          {currentPlan?.id !== 'enterprise' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="text-purple-600" size={20} />
-                  Pixel Tracking
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+        <Card className="-mt-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Optional Add-ons</CardTitle>
+              <Badge variant="default" className="bg-gray-100 text-gray-600 text-xs">
+                Optional - Purchase only what you need
+              </Badge>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Enhance your plan with optional add-ons. You can purchase these anytime, or skip them if you don't need them.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* SMS Credits */}
+              <div className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="text-blue-600" size={20} />
+                  <h3 className="font-semibold text-gray-900">SMS Credits</h3>
+                  <Badge variant="default" className="bg-blue-50 text-blue-700 text-xs ml-auto">
+                    Optional
+                  </Badge>
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
-                  Track conversions and optimize your ads with Facebook Pixel, TikTok Pixel, and Google Tag
+                  Purchase SMS credits for sending reminders and notifications
                 </p>
-                <div className="mb-4">
-                  <p className="text-2xl font-bold text-primary-600">
-                    {formatCurrency(addOns.pixelTracking?.price || 15)}
-                    <span className="text-sm font-normal text-gray-500">/month</span>
-                  </p>
+                <div className="space-y-2 mb-4">
+                  {addOns.smsCredits?.packages?.map((pkg) => (
+                    <div
+                      key={pkg.credits}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                      onClick={() => {
+                        setSelectedSmsPackage(pkg)
+                        setShowSmsModal(true)
+                      }}
+                    >
+                      <span className="font-medium">{pkg.credits} SMS</span>
+                      <span className="text-primary-600 font-semibold">
+                        {formatCurrency(pkg.price)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
                 <Button
                   variant="outline"
                   fullWidth
-                  onClick={() => setShowPixelModal(true)}
-                  disabled={subscription?.addOns?.pixelTracking?.active}
+                  onClick={() => {
+                    setShowSmsModal(true)
+                  }}
                 >
-                  {subscription?.addOns?.pixelTracking?.active ? 'Already Active' : 'Add Pixel Tracking'}
+                  <ShoppingCart size={16} className="mr-2" />
+                  Purchase Credits
                 </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              </div>
+
+              {/* Pixel Tracking */}
+              {currentPlan?.id !== 'enterprise' && (
+                <div className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-300 transition-colors">
+                  <div className="flex items-center gap-2 mb-3">
+                    <BarChart3 className="text-purple-600" size={20} />
+                    <h3 className="font-semibold text-gray-900">Pixel Tracking</h3>
+                    <Badge variant="default" className="bg-purple-50 text-purple-700 text-xs ml-auto">
+                      Optional
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Track conversions and optimize your ads with Facebook Pixel, TikTok Pixel, and Google Tag
+                  </p>
+                  <div className="mb-4">
+                    <p className="text-2xl font-bold text-primary-600">
+                      {formatCurrency(addOns.pixelTracking?.price || 15)}
+                      <span className="text-sm font-normal text-gray-500">/month</span>
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    onClick={() => setShowPixelModal(true)}
+                    disabled={subscription?.addOns?.pixelTracking?.active}
+                  >
+                    {subscription?.addOns?.pixelTracking?.active ? 'Already Active' : 'Add Pixel Tracking'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Trial Confirmation Modal */}
