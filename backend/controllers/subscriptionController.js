@@ -278,14 +278,16 @@ const createSubscription = async (req, res, next) => {
  */
 const getMySubscription = async (req, res, next) => {
   try {
-    const { salonId } = await getOwnerSalon(req.user.id);
+    const ownerSalon = await getOwnerSalon(req.user.id);
     
-    if (!salonId) {
+    if (!ownerSalon || !ownerSalon.salonId) {
       return res.status(404).json({
         success: false,
-        message: 'Salon not found'
+        message: 'Salon not found. Please create a salon first.'
       });
     }
+
+    const { salonId } = ownerSalon;
 
     let subscription = await Subscription.findOne({ salonId })
       .populate('salonId', 'name')
@@ -321,14 +323,16 @@ const getMySubscription = async (req, res, next) => {
  */
 const confirmTrial = async (req, res, next) => {
   try {
-    const { salonId } = await getOwnerSalon(req.user.id);
+    const ownerSalon = await getOwnerSalon(req.user.id);
     
-    if (!salonId) {
+    if (!ownerSalon || !ownerSalon.salonId) {
       return res.status(404).json({
         success: false,
-        message: 'Salon not found'
+        message: 'Salon not found. Please create a salon first.'
       });
     }
+
+    const { salonId } = ownerSalon;
 
     const subscription = await Subscription.findOne({ salonId });
 
@@ -367,14 +371,16 @@ const confirmTrial = async (req, res, next) => {
 const requestPlanUpgrade = async (req, res, next) => {
   try {
     const { plan, billingInterval, paymentMethod, paymentNote } = req.body;
-    const { salonId } = await getOwnerSalon(req.user.id);
+    const ownerSalon = await getOwnerSalon(req.user.id);
     
-    if (!salonId) {
+    if (!ownerSalon || !ownerSalon.salonId) {
       return res.status(404).json({
         success: false,
-        message: 'Salon not found'
+        message: 'Salon not found. Please create a salon first.'
       });
     }
+
+    const { salonId } = ownerSalon;
 
     const interval = billingInterval || 'month';
     const planDetails = getPlanDetails(plan, interval);
@@ -458,14 +464,16 @@ const getAvailablePlans = async (req, res, next) => {
 const purchaseSmsCredits = async (req, res, next) => {
   try {
     const { packageType, paymentMethod, paymentNote } = req.body;
-    const { salonId } = await getOwnerSalon(req.user.id);
+    const ownerSalon = await getOwnerSalon(req.user.id);
     
-    if (!salonId) {
+    if (!ownerSalon || !ownerSalon.salonId) {
       return res.status(404).json({
         success: false,
-        message: 'Salon not found'
+        message: 'Salon not found. Please create a salon first.'
       });
     }
+
+    const { salonId } = ownerSalon;
 
     const addOns = getAllAddOns();
     const smsPackages = addOns.smsCredits.packages;
@@ -523,14 +531,16 @@ const purchaseSmsCredits = async (req, res, next) => {
 const purchasePixelTracking = async (req, res, next) => {
   try {
     const { paymentMethod, paymentNote } = req.body;
-    const { salonId } = await getOwnerSalon(req.user.id);
+    const ownerSalon = await getOwnerSalon(req.user.id);
     
-    if (!salonId) {
+    if (!ownerSalon || !ownerSalon.salonId) {
       return res.status(404).json({
         success: false,
-        message: 'Salon not found'
+        message: 'Salon not found. Please create a salon first.'
       });
     }
+
+    const { salonId } = ownerSalon;
 
     const subscription = await Subscription.findOne({ salonId });
 
