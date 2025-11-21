@@ -293,11 +293,7 @@ const getMySubscription = async (req, res, next) => {
 
     // If no subscription exists, create a trial one
     if (!subscription) {
-      subscription = await Subscription.create({
-        salonId,
-        ownerId: req.user.id,
-        status: 'trial'
-      });
+      subscription = await Subscription.create(createTrialSubscription(salonId, req.user.id));
     }
 
     // Check trial status

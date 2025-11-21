@@ -113,13 +113,22 @@ const createSalonAccount = async (req, res, next) => {
 
     // Step 5: Create trial subscription automatically
     const Subscription = require('../models/Subscription');
+    const { TRIAL_CONFIG } = require('../config/subscriptionPlans');
+    const now = new Date();
     await Subscription.create({
       salonId: salon._id,
       ownerId: owner._id,
       plan: null, // No plan during trial
       status: 'trial',
       monthlyFee: 0,
-      price: 0
+      price: 0,
+      trial: {
+        startDate: now,
+        endDate: new Date(now.getTime() + TRIAL_CONFIG.initialTrialDays * 24 * 60 * 60 * 1000),
+        confirmationDay: new Date(now.getTime() + TRIAL_CONFIG.confirmationDay * 24 * 60 * 60 * 1000)
+      },
+      currentPeriodStart: now,
+      currentPeriodEnd: new Date(now.getTime() + TRIAL_CONFIG.initialTrialDays * 24 * 60 * 60 * 1000)
     });
 
     // Generate authentication token

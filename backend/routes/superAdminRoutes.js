@@ -18,6 +18,7 @@ const {
   cancelSubscription,
   reactivateSubscription,
   createSubscription,
+  fixMissingSubscriptions,
   getPendingUpgrades,
   approveUpgrade,
   getPendingSmsPurchases,
@@ -40,6 +41,7 @@ router.get('/analytics/growth', protect, authorize('SuperAdmin'), getGrowthAnaly
 // Subscription routes
 router.get('/subscriptions', protect, authorize('SuperAdmin'), getAllSubscriptions);
 router.post('/subscriptions', protect, authorize('SuperAdmin'), createSubscription);
+router.post('/subscriptions/fix-missing', protect, authorize('SuperAdmin'), fixMissingSubscriptions);
 
 // Approval routes - MUST come before /subscriptions/:id to avoid route conflicts
 router.get('/subscriptions/pending-upgrades', protect, authorize('SuperAdmin'), getPendingUpgrades);
