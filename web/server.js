@@ -10,7 +10,26 @@ const __dirname = dirname(__filename);
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const distPath = resolve(__dirname, 'dist');
+const indexPath = join(distPath, 'index.html');
 
+// CRITICAL: Validate dist folder exists BEFORE starting server
+console.log('🔍 Validating build files...');
+if (!existsSync(distPath)) {
+  console.error(`❌ CRITICAL ERROR: dist folder does not exist at ${distPath}`);
+  console.error('   The build step may have failed. Check Railway build logs.');
+  console.error('   Expected build command: npm run build');
+  process.exit(1);
+}
+
+if (!existsSync(indexPath)) {
+  console.error(`❌ CRITICAL ERROR: index.html not found in dist folder`);
+  console.error(`   Path checked: ${indexPath}`);
+  console.error('   The build step may have failed. Check Railway build logs.');
+  process.exit(1);
+}
+
+console.log(`✅ dist folder exists: ${distPath}`);
+console.log(`✅ index.html found`);
 console.log(`🚀 Starting server on port ${PORT}`);
 console.log(`📁 Serving from: ${distPath}`);
 console.log(`🔧 PORT env var: ${process.env.PORT || 'not set (using default 3000)'}`);
@@ -66,6 +85,20 @@ function serveFile(filePath, res) {
 }
 
 const server = createServer((req, res) => {
+  // Health check endpoint - respond immediately (used by Railway)
+  if (req.url === '/health' || req.url === '/healthcheck') {
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    }));
+    return;
+  }
+
   let filePath = req.url === '/' ? '/index.html' : req.url;
   
   // Remove query string
@@ -87,7 +120,6 @@ const server = createServer((req, res) => {
 
   // If file not found and it's not a root request, try index.html (SPA routing)
   if (filePath !== '/index.html') {
-    const indexPath = join(distPath, 'index.html');
     if (serveFile(indexPath, res)) {
       return;
     }
