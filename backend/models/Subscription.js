@@ -16,14 +16,10 @@ const subscriptionSchema = new mongoose.Schema({
   // Subscription Plan
   plan: {
     type: String,
-    enum: {
-      values: ['basic', 'pro', 'enterprise'],
-      message: 'Plan must be one of: basic, pro, enterprise'
-    },
     default: null, // No default - must choose a plan after trial
     validate: {
       validator: function(v) {
-        return v === null || ['basic', 'pro', 'enterprise'].includes(v)
+        return v === null || v === undefined || ['basic', 'pro', 'enterprise'].includes(v)
       },
       message: 'Plan must be null or one of: basic, pro, enterprise'
     }
@@ -135,14 +131,10 @@ const subscriptionSchema = new mongoose.Schema({
   // Plan upgrade request (cash payment)
   requestedPlan: {
     type: String,
-    enum: {
-      values: ['basic', 'pro', 'enterprise'],
-      message: 'Requested plan must be one of: basic, pro, enterprise'
-    },
     default: null,
     validate: {
       validator: function(v) {
-        return v === null || ['basic', 'pro', 'enterprise'].includes(v)
+        return v === null || v === undefined || ['basic', 'pro', 'enterprise'].includes(v)
       },
       message: 'Requested plan must be null or one of: basic, pro, enterprise'
     }
@@ -161,14 +153,10 @@ const subscriptionSchema = new mongoose.Schema({
   },
   upgradeStatus: {
     type: String,
-    enum: {
-      values: ['pending', 'approved', 'rejected'],
-      message: 'Upgrade status must be one of: pending, approved, rejected'
-    },
     default: null,
     validate: {
       validator: function(v) {
-        return v === null || ['pending', 'approved', 'rejected'].includes(v)
+        return v === null || v === undefined || ['pending', 'approved', 'rejected'].includes(v)
       },
       message: 'Upgrade status must be null or one of: pending, approved, rejected'
     }
@@ -229,14 +217,10 @@ const subscriptionSchema = new mongoose.Schema({
       },
       autoRechargePackage: {
         type: String,
-        enum: {
-          values: ['100', '500', '2000'],
-          message: 'Auto recharge package must be one of: 100, 500, 2000'
-        },
         default: null,
         validate: {
           validator: function(v) {
-            return v === null || ['100', '500', '2000'].includes(v)
+            return v === null || v === undefined || ['100', '500', '2000'].includes(v)
           },
           message: 'Auto recharge package must be null or one of: 100, 500, 2000'
         }
