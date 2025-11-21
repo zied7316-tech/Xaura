@@ -89,14 +89,18 @@ const server = createServer((req, res) => {
   const urlPath = req.url?.split('?')[0] || '';
   
   if (urlPath === '/health' || urlPath === '/healthcheck') {
+    // Log health check requests for debugging
+    console.log(`[HEALTH] Health check requested from ${req.headers['user-agent'] || 'unknown'}`);
     res.writeHead(200, { 
       'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
     });
     res.end(JSON.stringify({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      port: PORT
     }));
     return;
   }

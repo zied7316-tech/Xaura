@@ -8,5 +8,5 @@ cmds = ['npm ci --omit=dev || npm install --omit=dev']
 cmds = ['npm run build']
 
 [start]
-cmd = 'npm run start'
+cmd = 'node server.js'
 
