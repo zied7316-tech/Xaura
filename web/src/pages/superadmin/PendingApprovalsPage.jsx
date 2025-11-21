@@ -23,7 +23,7 @@ const PendingApprovalsPage = () => {
   const [pendingSms, setPendingSms] = useState([])
   const [pendingPixel, setPendingPixel] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('upgrades') // upgrades, sms, pixel
+  const [activeTab, setActiveTab] = useState('all') // all, upgrades, sms, pixel
   const [approving, setApproving] = useState(null)
 
   useEffect(() => {
@@ -113,7 +113,83 @@ const PendingApprovalsPage = () => {
     )
   }
 
+  // Group all requests by subscription/owner
+  const groupedRequests = () => {
+    const groups = new Map()
+    
+    // Add upgrades
+    pendingUpgrades.forEach(sub => {
+      const key = sub._id.toString()
+      if (!groups.has(key)) {
+        groups.set(key, {
+          subscriptionId: sub._id,
+          salonId: sub.salonId,
+          ownerId: sub.ownerId,
+          upgrade: null,
+          sms: null,
+          pixel: null
+        })
+      }
+      groups.get(key).upgrade = sub
+    })
+    
+    // Add SMS requests
+    pendingSms.forEach(sub => {
+      const key = sub._id.toString()
+      if (!groups.has(key)) {
+        groups.set(key, {
+          subscriptionId: sub._id,
+          salonId: sub.salonId,
+          ownerId: sub.ownerId,
+          upgrade: null,
+          sms: null,
+          pixel: null
+        })
+      }
+      groups.get(key).sms = sub
+    })
+    
+    // Add Pixel requests
+    pendingPixel.forEach(sub => {
+      const key = sub._id.toString()
+      if (!groups.has(key)) {
+        groups.set(key, {
+          subscriptionId: sub._id,
+          salonId: sub.salonId,
+          ownerId: sub.ownerId,
+          upgrade: null,
+          sms: null,
+          pixel: null
+        })
+      }
+      groups.get(key).pixel = sub
+    })
+    
+    return Array.from(groups.values())
+  }
+
+  const grouped = groupedRequests()
   const totalPending = pendingUpgrades.length + pendingSms.length + pendingPixel.length
+
+  const handleApproveAll = async (subscriptionId, hasUpgrade, hasSms, hasPixel) => {
+    if (!confirm('Approve all pending requests for this subscription? This will activate the plan and all add-ons immediately.')) return
+
+    setApproving(`all-${subscriptionId}`)
+    try {
+      const promises = []
+      if (hasUpgrade) promises.push(superAdminService.approveUpgrade(subscriptionId))
+      if (hasSms) promises.push(superAdminService.approveSmsPurchase(subscriptionId))
+      if (hasPixel) promises.push(superAdminService.approvePixelPurchase(subscriptionId))
+      
+      await Promise.all(promises)
+      toast.success('All requests approved successfully!')
+      await loadPendingRequests()
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to approve some requests')
+    } finally {
+      setApproving(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -130,10 +206,26 @@ const PendingApprovalsPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === 'all'
+              ? 'border-primary-600 text-primary-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Calendar size={18} />
+            All Requests
+            {grouped.length > 0 && (
+              <Badge variant="warning" className="ml-2">{grouped.length}</Badge>
+            )}
+          </div>
+        </button>
         <button
           onClick={() => setActiveTab('upgrades')}
-          className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+          className={`px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'upgrades'
               ? 'border-primary-600 text-primary-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -149,7 +241,7 @@ const PendingApprovalsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab('sms')}
-          className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+          className={`px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'sms'
               ? 'border-primary-600 text-primary-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -165,7 +257,7 @@ const PendingApprovalsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab('pixel')}
-          className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+          className={`px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'pixel'
               ? 'border-primary-600 text-primary-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -180,6 +272,224 @@ const PendingApprovalsPage = () => {
           </div>
         </button>
       </div>
+
+      {/* All Requests - Grouped by Owner/Salon */}
+      {activeTab === 'all' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>All Pending Requests ({grouped.length})</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">All pending requests grouped by owner/salon</p>
+          </CardHeader>
+          <CardContent>
+            {grouped.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
+                <p>No pending requests</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {grouped.map((group) => {
+                  const hasUpgrade = !!group.upgrade
+                  const hasSms = !!group.sms
+                  const hasPixel = !!group.pixel
+                  const requestCount = [hasUpgrade, hasSms, hasPixel].filter(Boolean).length
+                  
+                  return (
+                    <div
+                      key={group.subscriptionId}
+                      className="p-6 border-2 border-primary-200 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg"
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-bold text-xl text-gray-900">
+                              {group.salonId?.name || 'Unknown Salon'}
+                            </h3>
+                            <Badge variant="warning" className="text-sm">
+                              {requestCount} Request{requestCount > 1 ? 's' : ''}
+                            </Badge>
+                          </div>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-600">Owner</p>
+                              <p className="font-medium">{group.ownerId?.name}</p>
+                              <p className="text-sm text-gray-500">{group.ownerId?.email}</p>
+                              <p className="text-sm text-gray-500">{group.ownerId?.phone}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Salon</p>
+                              <p className="font-medium">{group.salonId?.name || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                        {requestCount > 1 && (
+                          <Button
+                            onClick={() => handleApproveAll(group.subscriptionId, hasUpgrade, hasSms, hasPixel)}
+                            loading={approving === `all-${group.subscriptionId}`}
+                            className="ml-4"
+                          >
+                            <CheckCircle size={16} className="mr-2" />
+                            Approve All
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Requests List */}
+                      <div className="space-y-4 mt-4 pt-4 border-t border-primary-200">
+                        {/* Upgrade Request */}
+                        {hasUpgrade && (
+                          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <TrendingUp className="text-yellow-600" size={20} />
+                                  <span className="font-semibold text-gray-900">Plan Upgrade Request</span>
+                                  {getPlanBadge(group.upgrade.requestedPlan)}
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <p className="text-gray-600">Requested Plan:</p>
+                                    <p className="font-semibold text-primary-600">
+                                      {formatCurrency(group.upgrade.requestedPlanPrice || 0)} / {group.upgrade.requestedBillingInterval || 'month'}
+                                    </p>
+                                    {group.upgrade.requestedBillingInterval === 'year' && (
+                                      <p className="text-xs text-green-600 mt-1">Annual billing (20% discount)</p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600">Payment Method:</p>
+                                    <p className="font-medium">{group.upgrade.paymentMethod || 'Cash'}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Requested: {formatDate(group.upgrade.upgradeRequestedAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                                {group.upgrade.paymentNote && (
+                                  <div className="mt-2 p-2 bg-white rounded border border-yellow-300">
+                                    <p className="text-xs font-medium text-gray-700">Payment Note:</p>
+                                    <p className="text-xs text-gray-600">{group.upgrade.paymentNote}</p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-4">
+                                <Button
+                                  onClick={() => handleApproveUpgrade(group.subscriptionId)}
+                                  loading={approving === `upgrade-${group.subscriptionId}`}
+                                  size="sm"
+                                >
+                                  <CheckCircle size={14} className="mr-1" />
+                                  Approve
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* SMS Request */}
+                        {hasSms && (
+                          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <MessageSquare className="text-blue-600" size={20} />
+                                  <span className="font-semibold text-gray-900">SMS Credits Purchase</span>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <p className="text-gray-600">Package:</p>
+                                    <p className="font-semibold text-primary-600">
+                                      {group.sms.smsCreditPurchase?.credits || 0} SMS Credits
+                                    </p>
+                                    <p className="text-gray-600">
+                                      Price: {formatCurrency(group.sms.smsCreditPurchase?.price || 0)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600">Payment Method:</p>
+                                    <p className="font-medium">{group.sms.smsCreditPurchase?.paymentMethod || 'Cash'}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Requested: {formatDate(group.sms.smsCreditPurchase?.requestedAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                                {group.sms.smsCreditPurchase?.paymentNote && (
+                                  <div className="mt-2 p-2 bg-white rounded border border-blue-300">
+                                    <p className="text-xs font-medium text-gray-700">Payment Note:</p>
+                                    <p className="text-xs text-gray-600">{group.sms.smsCreditPurchase.paymentNote}</p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-4">
+                                <Button
+                                  onClick={() => handleApproveSms(group.subscriptionId)}
+                                  loading={approving === `sms-${group.subscriptionId}`}
+                                  size="sm"
+                                  variant="primary"
+                                >
+                                  <CheckCircle size={14} className="mr-1" />
+                                  Approve
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Pixel Request */}
+                        {hasPixel && (
+                          <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <BarChart3 className="text-purple-600" size={20} />
+                                  <span className="font-semibold text-gray-900">Pixel Tracking Add-on</span>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <p className="text-gray-600">Add-on:</p>
+                                    <p className="font-semibold text-primary-600">Pixel Tracking</p>
+                                    <p className="text-gray-600">
+                                      Price: {formatCurrency(group.pixel.pixelTrackingPurchase?.price || 15)} / month
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600">Payment Method:</p>
+                                    <p className="font-medium">{group.pixel.pixelTrackingPurchase?.paymentMethod || 'Cash'}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Requested: {formatDate(group.pixel.pixelTrackingPurchase?.requestedAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                                {group.pixel.pixelTrackingPurchase?.paymentNote && (
+                                  <div className="mt-2 p-2 bg-white rounded border border-purple-300">
+                                    <p className="text-xs font-medium text-gray-700">Payment Note:</p>
+                                    <p className="text-xs text-gray-600">{group.pixel.pixelTrackingPurchase.paymentNote}</p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-4">
+                                <Button
+                                  onClick={() => handleApprovePixel(group.subscriptionId)}
+                                  loading={approving === `pixel-${group.subscriptionId}`}
+                                  size="sm"
+                                  variant="primary"
+                                >
+                                  <CheckCircle size={14} className="mr-1" />
+                                  Approve
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending Upgrades */}
       {activeTab === 'upgrades' && (
