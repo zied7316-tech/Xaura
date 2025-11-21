@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { Calendar, Users, TrendingUp } from 'lucide-react'
+import { Calendar, Users, TrendingUp, QrCode } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import ParticlesBackground from '../../components/background/ParticlesBackground'
-import Logo from '../../components/ui/Logo'
 import Logo from '../../components/ui/Logo'
 
 const LandingPage = () => {
