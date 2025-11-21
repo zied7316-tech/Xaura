@@ -86,17 +86,35 @@ function serveFile(filePath, res) {
 
 const server = createServer((req, res) => {
   // Health check endpoint - respond immediately (used by Railway)
-  if (req.url === '/health' || req.url === '/healthcheck') {
-    res.writeHead(200, { 
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache'
-    });
-    res.end(JSON.stringify({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    }));
-    return;
+  // Handle both /health and /healthcheck for compatibility
+  const urlPath = req.url?.split('?')[0] || '';
+  if (urlPath === '/health' || urlPath === '/healthcheck' || urlPath === '/') {
+    // For root path, check if it's a health check (no Accept header or JSON expected)
+    if (urlPath === '/' && req.headers['user-agent']?.includes('Railway')) {
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      });
+      res.end(JSON.stringify({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      }));
+      return;
+    }
+    // Explicit health check endpoints
+    if (urlPath === '/health' || urlPath === '/healthcheck') {
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      });
+      res.end(JSON.stringify({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      }));
+      return;
+    }
   }
 
   let filePath = req.url === '/' ? '/index.html' : req.url;
