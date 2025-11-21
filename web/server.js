@@ -130,10 +130,19 @@ const server = createServer((req, res) => {
   res.end('Not Found');
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server listening on http://0.0.0.0:${PORT}`);
-  console.log(`✅ Health check: http://0.0.0.0:${PORT}/`);
-});
+// Start server with error handling
+try {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server listening on http://0.0.0.0:${PORT}`);
+    console.log(`✅ Health check: http://0.0.0.0:${PORT}/health`);
+    console.log(`✅ Main page: http://0.0.0.0:${PORT}/`);
+    console.log(`✅ Ready to serve requests!`);
+  });
+} catch (error) {
+  console.error('❌ Failed to start server:', error.message);
+  console.error('   Stack:', error.stack);
+  process.exit(1);
+}
 
 server.on('error', (err) => {
   console.error('❌ Server error:', err.message);
@@ -144,31 +153,43 @@ server.on('error', (err) => {
 });
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('⚠️  SIGTERM received. Shutting down gracefully...');
-  server.close(() => {
-    console.log('✅ HTTP server closed');
-    process.exit(0);
-  });
-  
-  // Force exit after 10 seconds
-  setTimeout(() => {
-    console.log('⚠️  Force exiting after timeout');
-    process.exit(0);
-  }, 10000);
-});
+let shuttingDown = false;
 
-process.on('SIGINT', () => {
-  console.log('⚠️  SIGINT received. Shutting down gracefully...');
-  server.close(() => {
-    console.log('✅ HTTP server closed');
+function gracefulShutdown(signal) {
+  if (shuttingDown) {
+    console.log(`⚠️  ${signal} received again, forcing exit...`);
+    process.exit(0);
+    return;
+  }
+  shuttingDown = true;
+  
+  console.log(`⚠️  ${signal} received. Shutting down gracefully...`);
+  
+  server.close((err) => {
+    if (err) {
+      console.error('❌ Error closing server:', err.message);
+      process.exit(1);
+    }
+    console.log('✅ HTTP server closed gracefully');
     process.exit(0);
   });
   
-  // Force exit after 10 seconds
+  // Force exit after 5 seconds (Railway gives 10 seconds, but we'll be faster)
   setTimeout(() => {
     console.log('⚠️  Force exiting after timeout');
     process.exit(0);
-  }, 10000);
+  }, 5000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Keep process alive and log that we're ready
+process.on('exit', (code) => {
+  if (code === 0) {
+    console.log(`✅ Process exiting cleanly`);
+  } else {
+    console.log(`⚠️  Process exiting with code ${code}`);
+  }
 });
 
