@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
-import { QrCode, CheckCircle } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
+import Logo from '../../components/ui/Logo'
 import { USER_ROLES } from '../../utils/constants'
 import toast from 'react-hot-toast'
 
@@ -81,8 +82,8 @@ const RegisterPage = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-full mb-4">
-            <QrCode className="text-white" size={32} />
+          <div className="flex justify-center mb-4">
+            <Logo size="xl" showText={true} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
           <p className="text-gray-600 mt-2">Join Xaura today</p>

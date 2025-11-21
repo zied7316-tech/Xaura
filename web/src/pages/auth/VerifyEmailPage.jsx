@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { authService } from '../../services/authService'
 import Button from '../../components/ui/Button'
-import { QrCode, CheckCircle, XCircle, Mail } from 'lucide-react'
+import { CheckCircle, XCircle, Mail } from 'lucide-react'
+import Logo from '../../components/ui/Logo'
 import toast from 'react-hot-toast'
 
 const VerifyEmailPage = () => {
@@ -64,8 +65,8 @@ const VerifyEmailPage = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-full mb-4">
-            <QrCode className="text-white" size={32} />
+          <div className="flex justify-center mb-4">
+            <Logo size="xl" showText={true} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Email Verification</h1>
         </div>
