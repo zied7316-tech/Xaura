@@ -16,9 +16,17 @@ const subscriptionSchema = new mongoose.Schema({
   // Subscription Plan
   plan: {
     type: String,
-    enum: ['basic', 'pro', 'enterprise'],
+    enum: {
+      values: ['basic', 'pro', 'enterprise'],
+      message: 'Plan must be one of: basic, pro, enterprise'
+    },
     default: null, // No default - must choose a plan after trial
-    required: false // Allow null during trial
+    validate: {
+      validator: function(v) {
+        return v === null || ['basic', 'pro', 'enterprise'].includes(v)
+      },
+      message: 'Plan must be null or one of: basic, pro, enterprise'
+    }
   },
   // Pricing (in Tunisian Dinar - TND)
   monthlyFee: {
@@ -127,9 +135,17 @@ const subscriptionSchema = new mongoose.Schema({
   // Plan upgrade request (cash payment)
   requestedPlan: {
     type: String,
-    enum: ['basic', 'pro', 'enterprise'],
+    enum: {
+      values: ['basic', 'pro', 'enterprise'],
+      message: 'Requested plan must be one of: basic, pro, enterprise'
+    },
     default: null,
-    required: false // Allow null when no request
+    validate: {
+      validator: function(v) {
+        return v === null || ['basic', 'pro', 'enterprise'].includes(v)
+      },
+      message: 'Requested plan must be null or one of: basic, pro, enterprise'
+    }
   },
   requestedPlanPrice: {
     type: Number,
@@ -145,9 +161,17 @@ const subscriptionSchema = new mongoose.Schema({
   },
   upgradeStatus: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
+    enum: {
+      values: ['pending', 'approved', 'rejected'],
+      message: 'Upgrade status must be one of: pending, approved, rejected'
+    },
     default: null,
-    required: false // Allow null when no upgrade request
+    validate: {
+      validator: function(v) {
+        return v === null || ['pending', 'approved', 'rejected'].includes(v)
+      },
+      message: 'Upgrade status must be null or one of: pending, approved, rejected'
+    }
   },
   upgradeRequestedAt: {
     type: Date,
@@ -205,9 +229,17 @@ const subscriptionSchema = new mongoose.Schema({
       },
       autoRechargePackage: {
         type: String,
-        enum: ['100', '500', '2000'],
+        enum: {
+          values: ['100', '500', '2000'],
+          message: 'Auto recharge package must be one of: 100, 500, 2000'
+        },
         default: null,
-        required: false // Allow null when auto-recharge is disabled
+        validate: {
+          validator: function(v) {
+            return v === null || ['100', '500', '2000'].includes(v)
+          },
+          message: 'Auto recharge package must be null or one of: 100, 500, 2000'
+        }
       }
     }
   },
