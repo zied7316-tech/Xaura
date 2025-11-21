@@ -2,13 +2,13 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useLanguage } from '../../context/LanguageContext'
 import DownloadAppButton from '../download/DownloadAppButton'
+import Logo from '../ui/Logo'
 import {  
   LayoutDashboard, 
   Store, 
   Scissors, 
   Users, 
   Calendar, 
-  QrCode, 
   X,
   DollarSign,
   Package,
@@ -101,10 +101,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         <div className="h-full flex flex-col">
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-6 border-b">
-            <div className="flex items-center gap-2">
-              <QrCode className="text-primary-600" size={28} />
-              <span className="font-bold text-lg">Xaura</span>
-            </div>
+            <Logo size="md" showText={true} linkTo="/" />
             <button onClick={onClose} className="lg:hidden text-gray-600">
               <X size={24} />
             </button>

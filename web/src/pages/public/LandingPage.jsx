@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { Calendar, QrCode, Users, TrendingUp } from 'lucide-react'
+import { Calendar, Users, TrendingUp } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import ParticlesBackground from '../../components/background/ParticlesBackground'
+import Logo from '../../components/ui/Logo'
+import Logo from '../../components/ui/Logo'
 
 const LandingPage = () => {
   const { user } = useAuth()
@@ -49,10 +51,7 @@ const LandingPage = () => {
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <QrCode className="text-primary-600" size={32} />
-              <span className="font-bold text-xl">Xaura</span>
-            </div>
+            <Logo size="lg" showText={true} linkTo="/" />
             <div className="flex items-center gap-4">
               {user ? (
                 <Link to={`/${user.role.toLowerCase()}/dashboard`}>
