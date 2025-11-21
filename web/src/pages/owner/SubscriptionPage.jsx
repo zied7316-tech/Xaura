@@ -95,23 +95,42 @@ const SubscriptionPage = () => {
   }
 
   const handleRequestUpgrade = async () => {
-    if (!selectedPlan) return
+    if (!selectedPlan) {
+      toast.error('Please select a plan first')
+      return
+    }
+    
+    if (requesting) {
+      return // Prevent double submission
+    }
     
     setRequesting(true)
     try {
+      console.log('Requesting upgrade:', {
+        plan: selectedPlan.id,
+        interval: billingInterval,
+        paymentMethod: 'cash',
+        note: paymentNote
+      })
+      
       const response = await subscriptionService.requestPlanUpgrade(
         selectedPlan.id,
         billingInterval,
         'cash',
         paymentNote
       )
+      
+      console.log('Upgrade response:', response)
+      
       toast.success(response.message || 'Upgrade request submitted successfully!')
       setShowUpgradeModal(false)
       setSelectedPlan(null)
       setPaymentNote('')
       await loadData()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to submit upgrade request')
+      console.error('Upgrade error:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit upgrade request'
+      toast.error(errorMessage)
     } finally {
       setRequesting(false)
     }
@@ -925,11 +944,18 @@ const SubscriptionPage = () => {
                             fullWidth
                             size="lg"
                             variant={currentPlan?.id === plan.id ? 'outline' : 'primary'}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              console.log('Upgrade button clicked for plan:', plan)
+                              if (!plan || !plan.id) {
+                                toast.error('Invalid plan selected')
+                                return
+                              }
                               setSelectedPlan(plan)
                               setShowUpgradeModal(true)
                             }}
-                            disabled={currentPlan?.id === plan.id}
+                            disabled={currentPlan?.id === plan.id || requesting}
                           >
                             {currentPlan?.id === plan.id ? (
                               <>
@@ -1086,54 +1112,62 @@ const SubscriptionPage = () => {
           setSelectedPlan(null)
           setPaymentNote('')
         }}
-        title={`Upgrade to ${selectedPlan?.name} Plan`}
+        title={selectedPlan ? `Upgrade to ${selectedPlan.name} Plan` : 'Upgrade Plan'}
       >
-        <div className="space-y-4">
-          <div className="p-4 bg-primary-50 rounded-lg">
-            <p className="font-semibold text-primary-900">
-              {formatCurrency(getPlanPrice(selectedPlan) || 0)} / {billingInterval === 'year' ? 'year' : 'month'}
-            </p>
-            {billingInterval === 'year' && (
-              <p className="text-sm text-green-600 font-semibold mt-1">
-                Save 20% with annual billing!
+        {selectedPlan ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-primary-50 rounded-lg">
+              <p className="font-semibold text-primary-900">
+                {formatCurrency(getPlanPrice(selectedPlan) || 0)} / {billingInterval === 'year' ? 'year' : 'month'}
               </p>
-            )}
-            <p className="text-sm text-primary-700 mt-1">
-              Payment will be processed manually via cash payment
-            </p>
+              {billingInterval === 'year' && (
+                <p className="text-sm text-green-600 font-semibold mt-1">
+                  Save 20% with annual billing!
+                </p>
+              )}
+              <p className="text-sm text-primary-700 mt-1">
+                Payment will be processed manually via cash payment
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment Note (Optional)
+              </label>
+              <Input
+                type="text"
+                value={paymentNote}
+                onChange={(e) => setPaymentNote(e.target.value)}
+                placeholder="Any additional information..."
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button
+                fullWidth
+                onClick={handleRequestUpgrade}
+                loading={requesting}
+                disabled={requesting}
+              >
+                Request Upgrade
+              </Button>
+              <Button
+                variant="outline"
+                fullWidth
+                onClick={() => {
+                  setShowUpgradeModal(false)
+                  setSelectedPlan(null)
+                  setPaymentNote('')
+                }}
+                disabled={requesting}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Note (Optional)
-            </label>
-            <Input
-              type="text"
-              value={paymentNote}
-              onChange={(e) => setPaymentNote(e.target.value)}
-              placeholder="Any additional information..."
-            />
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-gray-600">Loading plan details...</p>
           </div>
-          <div className="flex gap-3 pt-4">
-            <Button
-              fullWidth
-              onClick={handleRequestUpgrade}
-              loading={requesting}
-            >
-              Request Upgrade
-            </Button>
-            <Button
-              variant="outline"
-              fullWidth
-              onClick={() => {
-                setShowUpgradeModal(false)
-                setSelectedPlan(null)
-                setPaymentNote('')
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
+        )}
       </Modal>
 
       {/* SMS Purchase Modal */}
