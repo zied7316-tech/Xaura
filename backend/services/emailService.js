@@ -149,13 +149,46 @@ class EmailService {
           console.log(`[EMAIL] Attempting to send email via Resend...`);
           console.log(`[EMAIL] Email data:`, JSON.stringify({ ...emailData, html: emailData.html ? '[HTML content]' : undefined, text: emailData.text?.substring(0, 100) + '...' }, null, 2));
 
-          const result = await this.resend.emails.send(emailData);
+          let result;
+          try {
+            console.log(`[EMAIL] Calling Resend API...`);
+            result = await this.resend.emails.send(emailData);
+            console.log(`[EMAIL] Resend API call completed`);
+          } catch (apiError) {
+            console.error('[EMAIL] ❌ Resend API call threw exception:');
+            console.error('[EMAIL] Error type:', apiError.constructor.name);
+            console.error('[EMAIL] Error message:', apiError.message);
+            console.error('[EMAIL] Error stack:', apiError.stack);
+            console.error('[EMAIL] Full error:', JSON.stringify(apiError, Object.getOwnPropertyNames(apiError)));
+            
+            // Resend SDK might throw errors instead of returning {error}
+            return {
+              success: false,
+              error: apiError.message || 'Resend API call failed',
+              code: apiError.name || 'RESEND_EXCEPTION',
+              details: {
+                message: apiError.message,
+                name: apiError.name,
+                stack: apiError.stack
+              }
+            };
+          }
 
           // Log full response for debugging
           console.log(`[EMAIL] Resend API response type:`, typeof result);
           console.log(`[EMAIL] Resend API response:`, JSON.stringify(result, null, 2));
           console.log(`[EMAIL] Has error?:`, !!result.error);
           console.log(`[EMAIL] Has data?:`, !!result.data);
+          
+          // Check if result is null/undefined
+          if (!result) {
+            console.error('[EMAIL] ❌ Resend API returned null/undefined');
+            return {
+              success: false,
+              error: 'Resend API returned no response',
+              code: 'RESEND_NO_RESPONSE'
+            };
+          }
 
           // Resend API returns { data, error } structure
           if (result.error) {
