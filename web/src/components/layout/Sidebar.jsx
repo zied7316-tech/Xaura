@@ -21,7 +21,8 @@ import {
   FileText,
   MessageSquare,
   MapPin,
-  Wifi
+  Wifi,
+  QrCode
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
