@@ -11,8 +11,10 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB (non-blocking - server will start even if DB fails)
+connectDB().catch(err => {
+  console.error('Database connection failed, but server will continue:', err.message);
+});
 
 // CORS Configuration for Production
 const allowedOrigins = [
@@ -198,8 +200,17 @@ process.on('SIGINT', () => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
+
+// Add error handler for server listen
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`✅ Server listening on 0.0.0.0:${PORT}`);
+  console.log(`✅ Health check available at: http://0.0.0.0:${PORT}/`);
+}).on('error', (err) => {
+  console.error('❌ Server failed to start:', err.message);
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+  }
+  process.exit(1);
 });
 
