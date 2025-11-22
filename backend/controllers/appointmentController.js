@@ -188,6 +188,10 @@ const createAppointment = async (req, res, next) => {
       { path: 'salonId', select: 'name address phone ownerId' }
     ]);
 
+    // Create notifications for worker and owner
+    const salon = await Salon.findById(firstService.salonId);
+    const serviceNames = servicesToBook.map(s => s.name).join(', ');
+    
     // Log history for client and worker
     const { logUserHistory } = require('../utils/userHistoryLogger');
     
@@ -245,10 +249,6 @@ const createAppointment = async (req, res, next) => {
         req
       });
     }
-
-    // Create notifications for worker and owner
-    const salon = await Salon.findById(firstService.salonId);
-    const serviceNames = servicesToBook.map(s => s.name).join(', ');
     
     // Notify worker
     await createNotification({
