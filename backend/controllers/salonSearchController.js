@@ -102,7 +102,26 @@ const searchSalons = async (req, res, next) => {
  */
 const getSalonDetails = async (req, res, next) => {
   try {
-    const salon = await Salon.findById(req.params.id)
+    const salonId = req.params.id;
+
+    // Validate salon ID
+    if (!salonId || salonId === 'undefined' || salonId === 'null') {
+      return res.status(400).json({
+        success: false,
+        message: 'Salon ID is required'
+      });
+    }
+
+    // Validate MongoDB ObjectId format
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(salonId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid salon ID format'
+      });
+    }
+
+    const salon = await Salon.findById(salonId)
       .select('name description logo phone email address qrCode operatingHours createdAt');
 
     if (!salon) {

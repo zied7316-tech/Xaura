@@ -157,6 +157,13 @@ const BookAppointmentPage = () => {
   }, [selectedWorker, selectedDate, selectedService, selectedServices, numberOfPeople, peopleServices])
 
   const loadSalonDetails = async () => {
+    if (!salonIdParam) {
+      console.error('Salon ID is missing')
+      toast.error('Salon ID is required')
+      navigate('/search-salons')
+      return
+    }
+    
     try {
       const data = await salonSearchService.getSalonDetails(salonIdParam)
       setSalonDetails(data)

@@ -44,6 +44,13 @@ const SalonDetailsPage = () => {
   }, [salonId])
 
   const loadSalonDetails = async () => {
+    if (!salonId) {
+      console.error('Salon ID is missing')
+      toast.error('Salon ID is required')
+      navigate('/search-salons')
+      return
+    }
+    
     try {
       const data = await salonSearchService.getSalonDetails(salonId)
       setSalonData(data)

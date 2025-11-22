@@ -11,6 +11,9 @@ export const salonSearchService = {
 
   // Get salon details
   getSalonDetails: async (salonId) => {
+    if (!salonId || salonId === 'undefined' || salonId === 'null') {
+      throw new Error('Salon ID is required')
+    }
     const response = await axios.get(`${API_URL}/salon-search/${salonId}`)
     return response.data.data
   },
