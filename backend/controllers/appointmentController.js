@@ -182,11 +182,69 @@ const createAppointment = async (req, res, next) => {
 
     // Populate appointment details
     await appointment.populate([
-      { path: 'clientId', select: 'name email phone' },
-      { path: 'workerId', select: 'name email phone' },
+      { path: 'clientId', select: 'name email phone role' },
+      { path: 'workerId', select: 'name email phone role' },
       { path: 'serviceId', select: 'name duration price category' },
       { path: 'salonId', select: 'name address phone ownerId' }
     ]);
+
+    // Log history for client and worker
+    const { logUserHistory } = require('../utils/userHistoryLogger');
+    
+    // Check if this is client's first appointment
+    const previousAppointments = await Appointment.countDocuments({ 
+      clientId: req.user.id,
+      _id: { $ne: appointment._id }
+    });
+    
+    if (previousAppointments === 0) {
+      // First appointment
+      await logUserHistory({
+        userId: req.user.id,
+        userRole: 'Client',
+        action: 'first_appointment',
+        description: `Booked first appointment: ${serviceNames}`,
+        relatedEntity: {
+          type: 'Appointment',
+          id: appointment._id,
+          name: serviceNames
+        },
+        metadata: { salonId: firstService.salonId, workerId },
+        req
+      });
+    } else {
+      // Regular appointment
+      await logUserHistory({
+        userId: req.user.id,
+        userRole: 'Client',
+        action: 'appointment_booked',
+        description: `Booked appointment: ${serviceNames}`,
+        relatedEntity: {
+          type: 'Appointment',
+          id: appointment._id,
+          name: serviceNames
+        },
+        metadata: { salonId: firstService.salonId, workerId },
+        req
+      });
+    }
+
+    // Log for worker
+    if (appointment.workerId) {
+      await logUserHistory({
+        userId: appointment.workerId._id,
+        userRole: 'Worker',
+        action: 'appointment_created',
+        description: `New appointment booked by ${appointment.clientId.name}`,
+        relatedEntity: {
+          type: 'Appointment',
+          id: appointment._id,
+          name: serviceNames
+        },
+        metadata: { clientId: req.user.id, salonId: firstService.salonId },
+        req
+      });
+    }
 
     // Create notifications for worker and owner
     const salon = await Salon.findById(firstService.salonId);
@@ -403,15 +461,86 @@ const updateAppointmentStatus = async (req, res, next) => {
       });
     }
 
+    const oldStatus = appointment.status;
     appointment.status = status;
     await appointment.save();
 
     await appointment.populate([
-      { path: 'clientId', select: 'name email phone' },
-      { path: 'workerId', select: 'name email phone' },
+      { path: 'clientId', select: 'name email phone role' },
+      { path: 'workerId', select: 'name email phone role' },
       { path: 'serviceId', select: 'name duration price category' },
       { path: 'salonId', select: 'name address phone' }
     ]);
+
+    // Log history for status changes
+    const { logUserHistory } = require('../utils/userHistoryLogger');
+    
+    if (status === 'completed') {
+      // Log for client
+      if (appointment.clientId) {
+        await logUserHistory({
+          userId: appointment.clientId._id,
+          userRole: 'Client',
+          action: 'appointment_completed',
+          description: `Completed appointment at ${appointment.salonId?.name || 'salon'}`,
+          relatedEntity: {
+            type: 'Appointment',
+            id: appointment._id,
+            name: appointment.serviceId?.name || 'Service'
+          },
+          metadata: { salonId: appointment.salonId?._id, workerId: appointment.workerId?._id },
+          req
+        });
+      }
+      
+      // Log for worker
+      if (appointment.workerId) {
+        await logUserHistory({
+          userId: appointment.workerId._id,
+          userRole: 'Worker',
+          action: 'appointment_completed',
+          description: `Completed appointment with ${appointment.clientId?.name || 'client'}`,
+          relatedEntity: {
+            type: 'Appointment',
+            id: appointment._id,
+            name: appointment.serviceId?.name || 'Service'
+          },
+          metadata: { clientId: appointment.clientId?._id, salonId: appointment.salonId?._id },
+          req
+        });
+      }
+    } else if (status === 'cancelled') {
+      // Determine who cancelled
+      if (isClient && appointment.clientId) {
+        await logUserHistory({
+          userId: appointment.clientId._id,
+          userRole: 'Client',
+          action: 'appointment_cancelled_by_client',
+          description: `Cancelled appointment at ${appointment.salonId?.name || 'salon'}`,
+          relatedEntity: {
+            type: 'Appointment',
+            id: appointment._id,
+            name: appointment.serviceId?.name || 'Service'
+          },
+          metadata: { salonId: appointment.salonId?._id, workerId: appointment.workerId?._id },
+          req
+        });
+      } else if (isWorker && appointment.workerId) {
+        await logUserHistory({
+          userId: appointment.workerId._id,
+          userRole: 'Worker',
+          action: 'appointment_cancelled_by_worker',
+          description: `Cancelled appointment with ${appointment.clientId?.name || 'client'}`,
+          relatedEntity: {
+            type: 'Appointment',
+            id: appointment._id,
+            name: appointment.serviceId?.name || 'Service'
+          },
+          metadata: { clientId: appointment.clientId?._id, salonId: appointment.salonId?._id },
+          req
+        });
+      }
+    }
 
     // TODO: Trigger notification about status change
 
