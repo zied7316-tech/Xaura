@@ -17,7 +17,7 @@ const generateToken = (id) => {
  */
 const register = async (req, res, next) => {
   try {
-    const { email, password, name, phone, role, salonId } = req.body;
+    const { email, password, name, phone, role, salonId, birthday } = req.body;
 
     // Prevent anyone from registering as SuperAdmin via API
     if (role === 'SuperAdmin') {
@@ -48,6 +48,7 @@ const register = async (req, res, next) => {
       phone,
       role: role || 'Client',
       salonId: salonId || null,
+      birthday: birthday ? new Date(birthday) : null,
       emailVerificationToken: hashedVerificationToken,
       emailVerificationExpire: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     });
@@ -90,6 +91,7 @@ const register = async (req, res, next) => {
         role: user.role,
         salonId: user.salonId,
         avatar: user.avatar,
+        birthday: user.birthday,
         emailVerified: user.emailVerified,
       },
       message: emailSent 
@@ -144,6 +146,7 @@ const login = async (req, res, next) => {
         role: user.role,
         salonId: user.salonId,
         avatar: user.avatar,
+        birthday: user.birthday,
       },
     });
   } catch (error) {
@@ -191,6 +194,7 @@ const verifyToken = async (req, res, next) => {
         role: user.role,
         salonId: user.salonId,
         avatar: user.avatar,
+        birthday: user.birthday,
       },
     });
   } catch (error) {
@@ -221,6 +225,7 @@ const getMe = async (req, res, next) => {
         role: user.role,
         salonId: user.salonId,
         avatar: user.avatar,
+        birthday: user.birthday,
         paymentModel: user.paymentModel,
         status: user.status,
         vipStatus: user.vipStatus,

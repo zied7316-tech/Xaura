@@ -352,6 +352,27 @@ const UsersPage = () => {
                   <span className="text-gray-600">Role:</span>
                   <p>{getRoleBadge(userDetails.user.role)}</p>
                 </div>
+                {userDetails.user.birthday && (
+                  <div className="col-span-2">
+                    <span className="text-gray-600">Birthday:</span>
+                    <p className="font-medium flex items-center gap-2">
+                      <Calendar size={14} />
+                      {formatDate(userDetails.user.birthday)}
+                      {(() => {
+                        const today = new Date()
+                        const birthday = new Date(userDetails.user.birthday)
+                        const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate())
+                        const daysUntil = Math.ceil((thisYearBirthday - today) / (1000 * 60 * 60 * 24))
+                        if (daysUntil === 0) {
+                          return <span className="ml-2 text-yellow-600 font-semibold">🎉 Today!</span>
+                        } else if (daysUntil > 0 && daysUntil <= 7) {
+                          return <span className="ml-2 text-primary-600 font-semibold">🎁 In {daysUntil} days</span>
+                        }
+                        return null
+                      })()}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

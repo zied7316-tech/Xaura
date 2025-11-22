@@ -32,6 +32,10 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Phone number is required'],
     trim: true
   },
+  birthday: {
+    type: Date,
+    default: null
+  },
   avatar: {
     type: String,
     default: ''

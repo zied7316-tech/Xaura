@@ -305,7 +305,25 @@ const SalonClientsPage = () => {
                 <h3 className="text-2xl font-bold text-gray-900">{clientDetails.client.clientId.name}</h3>
                 <p className="text-gray-600">{clientDetails.client.clientId.email}</p>
                 {clientDetails.client.clientId.phone && (
-                  <p className="text-gray-600">{clientDetails.client.clientId.phone}</p>
+                  <p className="text-gray-600">📞 {clientDetails.client.clientId.phone}</p>
+                )}
+                {clientDetails.client.clientId.birthday && (
+                  <p className="text-gray-600 flex items-center gap-1">
+                    <Calendar size={14} />
+                    Birthday: {formatDate(clientDetails.client.clientId.birthday)}
+                    {(() => {
+                      const today = new Date()
+                      const birthday = new Date(clientDetails.client.clientId.birthday)
+                      const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate())
+                      const daysUntil = Math.ceil((thisYearBirthday - today) / (1000 * 60 * 60 * 24))
+                      if (daysUntil === 0) {
+                        return <span className="ml-2 text-yellow-600 font-semibold">🎉 Today!</span>
+                      } else if (daysUntil > 0 && daysUntil <= 7) {
+                        return <span className="ml-2 text-primary-600 font-semibold">🎁 In {daysUntil} days</span>
+                      }
+                      return null
+                    })()}
+                  </p>
                 )}
                 <div className="mt-2">
                   {getStatusBadge(clientDetails.client.status)}
