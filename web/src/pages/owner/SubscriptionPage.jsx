@@ -34,7 +34,7 @@ import {
   Infinity
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
-import { StatusBadge } from '../../components/ui/Badge'
+import Badge, { StatusBadge } from '../../components/ui/Badge'
 
 const SubscriptionPage = () => {
   const [subscription, setSubscription] = useState(null)
