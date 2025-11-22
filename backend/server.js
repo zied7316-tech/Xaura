@@ -74,9 +74,15 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request timeout middleware - 25 seconds (Railway has 30s timeout)
 app.use((req, res, next) => {
+  // Skip timeout for health checks
+  if (req.path === '/' || req.path === '/health') {
+    return next();
+  }
+
   // Set a timeout for the request
   let timeoutId = setTimeout(() => {
     if (!res.headersSent) {
+      console.error(`⏱️  Request timeout: ${req.method} ${req.path}`);
       res.status(504).json({
         success: false,
         message: 'Request timeout - the server took too long to respond'
@@ -95,6 +101,20 @@ app.use((req, res, next) => {
     originalEnd.apply(this, args);
   };
 
+  next();
+});
+
+// Request timing middleware - Log slow requests
+app.use((req, res, next) => {
+  const start = Date.now();
+  const originalEnd = res.end;
+  res.end = function(...args) {
+    const duration = Date.now() - start;
+    if (duration > 2000) {
+      console.warn(`⚠️  Slow request: ${req.method} ${req.path} - ${duration}ms`);
+    }
+    originalEnd.apply(this, args);
+  };
   next();
 });
 
@@ -130,12 +150,24 @@ app.get('/downloads/xaura.apk', (req, res) => {
   }
 });
 
-// Basic health check route
+// Basic health check route - Fast response for Railway health checks
 app.get('/', (req, res) => {
+  // Fast response without any database checks
   res.json({
     success: true,
     message: 'Beauty Platform API is running',
-    version: '1.0.0'
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Dedicated health check endpoint for Railway
+app.get('/health', (req, res) => {
+  // Ultra-fast health check - no DB, no processing
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: Date.now(),
+    uptime: process.uptime()
   });
 });
 
@@ -331,18 +363,14 @@ try {
   server.on('listening', () => {
     console.log('✅ Server is now listening and ready for connections');
   });
+
+  // Keep server alive - prevent unexpected exits
+  server.on('close', () => {
+    console.log('⚠️  Server close event received');
+  });
 } catch (error) {
   console.error('❌ Failed to create server:', error.message);
   console.error('Error stack:', error.stack);
   process.exit(1);
 }
-
-// Keep server alive - prevent unexpected exits
-server.on('close', () => {
-  console.log('⚠️  Server close event received');
-});
-
-server.on('listening', () => {
-  console.log('✅ Server is now listening and ready for connections');
-});
 
