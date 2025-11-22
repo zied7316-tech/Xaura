@@ -271,20 +271,48 @@ const BookAppointmentPage = () => {
 
       // If recurring appointment, create recurring booking (supports single and multiple people)
       if (isRecurring) {
+        // Validate that we have the necessary data
+        if (numberOfPeople > 1) {
+          // For multi-person, validate peopleServices
+          if (!peopleServices || peopleServices.length === 0 || !peopleServices[0]?.services || peopleServices[0].services.length === 0) {
+            toast.error('Please select services for all people')
+            setBooking(false)
+            return
+          }
+        } else {
+          // For single person, validate servicesToBook
+          if (!servicesToBook || servicesToBook.length === 0) {
+            toast.error('Please select at least one service')
+            setBooking(false)
+            return
+          }
+        }
+
         const startDate = new Date(recurringStartDate)
         const [startHours, startMinutes] = selectedTime.split(':')
         startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0)
 
+        // Determine primary service based on booking type
+        const primaryService = numberOfPeople > 1 
+          ? peopleServices[0].services[0] 
+          : servicesToBook[0]
+
+        if (!primaryService || !primaryService._id) {
+          toast.error('Invalid service selection')
+          setBooking(false)
+          return
+        }
+
         const recurringData = {
           salonId: salonIdParam,
           workerId: selectedWorker._id,
-          serviceId: servicesToBook[0]._id, // Primary service for backward compatibility
-          services: servicesToBook.map(service => ({
+          serviceId: primaryService._id, // Primary service for backward compatibility
+          services: numberOfPeople === 1 ? servicesToBook.map(service => ({
             serviceId: service._id,
             name: service.name,
             price: service.price,
             duration: service.duration
-          })),
+          })) : [], // For multi-person, services are in peopleServices
           frequency: recurringFrequency,
           startDate: startDate.toISOString(),
           endDate: recurringEndDate ? new Date(recurringEndDate).toISOString() : null,
