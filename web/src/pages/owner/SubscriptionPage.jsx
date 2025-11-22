@@ -389,7 +389,7 @@ const SubscriptionPage = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-4">
           {/* Carousel Container */}
           <div className="relative">
             {/* Carousel Navigation */}
@@ -1009,7 +1009,7 @@ const SubscriptionPage = () => {
 
       {/* Optional Add-ons */}
       {addOns && (
-        <Card className="-mt-8">
+        <Card className="-mt-16">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Optional Add-ons</CardTitle>
