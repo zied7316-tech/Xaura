@@ -212,6 +212,7 @@ const SalonClientsPage = () => {
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Client</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Birthday</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Appointments</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Spent</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Joined</th>
@@ -243,6 +244,27 @@ const SalonClientsPage = () => {
                       </td>
                       <td className="py-3 px-4">
                         {getStatusBadge(client.status)}
+                      </td>
+                      <td className="py-3 px-4">
+                        {client.clientId.birthday ? (
+                          <div className="text-sm">
+                            <div className="text-gray-900">{formatDate(client.clientId.birthday)}</div>
+                            {(() => {
+                              const today = new Date()
+                              const birthday = new Date(client.clientId.birthday)
+                              const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate())
+                              const daysUntil = Math.ceil((thisYearBirthday - today) / (1000 * 60 * 60 * 24))
+                              if (daysUntil === 0) {
+                                return <div className="text-xs text-yellow-600 font-semibold mt-1">🎉 Today!</div>
+                              } else if (daysUntil > 0 && daysUntil <= 7) {
+                                return <div className="text-xs text-primary-600 font-semibold mt-1">🎁 In {daysUntil} days</div>
+                              }
+                              return null
+                            })()}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">-</span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-right font-medium text-gray-900">
                         {client.actualAppointmentCount || client.totalAppointments}
