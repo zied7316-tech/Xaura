@@ -33,22 +33,37 @@ const getDashboardAnalytics = async (req, res, next) => {
 
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    // Revenue analytics
-    const allPayments = await Payment.find({ salonId: salon._id, status: 'completed' });
-    const todayPayments = await Payment.find({
-      salonId: salon._id,
-      status: 'completed',
-      paidAt: { $gte: today, $lt: tomorrow }
-    });
-    const monthPayments = await Payment.find({
-      salonId: salon._id,
-      status: 'completed',
-      paidAt: { $gte: firstDayOfMonth }
-    });
+    // Revenue analytics - Use aggregation for better performance
+    const [totalRevenueResult, todayRevenueResult, monthRevenueResult] = await Promise.all([
+      Payment.aggregate([
+        { $match: { salonId: salon._id, status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$salonRevenue' } } }
+      ]),
+      Payment.aggregate([
+        { 
+          $match: { 
+            salonId: salon._id, 
+            status: 'completed',
+            paidAt: { $gte: today, $lt: tomorrow }
+          } 
+        },
+        { $group: { _id: null, total: { $sum: '$salonRevenue' } } }
+      ]),
+      Payment.aggregate([
+        { 
+          $match: { 
+            salonId: salon._id, 
+            status: 'completed',
+            paidAt: { $gte: firstDayOfMonth }
+          } 
+        },
+        { $group: { _id: null, total: { $sum: '$salonRevenue' } } }
+      ])
+    ]);
 
-    const totalRevenue = allPayments.reduce((sum, p) => sum + p.salonRevenue, 0);
-    const todayRevenue = todayPayments.reduce((sum, p) => sum + p.salonRevenue, 0);
-    const monthRevenue = monthPayments.reduce((sum, p) => sum + p.salonRevenue, 0);
+    const totalRevenue = totalRevenueResult[0]?.total || 0;
+    const todayRevenue = todayRevenueResult[0]?.total || 0;
+    const monthRevenue = monthRevenueResult[0]?.total || 0;
 
     // Appointment analytics
     const totalAppointments = await Appointment.countDocuments({ salonId: salon._id });
@@ -149,40 +164,63 @@ const getRevenueTrends = async (req, res, next) => {
         startDate = new Date(now.setMonth(now.getMonth() - 12));
     }
 
-    const payments = await Payment.find({
-      salonId: salon._id,
-      status: 'completed',
-      paidAt: { $gte: startDate }
-    });
+    // Use aggregation pipeline for better performance
+    let groupFormat;
+    if (period === 'day') {
+      groupFormat = { $dateToString: { format: '%Y-%m-%d', date: '$paidAt' } };
+    } else if (period === 'week') {
+      groupFormat = { 
+        $concat: [
+          { $toString: { $year: '$paidAt' } },
+          '-W',
+          { $toString: { $ceil: { $divide: [{ $dayOfMonth: '$paidAt' }, 7] } } }
+        ]
+      };
+    } else {
+      groupFormat = { 
+        $concat: [
+          { $toString: { $year: '$paidAt' } },
+          '-',
+          { $cond: [
+            { $lt: [{ $month: '$paidAt' }, 10] },
+            { $concat: ['0', { $toString: { $month: '$paidAt' } }] },
+            { $toString: { $month: '$paidAt' } }
+          ]}
+        ]
+      };
+    }
 
-    // Group by period
-    const trends = {};
-    payments.forEach(payment => {
-      const date = new Date(payment.paidAt);
-      let key;
-      
-      if (period === 'day') {
-        key = date.toISOString().split('T')[0];
-      } else if (period === 'week') {
-        const weekNum = Math.ceil(date.getDate() / 7);
-        key = `${date.getFullYear()}-W${weekNum}`;
-      } else {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      }
+    const trendsData = await Payment.aggregate([
+      {
+        $match: {
+          salonId: salon._id,
+          status: 'completed',
+          paidAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: groupFormat,
+          revenue: { $sum: '$salonRevenue' },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          period: '$_id',
+          revenue: 1,
+          count: 1,
+          average: { $divide: ['$revenue', '$count'] }
+        }
+      },
+      { $sort: { period: 1 } }
+    ]);
 
-      if (!trends[key]) {
-        trends[key] = { revenue: 0, count: 0 };
-      }
-      
-      trends[key].revenue += payment.salonRevenue;
-      trends[key].count += 1;
-    });
-
-    const trendsArray = Object.keys(trends).sort().map(key => ({
-      period: key,
-      revenue: trends[key].revenue,
-      count: trends[key].count,
-      average: trends[key].revenue / trends[key].count
+    const trendsArray = trendsData.map(item => ({
+      period: item.period,
+      revenue: item.revenue,
+      count: item.count,
+      average: item.average
     }));
 
     res.json({
@@ -217,23 +255,31 @@ const getProfitLoss = async (req, res, next) => {
     if (startDate) dateFilter.$gte = new Date(startDate);
     if (endDate) dateFilter.$lte = new Date(endDate);
 
-    // Get revenue
-    const paymentFilter = { ...filter, status: 'completed' };
+    // Get revenue using aggregation
+    const paymentMatch = { ...filter, status: 'completed' };
     if (Object.keys(dateFilter).length > 0) {
-      paymentFilter.paidAt = dateFilter;
+      paymentMatch.paidAt = dateFilter;
     }
     
-    const payments = await Payment.find(paymentFilter);
-    const totalRevenue = payments.reduce((sum, p) => sum + p.salonRevenue, 0);
+    const revenueResult = await Payment.aggregate([
+      { $match: paymentMatch },
+      { $group: { _id: null, total: { $sum: '$salonRevenue' }, count: { $sum: 1 } } }
+    ]);
+    const totalRevenue = revenueResult[0]?.total || 0;
+    const paymentCount = revenueResult[0]?.count || 0;
 
-    // Get expenses
-    const expenseFilter = { ...filter, isPaid: true };
+    // Get expenses using aggregation
+    const expenseMatch = { ...filter, isPaid: true };
     if (Object.keys(dateFilter).length > 0) {
-      expenseFilter.date = dateFilter;
+      expenseMatch.date = dateFilter;
     }
     
-    const expenses = await Expense.find(expenseFilter);
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const expenseResult = await Expense.aggregate([
+      { $match: expenseMatch },
+      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+    ]);
+    const totalExpenses = expenseResult[0]?.total || 0;
+    const expenseCount = expenseResult[0]?.count || 0;
 
     const profit = totalRevenue - totalExpenses;
     const profitMargin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
@@ -245,8 +291,8 @@ const getProfitLoss = async (req, res, next) => {
         expenses: totalExpenses,
         profit,
         profitMargin: profitMargin.toFixed(2),
-        paymentCount: payments.length,
-        expenseCount: expenses.length
+        paymentCount: paymentCount,
+        expenseCount: expenseCount
       }
     });
   } catch (error) {

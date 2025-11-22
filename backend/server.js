@@ -72,6 +72,32 @@ app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request timeout middleware - 25 seconds (Railway has 30s timeout)
+app.use((req, res, next) => {
+  // Set a timeout for the request
+  let timeoutId = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(504).json({
+        success: false,
+        message: 'Request timeout - the server took too long to respond'
+      });
+      res.end();
+    }
+  }, 25000); // 25 seconds
+
+  // Clear timeout when response is sent
+  const originalEnd = res.end;
+  res.end = function(...args) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    originalEnd.apply(this, args);
+  };
+
+  next();
+});
+
 // Serve uploaded files as static
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -195,17 +221,23 @@ app.use((req, res) => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.error('❌ UNCAUGHT EXCEPTION! Shutting down...');
+  console.error('❌ UNCAUGHT EXCEPTION!');
   console.error('Error:', err.name, err.message);
   console.error('Stack:', err.stack);
-  process.exit(1);
+  // Don't exit immediately - log and let the server try to continue
+  // Only exit if it's a critical error
+  if (err.code === 'EADDRINUSE' || err.code === 'ECONNREFUSED') {
+    console.error('Critical error, exiting...');
+    setTimeout(() => process.exit(1), 1000);
+  }
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('❌ UNHANDLED REJECTION! Shutting down...');
-  console.error('Error:', err);
-  process.exit(1);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ UNHANDLED REJECTION at:', promise);
+  console.error('Reason:', reason);
+  // Don't exit immediately - log and continue
+  // This prevents the server from crashing on non-critical promise rejections
 });
 
 // Start server
@@ -269,18 +301,41 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Add error handler for server listen
-server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`✅ Server listening on 0.0.0.0:${PORT}`);
-  console.log(`✅ Health check available at: http://0.0.0.0:${PORT}/`);
-  console.log(`✅ Server will stay alive and handle requests`);
-}).on('error', (err) => {
-  console.error('❌ Server failed to start:', err.message);
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use`);
-  }
+try {
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    console.log(`✅ Server listening on 0.0.0.0:${PORT}`);
+    console.log(`✅ Health check available at: http://0.0.0.0:${PORT}/`);
+    console.log(`✅ Server will stay alive and handle requests`);
+    
+    // Set server timeout to 25 seconds (before Railway's 30s timeout)
+    if (server) {
+      server.timeout = 25000;
+      server.keepAliveTimeout = 65000; // Keep connections alive for 65 seconds
+      server.headersTimeout = 66000; // Headers timeout slightly higher than keepAliveTimeout
+      console.log(`✅ Server timeouts configured: timeout=${server.timeout}ms, keepAlive=${server.keepAliveTimeout}ms`);
+    }
+  });
+
+  server.on('error', (err) => {
+    console.error('❌ Server error:', err.message);
+    console.error('Error code:', err.code);
+    console.error('Error stack:', err.stack);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use`);
+    }
+    // Don't exit immediately - let Railway handle it
+    setTimeout(() => process.exit(1), 1000);
+  });
+
+  server.on('listening', () => {
+    console.log('✅ Server is now listening and ready for connections');
+  });
+} catch (error) {
+  console.error('❌ Failed to create server:', error.message);
+  console.error('Error stack:', error.stack);
   process.exit(1);
-});
+}
 
 // Keep server alive - prevent unexpected exits
 server.on('close', () => {

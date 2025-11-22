@@ -5,6 +5,28 @@ const { getAllPlans, getPlanDetails, getAllAddOns, TRIAL_CONFIG, calculateAnnual
 const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
+ * Helper function to create trial subscription data
+ */
+const createTrialSubscription = (salonId, ownerId) => {
+  const now = new Date();
+  return {
+    salonId,
+    ownerId,
+    plan: null, // No plan during trial
+    status: 'trial',
+    monthlyFee: 0,
+    price: 0,
+    trial: {
+      startDate: now,
+      endDate: new Date(now.getTime() + TRIAL_CONFIG.initialTrialDays * 24 * 60 * 60 * 1000),
+      confirmationDay: new Date(now.getTime() + TRIAL_CONFIG.confirmationDay * 24 * 60 * 60 * 1000)
+    },
+    currentPeriodStart: now,
+    currentPeriodEnd: new Date(now.getTime() + TRIAL_CONFIG.initialTrialDays * 24 * 60 * 60 * 1000)
+  };
+};
+
+/**
  * @desc    Get all subscriptions
  * @route   GET /api/super-admin/subscriptions
  * @access  Private (SuperAdmin)

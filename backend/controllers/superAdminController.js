@@ -158,34 +158,66 @@ const getAllSalons = async (req, res, next) => {
   try {
     const salons = await Salon.find()
       .populate('ownerId', 'name email phone')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    // Get stats for each salon
-    const salonsWithStats = await Promise.all(
-      salons.map(async (salon) => {
-        const workerCount = await User.countDocuments({ salonId: salon._id, role: 'Worker' });
-        const appointmentCount = await Appointment.countDocuments({ salonId: salon._id });
-        const completedCount = await Appointment.countDocuments({ salonId: salon._id, status: 'Completed' });
-        
-        const revenueData = await Payment.aggregate([
-          { $match: { salonId: salon._id, status: 'completed' } },
-          { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]);
+    if (salons.length === 0) {
+      return res.json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
 
-        const subscription = await Subscription.findOne({ salonId: salon._id });
+    const salonIds = salons.map(s => s._id);
 
-        return {
-          ...salon.toObject(),
-          stats: {
-            workers: workerCount,
-            appointments: appointmentCount,
-            completed: completedCount,
-            revenue: revenueData[0]?.total || 0
-          },
-          subscription
-        };
-      })
-    );
+    // Batch fetch all stats using aggregation - much faster than individual queries
+    const [workerCounts, appointmentCounts, completedCounts, revenueData, subscriptions] = await Promise.all([
+      // Worker counts per salon
+      User.aggregate([
+        { $match: { salonId: { $in: salonIds }, role: 'Worker' } },
+        { $group: { _id: '$salonId', count: { $sum: 1 } } }
+      ]),
+      // Total appointment counts per salon
+      Appointment.aggregate([
+        { $match: { salonId: { $in: salonIds } } },
+        { $group: { _id: '$salonId', count: { $sum: 1 } } }
+      ]),
+      // Completed appointment counts per salon
+      Appointment.aggregate([
+        { $match: { salonId: { $in: salonIds }, status: 'Completed' } },
+        { $group: { _id: '$salonId', count: { $sum: 1 } } }
+      ]),
+      // Revenue per salon
+      Payment.aggregate([
+        { $match: { salonId: { $in: salonIds }, status: 'completed' } },
+        { $group: { _id: '$salonId', total: { $sum: '$amount' } } }
+      ]),
+      // Subscriptions per salon
+      Subscription.find({ salonId: { $in: salonIds } }).lean()
+    ]);
+
+    // Create lookup maps for O(1) access
+    const workerCountMap = new Map(workerCounts.map(w => [w._id.toString(), w.count]));
+    const appointmentCountMap = new Map(appointmentCounts.map(a => [a._id.toString(), a.count]));
+    const completedCountMap = new Map(completedCounts.map(c => [c._id.toString(), c.count]));
+    const revenueMap = new Map(revenueData.map(r => [r._id.toString(), r.total]));
+    const subscriptionMap = new Map(subscriptions.map(s => [s.salonId.toString(), s]));
+
+    // Combine data
+    const salonsWithStats = salons.map(salon => {
+      const salonIdStr = salon._id.toString();
+      return {
+        ...salon,
+        stats: {
+          workers: workerCountMap.get(salonIdStr) || 0,
+          appointments: appointmentCountMap.get(salonIdStr) || 0,
+          completed: completedCountMap.get(salonIdStr) || 0,
+          revenue: revenueMap.get(salonIdStr) || 0
+        },
+        subscription: subscriptionMap.get(salonIdStr) || null
+      };
+    });
 
     res.json({
       success: true,

@@ -21,7 +21,11 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000, // 10 second timeout
-      socketTimeoutMS: 45000, // 45 second socket timeout
+      socketTimeoutMS: 25000, // 25 second socket timeout (before Railway's 30s)
+      maxPoolSize: 10, // Maximum number of connections in the pool
+      minPoolSize: 2, // Minimum number of connections in the pool
+      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+      connectTimeoutMS: 10000, // 10 second connection timeout
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
