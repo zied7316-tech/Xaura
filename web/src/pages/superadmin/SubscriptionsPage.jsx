@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { superAdminService } from '../../services/superAdminService'
+import { subscriptionService } from '../../services/subscriptionService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -29,10 +30,28 @@ const SubscriptionsPage = () => {
   const [showTrialModal, setShowTrialModal] = useState(false)
   const [newPlan, setNewPlan] = useState('')
   const [trialDays, setTrialDays] = useState(30)
+  const [availablePlans, setAvailablePlans] = useState([])
+  const [addOns, setAddOns] = useState(null)
 
   useEffect(() => {
     loadSubscriptions()
+    loadAvailablePlans()
   }, [filters])
+
+  const loadAvailablePlans = async () => {
+    try {
+      // Use the subscription service to get available plans
+      const data = await subscriptionService.getAvailablePlans()
+      if (data.success && data.data) {
+        setAvailablePlans(data.data.plans || [])
+        setAddOns(data.data.addOns || null)
+      }
+    } catch (error) {
+      console.error('Error loading available plans:', error)
+      // Fallback to hardcoded plans if API fails
+      setAvailablePlans([])
+    }
+  }
 
   const loadSubscriptions = async () => {
     try {
@@ -431,13 +450,66 @@ const SubscriptionsPage = () => {
                 onChange={(e) => setNewPlan(e.target.value)}
               >
                 <option value="">Select plan...</option>
-                {Object.keys(PLAN_PRICING).map((plan) => (
-                  <option key={plan} value={plan}>
-                    {PLAN_PRICING[plan].label} - {formatCurrency(PLAN_PRICING[plan].price)}/month
-                  </option>
-                ))}
+                {/* Show plans from API if available, otherwise fallback to hardcoded */}
+                {(availablePlans.length > 0 ? availablePlans : Object.keys(PLAN_PRICING).map(key => ({
+                  id: key,
+                  name: PLAN_PRICING[key].labelEn || PLAN_PRICING[key].label,
+                  price: PLAN_PRICING[key].price
+                }))).map((plan) => {
+                  const planId = plan.id || plan
+                  const planName = plan.name || PLAN_PRICING[planId]?.labelEn || PLAN_PRICING[planId]?.label || planId
+                  const planPrice = typeof plan.price === 'object' ? plan.price.month : (plan.price || PLAN_PRICING[planId]?.price?.month || 0)
+                  return (
+                    <option key={planId} value={planId}>
+                      {planName} - {formatCurrency(planPrice)}/month
+                    </option>
+                  )
+                })}
               </Select>
             </div>
+
+            {/* Add-ons Section */}
+            {addOns && (
+              <div className="mt-6 pt-6 border-t">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Available Add-ons
+                </label>
+                <div className="space-y-3">
+                  {/* SMS Credits */}
+                  {addOns.smsCredits && (
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{addOns.smsCredits.name}</p>
+                          <p className="text-sm text-gray-600">{addOns.smsCredits.nameAr}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Packages: {addOns.smsCredits.packages?.map(p => `${p.credits} SMS - ${formatCurrency(p.price)}`).join(', ')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pixel Tracking */}
+                  {addOns.pixelTracking && (
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{addOns.pixelTracking.name}</p>
+                          <p className="text-sm text-gray-600">{addOns.pixelTracking.nameAr}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatCurrency(addOns.pixelTracking.price || 15)} / {addOns.pixelTracking.interval || 'month'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Note: Add-ons can be purchased separately by salon owners from their subscription page.
+                </p>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button
