@@ -93,18 +93,17 @@ function serveFile(filePath, res) {
 }
 
 const server = createServer((req, res) => {
-  // Log all incoming requests for debugging (especially health checks)
+  // Log ALL incoming requests for debugging (especially health checks)
   const urlPath = req.url?.split('?')[0] || '';
-  const isHealthCheck = urlPath === '/health' || urlPath === '/healthcheck' || urlPath === '/';
+  const method = req.method || 'UNKNOWN';
+  const userAgent = req.headers['user-agent'] || 'unknown';
   
-  if (isHealthCheck) {
-    console.log(`[HEALTH] ${req.method} ${urlPath} - User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
-    console.log(`[HEALTH] Headers: ${JSON.stringify({ host: req.headers.host, connection: req.headers.connection })}`);
-  }
+  // Log every request to see what Railway is trying to access
+  console.log(`[REQUEST] ${method} ${urlPath} - From: ${req.headers.host || 'unknown'} - UA: ${userAgent.substring(0, 50)}`);
   
   // Health check endpoint - respond immediately (used by Railway)
   if (urlPath === '/health' || urlPath === '/healthcheck') {
-    // Respond immediately without any delay
+    console.log(`[HEALTH] ✅ Health check received - responding immediately`);
     res.writeHead(200, { 
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
@@ -118,24 +117,30 @@ const server = createServer((req, res) => {
       port: PORT
     });
     res.end(response);
-    console.log(`[HEALTH] ✅ Responded with 200 OK`);
+    console.log(`[HEALTH] ✅ Responded with 200 OK - Body: ${response}`);
     return;
   }
   
-  // Also handle root path as health check if it's from Railway
-  if (urlPath === '/' && req.headers['user-agent']?.includes('Railway')) {
-    console.log(`[HEALTH] Root path health check from Railway`);
-    res.writeHead(200, { 
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
-    });
-    res.end(JSON.stringify({ 
-      status: 'ok', 
-      service: 'xaura-web',
-      timestamp: new Date().toISOString()
-    }));
-    return;
+  // Also handle root path as health check (Railway sometimes uses root)
+  if (urlPath === '/') {
+    // Check if it's likely a health check (no specific user agent, or Railway)
+    const isLikelyHealthCheck = !userAgent.includes('Mozilla') && !userAgent.includes('curl') || userAgent.includes('Railway') || userAgent.includes('Health');
+    
+    if (isLikelyHealthCheck) {
+      console.log(`[HEALTH] Root path health check detected`);
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
+      res.end(JSON.stringify({ 
+        status: 'ok', 
+        service: 'xaura-web',
+        timestamp: new Date().toISOString(),
+        port: PORT
+      }));
+      return;
+    }
   }
 
   let filePath = req.url === '/' ? '/index.html' : req.url;
