@@ -9,7 +9,7 @@ import Modal from '../../components/ui/Modal'
 import Select from '../../components/ui/Select'
 import {
   Crown, DollarSign, Calendar, TrendingUp, AlertCircle,
-  CheckCircle, XCircle, Clock, Edit, Ban, Play, RefreshCw
+  CheckCircle, XCircle, Clock, Edit, Ban, Play, RefreshCw, Search, Filter, X
 } from 'lucide-react'
 import { formatDate, formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -25,6 +25,7 @@ const SubscriptionsPage = () => {
   const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ status: 'all', plan: 'all' })
+  const [searchTerm, setSearchTerm] = useState('')
   const [selectedSubscription, setSelectedSubscription] = useState(null)
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [showTrialModal, setShowTrialModal] = useState(false)
@@ -36,7 +37,7 @@ const SubscriptionsPage = () => {
   useEffect(() => {
     loadSubscriptions()
     loadAvailablePlans()
-  }, [filters])
+  }, [filters, searchTerm])
 
   const loadAvailablePlans = async () => {
     try {
@@ -56,8 +57,12 @@ const SubscriptionsPage = () => {
   const loadSubscriptions = async () => {
     try {
       setLoading(true)
-      console.log('[SubscriptionsPage] Loading subscriptions with filters:', filters)
-      const data = await superAdminService.getAllSubscriptions(filters)
+      console.log('[SubscriptionsPage] Loading subscriptions with filters:', filters, 'search:', searchTerm)
+      const params = { ...filters }
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim()
+      }
+      const data = await superAdminService.getAllSubscriptions(params)
       console.log('[SubscriptionsPage] Response data:', data)
       console.log('[SubscriptionsPage] Subscriptions array:', data.data)
       console.log('[SubscriptionsPage] Analytics:', data.analytics)
@@ -261,38 +266,82 @@ const SubscriptionsPage = () => {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Search and Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex gap-4">
-            {/* Status Filter */}
-            <div className="flex gap-2">
-              <span className="text-sm font-medium text-gray-700 my-auto">Status:</span>
-              {['all', 'trial', 'active', 'suspended', 'cancelled'].map((status) => (
-                <Button
-                  key={status}
-                  size="sm"
-                  variant={filters.status === status ? 'primary' : 'outline'}
-                  onClick={() => setFilters({ ...filters, status })}
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Input
+                type="text"
+                placeholder="Search by salon name, owner name, phone, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
-                </Button>
-              ))}
+                  <X size={18} />
+                </button>
+              )}
             </div>
 
-            {/* Plan Filter */}
-            <div className="flex gap-2">
-              <span className="text-sm font-medium text-gray-700 my-auto">Plan:</span>
-              {['all', 'basic', 'pro', 'enterprise'].map((plan) => (
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Status Filter */}
+              <div className="flex items-center gap-2">
+                <Filter size={18} className="text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Status:</span>
+                <div className="flex gap-2">
+                  {['all', 'trial', 'active', 'suspended', 'cancelled'].map((status) => (
+                    <Button
+                      key={status}
+                      size="sm"
+                      variant={filters.status === status ? 'primary' : 'outline'}
+                      onClick={() => setFilters({ ...filters, status })}
+                    >
+                      {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Plan Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Plan:</span>
+                <div className="flex gap-2">
+                  {['all', 'basic', 'pro', 'enterprise'].map((plan) => (
+                    <Button
+                      key={plan}
+                      size="sm"
+                      variant={filters.plan === plan ? 'primary' : 'outline'}
+                      onClick={() => setFilters({ ...filters, plan })}
+                    >
+                      {plan === 'all' ? 'All' : PLAN_PRICING[plan]?.labelEn || plan}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Clear Filters Button */}
+              {(filters.status !== 'all' || filters.plan !== 'all' || searchTerm) && (
                 <Button
-                  key={plan}
                   size="sm"
-                  variant={filters.plan === plan ? 'primary' : 'outline'}
-                  onClick={() => setFilters({ ...filters, plan })}
+                  variant="outline"
+                  onClick={() => {
+                    setFilters({ status: 'all', plan: 'all' })
+                    setSearchTerm('')
+                  }}
+                  className="ml-auto"
                 >
-                  {plan === 'all' ? 'All' : PLAN_PRICING[plan]?.labelEn || plan}
+                  <X size={16} className="mr-1" />
+                  Clear All
                 </Button>
-              ))}
+              )}
             </div>
           </div>
         </CardContent>
@@ -309,14 +358,17 @@ const SubscriptionsPage = () => {
               <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Subscriptions Found</h3>
               <p className="text-gray-600 mb-4">
-                {filters.status !== 'all' || filters.plan !== 'all'
-                  ? 'No subscriptions match your current filters. Try adjusting your filters.'
+                {filters.status !== 'all' || filters.plan !== 'all' || searchTerm
+                  ? 'No subscriptions match your current filters or search. Try adjusting your filters.'
                   : 'There are no subscriptions in the system yet. Subscriptions will appear here when salons are created.'}
               </p>
-              {(filters.status !== 'all' || filters.plan !== 'all') && (
+              {(filters.status !== 'all' || filters.plan !== 'all' || searchTerm) && (
                 <Button
                   variant="outline"
-                  onClick={() => setFilters({ status: 'all', plan: 'all' })}
+                  onClick={() => {
+                    setFilters({ status: 'all', plan: 'all' })
+                    setSearchTerm('')
+                  }}
                 >
                   Clear Filters
                 </Button>
@@ -326,15 +378,15 @@ const SubscriptionsPage = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4">Salon</th>
-                    <th className="text-left py-3 px-4">Owner</th>
-                    <th className="text-left py-3 px-4">Plan</th>
-                    <th className="text-left py-3 px-4">Status</th>
-                    <th className="text-left py-3 px-4">MRR</th>
-                    <th className="text-left py-3 px-4">Trial End</th>
-                    <th className="text-left py-3 px-4">Next Billing</th>
-                    <th className="text-right py-3 px-4">Actions</th>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Salon</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Owner</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Plan</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">MRR</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Trial End</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Next Billing</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -343,10 +395,21 @@ const SubscriptionsPage = () => {
                       <td className="py-3 px-4">
                         <div className="font-medium text-gray-900">{sub.salonId?.name || 'N/A'}</div>
                         <div className="text-sm text-gray-500">{sub.salonId?.address?.city || ''}</div>
+                        {sub.salonId?.phone && (
+                          <div className="text-xs text-gray-400 mt-1">📞 {sub.salonId.phone}</div>
+                        )}
+                        {sub.salonId?.email && (
+                          <div className="text-xs text-gray-400">✉️ {sub.salonId.email}</div>
+                        )}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-sm text-gray-900">{sub.ownerId?.name || 'N/A'}</div>
-                        <div className="text-xs text-gray-500">{sub.ownerId?.email || ''}</div>
+                        <div className="text-sm font-medium text-gray-900">{sub.ownerId?.name || 'N/A'}</div>
+                        {sub.ownerId?.email && (
+                          <div className="text-xs text-gray-500 mt-1">✉️ {sub.ownerId.email}</div>
+                        )}
+                        {sub.ownerId?.phone && (
+                          <div className="text-xs text-gray-500">📞 {sub.ownerId.phone}</div>
+                        )}
                       </td>
                       <td className="py-3 px-4">{getPlanBadge(sub.plan)}</td>
                       <td className="py-3 px-4">{getStatusBadge(sub.status)}</td>

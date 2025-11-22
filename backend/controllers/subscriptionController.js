@@ -33,7 +33,7 @@ const createTrialSubscription = (salonId, ownerId) => {
  */
 const getAllSubscriptions = async (req, res, next) => {
   try {
-    const { status, plan } = req.query;
+    const { status, plan, search } = req.query;
     
     let query = {};
     if (status && status !== 'all') {
@@ -43,10 +43,38 @@ const getAllSubscriptions = async (req, res, next) => {
       query.plan = plan;
     }
 
-    const subscriptions = await Subscription.find(query)
-      .populate('salonId', 'name address')
+    // Build search query for name, phone, or email
+    let searchQuery = {};
+    if (search && search.trim()) {
+      const searchRegex = { $regex: search.trim(), $options: 'i' };
+      // We'll need to search in populated fields, so we'll filter after population
+      searchQuery.searchTerm = search.trim();
+    }
+
+    let subscriptions = await Subscription.find(query)
+      .populate('salonId', 'name address phone email')
       .populate('ownerId', 'name email phone')
       .sort({ createdAt: -1 });
+
+    // Filter by search term if provided (search in salon name, owner name, phone, email)
+    if (searchQuery.searchTerm) {
+      const searchLower = searchQuery.searchTerm.toLowerCase();
+      subscriptions = subscriptions.filter(sub => {
+        const salonName = sub.salonId?.name?.toLowerCase() || '';
+        const ownerName = sub.ownerId?.name?.toLowerCase() || '';
+        const ownerEmail = sub.ownerId?.email?.toLowerCase() || '';
+        const ownerPhone = sub.ownerId?.phone?.toLowerCase() || '';
+        const salonPhone = sub.salonId?.phone?.toLowerCase() || '';
+        const salonEmail = sub.salonId?.email?.toLowerCase() || '';
+        
+        return salonName.includes(searchLower) ||
+               ownerName.includes(searchLower) ||
+               ownerEmail.includes(searchLower) ||
+               ownerPhone.includes(searchLower) ||
+               salonPhone.includes(searchLower) ||
+               salonEmail.includes(searchLower);
+      });
+    }
 
     // Calculate MRR
     const mrr = subscriptions
@@ -55,7 +83,8 @@ const getAllSubscriptions = async (req, res, next) => {
 
     // Plan distribution
     const planDistribution = subscriptions.reduce((acc, s) => {
-      acc[s.plan] = (acc[s.plan] || 0) + 1;
+      const planKey = s.plan || 'trial';
+      acc[planKey] = (acc[planKey] || 0) + 1;
       return acc;
     }, {});
 
