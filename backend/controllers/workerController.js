@@ -199,9 +199,44 @@ const removeWorker = async (req, res, next) => {
     }
 
     // Deactivate worker instead of deleting
+    const salonName = salon.name;
+    const ownerId = salon.ownerId;
     worker.isActive = false;
     worker.salonId = null; // Unlink from salon
     await worker.save();
+
+    // Log history for owner and worker
+    const { logUserHistory } = require('../utils/userHistoryLogger');
+    
+    if (ownerId) {
+      await logUserHistory({
+        userId: ownerId,
+        userRole: 'Owner',
+        action: 'worker_removed',
+        description: `Removed worker ${worker.name} from salon ${salonName}`,
+        relatedEntity: {
+          type: 'Worker',
+          id: worker._id,
+          name: worker.name
+        },
+        metadata: { salonId: salon._id, salonName },
+        req
+      });
+    }
+
+    await logUserHistory({
+      userId: worker._id,
+      userRole: 'Worker',
+      action: 'left_salon',
+      description: `Left salon ${salonName}`,
+      relatedEntity: {
+        type: 'Salon',
+        id: salon._id,
+        name: salonName
+      },
+      metadata: { ownerId },
+      req
+    });
 
     res.json({
       success: true,

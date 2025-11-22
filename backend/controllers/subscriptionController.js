@@ -139,8 +139,10 @@ const getSubscriptionDetails = async (req, res, next) => {
 const updateSubscriptionPlan = async (req, res, next) => {
   try {
     const { plan, monthlyFee } = req.body;
+    const { logUserHistory } = require('../utils/userHistoryLogger');
 
-    const subscription = await Subscription.findById(req.params.id);
+    const subscription = await Subscription.findById(req.params.id)
+      .populate('ownerId', 'name role');
 
     if (!subscription) {
       return res.status(404).json({
@@ -150,6 +152,8 @@ const updateSubscriptionPlan = async (req, res, next) => {
     }
 
     const oldPlan = subscription.plan;
+    const isUpgrade = !oldPlan || (oldPlan && plan && ['basic', 'pro', 'enterprise'].indexOf(plan) > ['basic', 'pro', 'enterprise'].indexOf(oldPlan));
+    
     subscription.plan = plan;
     
     // Get plan details with interval
@@ -177,6 +181,28 @@ const updateSubscriptionPlan = async (req, res, next) => {
     }
 
     await subscription.save();
+
+    // Log history for owner
+    if (subscription.ownerId) {
+      await logUserHistory({
+        userId: subscription.ownerId._id,
+        userRole: 'Owner',
+        action: isUpgrade ? 'plan_upgraded' : 'plan_changed',
+        description: `Plan changed from ${oldPlan || 'Trial'} to ${plan}`,
+        relatedEntity: {
+          type: 'Subscription',
+          id: subscription._id,
+          name: `${plan} Plan`
+        },
+        metadata: {
+          oldPlan: oldPlan || 'trial',
+          newPlan: plan,
+          monthlyFee: subscription.monthlyFee,
+          interval: interval
+        },
+        req
+      });
+    }
 
     res.json({
       success: true,

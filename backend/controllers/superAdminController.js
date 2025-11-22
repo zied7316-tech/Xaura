@@ -367,17 +367,75 @@ const getUserDetails = async (req, res, next) => {
         .limit(10);
     }
 
+    // Get comprehensive user history
+    const UserHistory = require('../models/UserHistory');
+    const history = await UserHistory.find({ userId: user._id })
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    // Calculate statistics based on role
+    let stats = {
+      totalAppointments: await Appointment.countDocuments({
+        $or: [
+          { clientId: user._id },
+          { workerId: user._id }
+        ]
+      })
+    };
+
+    if (user.role === 'Client') {
+      // Client-specific stats
+      const allAppointments = await Appointment.find({ clientId: user._id })
+        .populate('salonId', 'name')
+        .populate('workerId', 'name');
+      
+      const uniqueSalons = new Set();
+      const uniqueBarbers = new Set();
+      allAppointments.forEach(apt => {
+        if (apt.salonId) uniqueSalons.add(apt.salonId._id.toString());
+        if (apt.workerId) uniqueBarbers.add(apt.workerId._id.toString());
+      });
+
+      stats.totalSpent = payments.reduce((sum, p) => sum + p.amount, 0);
+      stats.salonsVisited = uniqueSalons.size;
+      stats.barbersVisited = uniqueBarbers.size;
+      stats.totalAppointments = allAppointments.length;
+    } else if (user.role === 'Worker') {
+      // Worker-specific stats
+      const allAppointments = await Appointment.find({ workerId: user._id })
+        .populate('salonId', 'name');
+      
+      const uniqueSalons = new Set();
+      allAppointments.forEach(apt => {
+        if (apt.salonId) uniqueSalons.add(apt.salonId._id.toString());
+      });
+
+      stats.totalEarned = payments.reduce((sum, p) => sum + (p.workerCommission?.amount || 0), 0);
+      stats.salonsWorkedWith = uniqueSalons.size;
+      stats.completedAppointments = allAppointments.filter(a => a.status === 'completed').length;
+      stats.totalAppointments = allAppointments.length;
+    } else if (user.role === 'Owner') {
+      // Owner-specific stats
+      const Subscription = require('../models/Subscription');
+      const subscription = await Subscription.findOne({ ownerId: user._id })
+        .populate('salonId', 'name');
+      
+      const Worker = require('../models/User');
+      const workers = await Worker.find({ salonId: user.salonId?._id, role: 'Worker' });
+      
+      stats.currentPlan = subscription?.plan || 'Trial';
+      stats.totalWorkers = workers.length;
+      stats.activeWorkers = workers.filter(w => w.isActive).length;
+    }
+
     res.json({
       success: true,
       data: {
         user,
         recentAppointments,
         payments,
-        stats: {
-          totalAppointments: recentAppointments.length,
-          totalSpent: user.role === 'Client' ? payments.reduce((sum, p) => sum + p.amount, 0) : 0,
-          totalEarned: user.role === 'Worker' ? payments.reduce((sum, p) => sum + (p.workerCommission || 0), 0) : 0
-        }
+        history,
+        stats
       }
     });
   } catch (error) {

@@ -7,9 +7,10 @@ import Badge from '../../components/ui/Badge'
 import Modal from '../../components/ui/Modal'
 import {
   Users, Search, Filter, Ban, CheckCircle, XCircle, 
-  Eye, Trash2, UserX, UserCheck
+  Eye, Trash2, UserX, UserCheck, History, Calendar, 
+  TrendingUp, DollarSign, Building, UserPlus, UserMinus
 } from 'lucide-react'
-import { formatDate } from '../../utils/helpers'
+import { formatDate, formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const UsersPage = () => {
@@ -354,41 +355,123 @@ const UsersPage = () => {
               </div>
             </div>
 
+            {/* Role-specific Stats */}
             <div>
-              <h3 className="font-semibold mb-2">Activity Stats</h3>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-600">Appointments</p>
-                  <p className="text-xl font-bold">{userDetails.stats.totalAppointments}</p>
-                </div>
+              <h3 className="font-semibold mb-2">Activity Statistics</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {userDetails.user.role === 'Client' && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600">Total Spent</p>
-                    <p className="text-xl font-bold">${userDetails.stats.totalSpent}</p>
-                  </div>
+                  <>
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Total Appointments</p>
+                      <p className="text-xl font-bold">{userDetails.stats.totalAppointments || 0}</p>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Total Spent</p>
+                      <p className="text-xl font-bold">{formatCurrency(userDetails.stats.totalSpent || 0)}</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Salons Visited</p>
+                      <p className="text-xl font-bold">{userDetails.stats.salonsVisited || 0}</p>
+                    </div>
+                    <div className="p-3 bg-orange-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Barbers Visited</p>
+                      <p className="text-xl font-bold">{userDetails.stats.barbersVisited || 0}</p>
+                    </div>
+                  </>
                 )}
                 {userDetails.user.role === 'Worker' && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600">Total Earned</p>
-                    <p className="text-xl font-bold">${userDetails.stats.totalEarned}</p>
-                  </div>
+                  <>
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Total Appointments</p>
+                      <p className="text-xl font-bold">{userDetails.stats.totalAppointments || 0}</p>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Completed</p>
+                      <p className="text-xl font-bold">{userDetails.stats.completedAppointments || 0}</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Salons Worked With</p>
+                      <p className="text-xl font-bold">{userDetails.stats.salonsWorkedWith || 0}</p>
+                    </div>
+                    <div className="p-3 bg-yellow-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Total Earned</p>
+                      <p className="text-xl font-bold">{formatCurrency(userDetails.stats.totalEarned || 0)}</p>
+                    </div>
+                  </>
+                )}
+                {userDetails.user.role === 'Owner' && (
+                  <>
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Current Plan</p>
+                      <p className="text-xl font-bold capitalize">{userDetails.stats.currentPlan || 'Trial'}</p>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Total Workers</p>
+                      <p className="text-xl font-bold">{userDetails.stats.totalWorkers || 0}</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded-lg">
+                      <p className="text-xs text-gray-600">Active Workers</p>
+                      <p className="text-xl font-bold">{userDetails.stats.activeWorkers || 0}</p>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-2">Recent Appointments</h3>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {userDetails.recentAppointments.map((apt) => (
-                  <div key={apt._id} className="text-sm p-2 bg-gray-50 rounded">
-                    <div className="flex justify-between">
-                      <span>{apt.serviceId?.name || 'Service'}</span>
-                      <span className="text-gray-600">{formatDate(apt.dateTime)}</span>
+            {/* User History */}
+            {userDetails.history && userDetails.history.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <History size={18} />
+                  Activity History
+                </h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {userDetails.history.map((item, index) => (
+                    <div key={item._id || index} className="text-sm p-3 bg-gray-50 rounded-lg border-l-4 border-primary-500">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{item.description}</p>
+                          {item.relatedEntity && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Related: {item.relatedEntity.name || item.relatedEntity.type}
+                            </p>
+                          )}
+                          {item.metadata && Object.keys(item.metadata).length > 0 && (
+                            <div className="text-xs text-gray-400 mt-1">
+                              {Object.entries(item.metadata).slice(0, 2).map(([key, value]) => (
+                                <span key={key} className="mr-2">
+                                  {key}: {String(value)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                          {formatDate(item.createdAt)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Recent Appointments */}
+            {userDetails.recentAppointments && userDetails.recentAppointments.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2">Recent Appointments</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {userDetails.recentAppointments.map((apt) => (
+                    <div key={apt._id} className="text-sm p-2 bg-gray-50 rounded">
+                      <div className="flex justify-between">
+                        <span>{apt.serviceId?.name || 'Service'}</span>
+                        <span className="text-gray-600">{formatDate(apt.dateTime)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Modal>
       )}

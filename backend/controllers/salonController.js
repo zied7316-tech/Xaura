@@ -242,6 +242,40 @@ const addWorker = async (req, res, next) => {
     worker.salonId = req.params.id;
     await worker.save();
 
+    // Log history for owner and worker
+    const { logUserHistory } = require('../utils/userHistoryLogger');
+    const salon = await Salon.findById(req.params.id).populate('ownerId', 'name role');
+    
+    if (salon && salon.ownerId) {
+      await logUserHistory({
+        userId: salon.ownerId._id,
+        userRole: 'Owner',
+        action: 'worker_added',
+        description: `Added worker ${worker.name} to salon ${salon.name}`,
+        relatedEntity: {
+          type: 'Worker',
+          id: worker._id,
+          name: worker.name
+        },
+        metadata: { salonId: salon._id, salonName: salon.name },
+        req
+      });
+    }
+
+    await logUserHistory({
+      userId: worker._id,
+      userRole: 'Worker',
+      action: 'joined_salon',
+      description: `Joined salon ${salon?.name || 'Unknown'}`,
+      relatedEntity: {
+        type: 'Salon',
+        id: req.params.id,
+        name: salon?.name
+      },
+      metadata: { ownerId: salon?.ownerId?._id },
+      req
+    });
+
     res.json({
       success: true,
       message: 'Worker added to salon successfully',
