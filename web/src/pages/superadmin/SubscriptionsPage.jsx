@@ -43,13 +43,18 @@ const SubscriptionsPage = () => {
     try {
       // Use the subscription service to get available plans
       const data = await subscriptionService.getAvailablePlans()
-      if (data.success && data.data) {
-        setAvailablePlans(data.data.plans || [])
+      if (data.success && data.data && data.data.plans && data.data.plans.length > 0) {
+        setAvailablePlans(data.data.plans)
         setAddOns(data.data.addOns || null)
+        console.log('[SubscriptionsPage] Loaded plans from API:', data.data.plans.length)
+      } else {
+        // Fallback to hardcoded plans
+        console.log('[SubscriptionsPage] API returned no plans, using fallback')
+        setAvailablePlans([])
       }
     } catch (error) {
       console.error('Error loading available plans:', error)
-      // Fallback to hardcoded plans if API fails
+      // Fallback to hardcoded plans if API fails - empty array triggers fallback in render
       setAvailablePlans([])
     }
   }
@@ -513,21 +518,33 @@ const SubscriptionsPage = () => {
                 onChange={(e) => setNewPlan(e.target.value)}
               >
                 <option value="">Select plan...</option>
-                {/* Show plans from API if available, otherwise fallback to hardcoded */}
-                {(availablePlans.length > 0 ? availablePlans : Object.keys(PLAN_PRICING).map(key => ({
-                  id: key,
-                  name: PLAN_PRICING[key].labelEn || PLAN_PRICING[key].label,
-                  price: PLAN_PRICING[key].price
-                }))).map((plan) => {
-                  const planId = plan.id || plan
-                  const planName = plan.name || PLAN_PRICING[planId]?.labelEn || PLAN_PRICING[planId]?.label || planId
-                  const planPrice = typeof plan.price === 'object' ? plan.price.month : (plan.price || PLAN_PRICING[planId]?.price?.month || 0)
-                  return (
-                    <option key={planId} value={planId}>
-                      {planName} - {formatCurrency(planPrice)}/month
-                    </option>
-                  )
-                })}
+                {/* Always show plans - use API if available, otherwise use hardcoded PLAN_PRICING */}
+                {(() => {
+                  // If we have plans from API, use them
+                  if (availablePlans.length > 0) {
+                    return availablePlans.map((plan) => {
+                      const planId = plan.id || plan
+                      const planName = plan.name || plan.nameAr || PLAN_PRICING[planId]?.labelEn || PLAN_PRICING[planId]?.label || planId
+                      const planPrice = typeof plan.price === 'object' ? plan.price.month : (plan.price || PLAN_PRICING[planId]?.price?.month || 0)
+                      return (
+                        <option key={planId} value={planId}>
+                          {planName} - {formatCurrency(planPrice)}/month
+                        </option>
+                      )
+                    })
+                  }
+                  // Fallback to hardcoded plans
+                  return Object.keys(PLAN_PRICING).map((key) => {
+                    const plan = PLAN_PRICING[key]
+                    const planName = plan.labelEn || plan.label || key
+                    const planPrice = typeof plan.price === 'object' ? plan.price.month : (plan.price || 0)
+                    return (
+                      <option key={key} value={key}>
+                        {planName} - {formatCurrency(planPrice)}/month
+                      </option>
+                    )
+                  })
+                })()}
               </Select>
             </div>
 
