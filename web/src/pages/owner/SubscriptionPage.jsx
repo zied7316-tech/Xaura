@@ -158,16 +158,19 @@ const SubscriptionPage = () => {
 
   const getPlanPrice = (plan) => {
     if (!plan || !plan.price) return 0
-    if (typeof plan.price === 'object') {
-      return plan.price[billingInterval] || plan.price.month
+    if (typeof plan.price === 'object' && plan.price !== null) {
+      return plan.price[billingInterval] || plan.price.month || 0
     }
-    return plan.price
+    // Ensure it's a number
+    const price = Number(plan.price)
+    return isNaN(price) ? 0 : price
   }
 
   const getMonthlyEquivalent = (plan) => {
     if (!plan || !plan.price) return 0
-    if (typeof plan.price === 'object' && billingInterval === 'year') {
-      return plan.price.year / 12
+    if (typeof plan.price === 'object' && plan.price !== null && billingInterval === 'year') {
+      const yearPrice = Number(plan.price.year) || 0
+      return yearPrice / 12
     }
     return getPlanPrice(plan)
   }
@@ -304,7 +307,11 @@ const SubscriptionPage = () => {
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">{currentPlan.name} Plan</h3>
                   <p className="text-gray-600 text-sm">
-                    {formatCurrency(currentPlan.price)} / month
+                    {formatCurrency(
+                      typeof currentPlan.price === 'object' 
+                        ? (subscription.billingInterval === 'year' ? currentPlan.price.year : currentPlan.price.month)
+                        : (subscription.monthlyFee || subscription.price || currentPlan.price || 0)
+                    )} / {subscription.billingInterval === 'year' ? 'year' : 'month'}
                   </p>
                   <p className="text-gray-500 text-xs mt-1">{currentPlan.description}</p>
                 </div>

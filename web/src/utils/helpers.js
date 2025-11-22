@@ -1,13 +1,22 @@
 export const formatCurrency = (amount, currency = 'TND') => {
+  // Convert to number if it's not already
+  let numAmount = amount;
+  if (typeof amount === 'object' && amount !== null) {
+    // If it's an object with month/year, use month as default
+    numAmount = amount.month || amount.year || 0;
+  }
+  // Ensure it's a number
+  numAmount = Number(numAmount) || 0;
+  
   if (currency === 'TND') {
     // Tunisian Dinar - 3 decimal places with Arabic symbol
-    const formatted = (amount || 0).toFixed(3);
+    const formatted = numAmount.toFixed(3);
     return `${formatted} د.ت`; // Arabic TND symbol
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency
-  }).format(amount || 0)
+  }).format(numAmount)
 }
 
 export const formatDate = (date) => {
