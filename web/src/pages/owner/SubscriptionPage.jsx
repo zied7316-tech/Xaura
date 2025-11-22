@@ -59,9 +59,19 @@ const SubscriptionPage = () => {
 
   const loadData = async () => {
     try {
-      const [subscriptionData, plansData] = await Promise.all([
-        subscriptionService.getMySubscription(),
-        subscriptionService.getAvailablePlans()
+      setLoading(true)
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 25000)
+      )
+      
+      const [subscriptionData, plansData] = await Promise.race([
+        Promise.all([
+          subscriptionService.getMySubscription(),
+          subscriptionService.getAvailablePlans()
+        ]),
+        timeoutPromise
       ])
       
       setSubscription(subscriptionData.data)
@@ -74,7 +84,17 @@ const SubscriptionPage = () => {
       }
     } catch (error) {
       console.error('Error loading subscription data:', error)
-      toast.error('Failed to load subscription data')
+      
+      // Better error messages
+      if (error.message?.includes('timeout')) {
+        toast.error('Request timed out. The server is taking too long to respond. Please try again.')
+      } else if (error.response?.status === 404) {
+        toast.error('Subscription not found. Please contact support.')
+      } else if (error.response?.status === 500) {
+        toast.error('Server error. Please try again later.')
+      } else {
+        toast.error(error.response?.data?.message || error.message || 'Failed to load subscription data')
+      }
     } finally {
       setLoading(false)
     }

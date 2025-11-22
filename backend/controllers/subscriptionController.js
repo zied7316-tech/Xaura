@@ -320,18 +320,43 @@ const getMySubscription = async (req, res, next) => {
       subscription = await Subscription.create(createTrialSubscription(salonId, req.user.id));
     }
 
-    // Check trial status
-    await subscription.checkTrialStatus();
+    // Check trial status efficiently (only save if status changed)
+    if (subscription.status === 'trial') {
+      const now = new Date();
+      const endDate = subscription.trial.extended && subscription.trial.extendedEndDate 
+        ? new Date(subscription.trial.extendedEndDate) 
+        : new Date(subscription.trial.endDate);
+      
+      // Only update if trial expired
+      if (now >= endDate && !subscription.plan) {
+        await Subscription.findByIdAndUpdate(subscription._id, { status: 'expired' });
+        subscription.status = 'expired';
+      }
+    }
 
-    // Check if confirmation is due
-    const needsConfirmation = subscription.isConfirmationDue;
+    // Calculate virtuals manually (faster than using virtuals)
+    const needsConfirmation = subscription.status === 'trial' 
+      && !subscription.trial.confirmationResponded
+      && new Date() >= new Date(subscription.trial.confirmationDay)
+      && !subscription.trial.confirmationRequested;
+
+    const trialDaysRemaining = subscription.status === 'trial' ? (() => {
+      const now = new Date();
+      const endDate = subscription.trial.extended && subscription.trial.extendedEndDate 
+        ? new Date(subscription.trial.extendedEndDate) 
+        : new Date(subscription.trial.endDate);
+      const diff = endDate - now;
+      return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    })() : 0;
+
+    const isTrialActive = subscription.status === 'trial' && trialDaysRemaining > 0;
 
     res.json({
       success: true,
       data: subscription,
       needsConfirmation,
-      trialDaysRemaining: subscription.trialDaysRemaining,
-      isTrialActive: subscription.isTrialActive
+      trialDaysRemaining,
+      isTrialActive
     });
   } catch (error) {
     next(error);
