@@ -269,14 +269,8 @@ const BookAppointmentPage = () => {
       const [hours, minutes] = selectedTime.split(':')
       appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
-      // If recurring appointment, create recurring booking (only for single person for now)
+      // If recurring appointment, create recurring booking (supports single and multiple people)
       if (isRecurring) {
-        if (numberOfPeople > 1) {
-          toast.error('Recurring appointments for multiple people are not yet supported')
-          setBooking(false)
-          return
-        }
-        
         const startDate = new Date(recurringStartDate)
         const [startHours, startMinutes] = selectedTime.split(':')
         startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0)
@@ -284,7 +278,7 @@ const BookAppointmentPage = () => {
         const recurringData = {
           salonId: salonIdParam,
           workerId: selectedWorker._id,
-          serviceId: servicesToBook[0]._id, // Primary service
+          serviceId: servicesToBook[0]._id, // Primary service for backward compatibility
           services: servicesToBook.map(service => ({
             serviceId: service._id,
             name: service.name,
@@ -295,11 +289,22 @@ const BookAppointmentPage = () => {
           startDate: startDate.toISOString(),
           endDate: recurringEndDate ? new Date(recurringEndDate).toISOString() : null,
           dayOfWeek: recurringDayOfWeek !== null ? recurringDayOfWeek : startDate.getDay(),
-          timeSlot: selectedTime
+          timeSlot: selectedTime,
+          numberOfPeople: numberOfPeople,
+          peopleServices: numberOfPeople > 1 ? peopleServices.map(person => ({
+            personIndex: person.personIndex,
+            services: person.services.map(service => ({
+              serviceId: service._id,
+              name: service.name,
+              price: service.price,
+              duration: service.duration
+            }))
+          })) : []
         }
 
         await advancedBookingService.createRecurringAppointment(recurringData)
-        toast.success(`🎉 Recurring appointment created! Appointments will be automatically scheduled ${recurringFrequency === 'weekly' ? 'every week' : recurringFrequency === 'biweekly' ? 'every 2 weeks' : 'every month'}.`)
+        const peopleText = numberOfPeople > 1 ? ` for ${numberOfPeople} people` : ''
+        toast.success(`🎉 Recurring appointment${peopleText} created! Appointments will be automatically scheduled ${recurringFrequency === 'weekly' ? 'every week' : recurringFrequency === 'biweekly' ? 'every 2 weeks' : 'every month'}.`)
         setTimeout(() => {
           navigate('/client/advanced-booking')
         }, 2000)

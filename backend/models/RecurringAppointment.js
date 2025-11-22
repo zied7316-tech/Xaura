@@ -68,7 +68,30 @@ const recurringAppointmentSchema = new mongoose.Schema({
   notes: {
     type: String,
     default: ''
-  }
+  },
+  // Multiple people support
+  numberOfPeople: {
+    type: Number,
+    default: 1,
+    min: 1
+  },
+  // Services for each person (for multi-person bookings)
+  peopleServices: [{
+    personIndex: {
+      type: Number,
+      required: true
+    },
+    services: [{
+      serviceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Service',
+        required: true
+      },
+      name: String,
+      price: Number,
+      duration: Number
+    }]
+  }]
 }, {
   timestamps: true
 });

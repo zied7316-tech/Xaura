@@ -14,19 +14,65 @@ const createRecurringAppointment = async (req, res, next) => {
     const {
       workerId,
       serviceId,
+      services, // Array of services (for multi-service bookings)
       frequency,
       dayOfWeek,
       dayOfMonth,
       timeSlot,
       startDate,
       endDate,
-      notes
+      notes,
+      numberOfPeople = 1,
+      peopleServices = [] // Array of { personIndex, services: [{ serviceId, name, price, duration }] }
     } = req.body;
 
     const clientId = req.user.id;
 
-    // Verify service and worker
-    const service = await Service.findById(serviceId);
+    // Determine if this is a multi-person booking
+    const isMultiPerson = numberOfPeople > 1 && peopleServices.length > 0;
+
+    // For single person, use serviceId or services array
+    let servicesToBook = [];
+    if (isMultiPerson) {
+      // Validate peopleServices
+      if (peopleServices.length !== numberOfPeople) {
+        return res.status(400).json({
+          success: false,
+          message: `Number of people (${numberOfPeople}) doesn't match peopleServices array length (${peopleServices.length})`
+        });
+      }
+      // Use services from peopleServices
+      servicesToBook = peopleServices[0].services || [];
+    } else {
+      // Single person - use services array if provided, otherwise use serviceId
+      if (services && Array.isArray(services) && services.length > 0) {
+        servicesToBook = services;
+      } else if (serviceId) {
+        // Fallback to single serviceId
+        const service = await Service.findById(serviceId);
+        if (!service) {
+          return res.status(404).json({
+            success: false,
+            message: 'Service not found'
+          });
+        }
+        servicesToBook = [{
+          serviceId: service._id,
+          name: service.name,
+          price: service.price,
+          duration: service.duration
+        }];
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Either serviceId or services array is required'
+        });
+      }
+    }
+
+    // Verify first service and worker
+    const firstServiceId = servicesToBook[0].serviceId;
+    const service = await Service.findById(firstServiceId);
     if (!service) {
       return res.status(404).json({
         success: false,
@@ -43,10 +89,10 @@ const createRecurringAppointment = async (req, res, next) => {
     }
 
     // Create recurring appointment
-    const recurring = await RecurringAppointment.create({
+    const recurringData = {
       clientId,
       workerId,
-      serviceId,
+      serviceId: firstServiceId, // Keep for backward compatibility
       salonId: service.salonId,
       frequency,
       dayOfWeek,
@@ -54,26 +100,72 @@ const createRecurringAppointment = async (req, res, next) => {
       timeSlot,
       startDate,
       endDate,
-      notes: notes || ''
-    });
+      notes: notes || '',
+      numberOfPeople: isMultiPerson ? numberOfPeople : 1,
+      peopleServices: isMultiPerson ? peopleServices : []
+    };
+
+    const recurring = await RecurringAppointment.create(recurringData);
 
     // Generate first 4 appointments
     const appointments = [];
     const appointmentDates = generateRecurringDates(recurring, 4);
 
     for (const date of appointmentDates) {
-      const appointment = await Appointment.create({
-        clientId,
-        workerId,
-        serviceId,
-        salonId: service.salonId,
-        dateTime: date,
-        servicePriceAtBooking: service.price,
-        serviceDurationAtBooking: service.duration,
-        status: 'Pending',
-        notes: `Recurring appointment (${frequency})`
-      });
-      appointments.push(appointment._id);
+      if (isMultiPerson) {
+        // Create one appointment per person at the same time
+        for (let personIdx = 0; personIdx < numberOfPeople; personIdx++) {
+          const person = peopleServices[personIdx];
+          if (!person || !person.services || person.services.length === 0) continue;
+
+          // Calculate total price and duration for this person's services
+          const totalPrice = person.services.reduce((sum, s) => sum + (s.price || 0), 0);
+          const totalDuration = person.services.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+          const appointment = await Appointment.create({
+            clientId,
+            workerId,
+            serviceId: person.services[0].serviceId, // Primary service for backward compatibility
+            services: person.services.map(s => ({
+              serviceId: s.serviceId,
+              name: s.name,
+              price: s.price,
+              duration: s.duration
+            })),
+            salonId: service.salonId,
+            dateTime: date,
+            servicePriceAtBooking: totalPrice,
+            serviceDurationAtBooking: totalDuration,
+            status: 'Pending',
+            notes: `Recurring appointment (${frequency}) - Person ${personIdx + 1} of ${numberOfPeople}`,
+            skipAvailabilityCheck: personIdx > 0 // Skip check for subsequent appointments
+          });
+          appointments.push(appointment._id);
+        }
+      } else {
+        // Single person - create one appointment
+        const totalPrice = servicesToBook.reduce((sum, s) => sum + (s.price || 0), 0);
+        const totalDuration = servicesToBook.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+        const appointment = await Appointment.create({
+          clientId,
+          workerId,
+          serviceId: firstServiceId,
+          services: servicesToBook.map(s => ({
+            serviceId: s.serviceId,
+            name: s.name,
+            price: s.price,
+            duration: s.duration
+          })),
+          salonId: service.salonId,
+          dateTime: date,
+          servicePriceAtBooking: totalPrice,
+          serviceDurationAtBooking: totalDuration,
+          status: 'Pending',
+          notes: `Recurring appointment (${frequency})`
+        });
+        appointments.push(appointment._id);
+      }
     }
 
     recurring.generatedAppointments = appointments;
@@ -84,7 +176,7 @@ const createRecurringAppointment = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Recurring appointment created successfully',
+      message: `Recurring appointment${isMultiPerson ? `s for ${numberOfPeople} people` : ''} created successfully`,
       data: recurring,
       generatedCount: appointments.length
     });
