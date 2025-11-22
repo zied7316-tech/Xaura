@@ -1009,7 +1009,7 @@ const SubscriptionPage = () => {
 
       {/* Optional Add-ons */}
       {addOns && (
-        <Card className="-mt-2">
+        <Card className="-mt-8">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Optional Add-ons</CardTitle>
