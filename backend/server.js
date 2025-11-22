@@ -235,13 +235,18 @@ function gracefulShutdown(signal) {
       }
       console.log('✅ HTTP server closed gracefully');
       
-      // Close MongoDB connection
+      // Close MongoDB connection (Mongoose 7+ uses Promises, not callbacks)
       const mongoose = require('mongoose');
       if (mongoose.connection.readyState === 1) {
-        mongoose.connection.close(false, () => {
-          console.log('✅ MongoDB connection closed');
-          process.exit(0);
-        });
+        mongoose.connection.close(false)
+          .then(() => {
+            console.log('✅ MongoDB connection closed');
+            process.exit(0);
+          })
+          .catch((err) => {
+            console.error('❌ Error closing MongoDB connection:', err.message);
+            process.exit(0); // Exit anyway
+          });
       } else {
         process.exit(0);
       }
