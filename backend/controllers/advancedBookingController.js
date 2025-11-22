@@ -137,8 +137,7 @@ const createRecurringAppointment = async (req, res, next) => {
             servicePriceAtBooking: totalPrice,
             serviceDurationAtBooking: totalDuration,
             status: 'Pending',
-            notes: `Recurring appointment (${frequency}) - Person ${personIdx + 1} of ${numberOfPeople}`,
-            skipAvailabilityCheck: personIdx > 0 // Skip check for subsequent appointments
+            notes: `Recurring appointment (${frequency}) - Person ${personIdx + 1} of ${numberOfPeople}`
           });
           appointments.push(appointment._id);
         }
