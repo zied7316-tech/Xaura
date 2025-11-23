@@ -141,11 +141,21 @@ const WorkerWalkInPage = () => {
       if (formData.clientPhone) appointmentData.clientPhone = formData.clientPhone;
 
       // Check if online
-      if (online) {
-        // Try to send to server
+      if (online && navigator.onLine) {
+        // Try to send to server with timeout wrapper
         try {
-          const result = await appointmentManagementService.createWalkInAppointment(appointmentData)
-          if (result.success) {
+          // Create a timeout promise (15 seconds - faster than API timeout)
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('TIMEOUT')), 15000)
+          )
+
+          // Race between API call and timeout
+          const result = await Promise.race([
+            appointmentManagementService.createWalkInAppointment(appointmentData),
+            timeoutPromise
+          ])
+
+          if (result && result.success) {
             toast.success('Walk-in client added successfully!')
             // Reset form
             setFormData({
@@ -157,31 +167,52 @@ const WorkerWalkInPage = () => {
               paymentStatus: 'paid',
               paymentMethod: 'cash'
             })
-            // Optionally navigate or stay on page
-            // navigate('/worker/appointments')
+            updateQueueCount()
+            return // Success - exit early
           }
         } catch (error) {
-          // If network error, save to offline queue
-          if (!navigator.onLine || error.message?.includes('timeout') || error.message?.includes('network')) {
-            console.log('📴 Offline or network error - saving to queue')
-            await saveToQueue(appointmentData)
-            toast.success('✅ Saved! Will sync when online', {
-              icon: '📦',
-              duration: 4000
-            })
-            updateQueueCount()
-            // Reset form
-            setFormData({
-              clientId: '',
-              clientName: '',
-              clientPhone: '',
-              serviceId: '',
-              price: '',
-              paymentStatus: 'paid',
-              paymentMethod: 'cash'
-            })
+          // Check if it's a timeout or network error
+          const isTimeout = error.message === 'TIMEOUT' || 
+                           error.message?.includes('timeout') || 
+                           error.message?.includes('timed out') ||
+                           error.code === 'ECONNABORTED'
+          
+          const isNetworkError = !navigator.onLine || 
+                                error.message?.includes('network') ||
+                                error.message?.includes('connection') ||
+                                error.message?.includes('Failed to fetch')
+
+          // If timeout or network error, save to offline queue
+          if (isTimeout || isNetworkError) {
+            console.log('📴 Timeout or network error - saving to queue:', error.message)
+            try {
+              await saveToQueue(appointmentData)
+              toast.success('✅ Saved! Will sync when online', {
+                icon: '📦',
+                duration: 4000
+              })
+              updateQueueCount()
+              // Reset form
+              setFormData({
+                clientId: '',
+                clientName: '',
+                clientPhone: '',
+                serviceId: '',
+                price: '',
+                paymentStatus: 'paid',
+                paymentMethod: 'cash'
+              })
+              return // Saved to queue - exit
+            } catch (queueError) {
+              console.error('Failed to save to queue:', queueError)
+              toast.error('Failed to save. Please try again.')
+              return
+            }
           } else {
-            throw error
+            // Other error - show error message
+            console.error('Error creating walk-in appointment:', error)
+            toast.error(error.response?.data?.message || error.message || 'Failed to add walk-in client')
+            return
           }
         }
       } else {
