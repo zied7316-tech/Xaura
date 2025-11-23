@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt'); // Added for direct password comparison in login
 const { generateEmailVerificationToken, generatePasswordResetToken, hashToken } = require('../utils/generateToken');
 const globalEmailService = require('../services/globalEmailService');
 
@@ -122,10 +123,15 @@ const login = async (req, res, next) => {
       });
     }
 
+    // Normalize email (lowercase, trim)
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if user exists and get password (with timeout to prevent hanging)
-    const user = await User.findOne({ email: email.toLowerCase().trim() })
+    // Use lean() for faster query (returns plain object, not Mongoose document)
+    const user = await User.findOne({ email: normalizedEmail })
       .select('+password')
-      .maxTimeMS(3000); // 3 second timeout
+      .lean() // Faster - returns plain object instead of Mongoose document
+      .maxTimeMS(2000); // 2 second timeout (faster for login)
 
     if (!user) {
       return res.status(401).json({
@@ -135,7 +141,9 @@ const login = async (req, res, next) => {
     }
 
     // Check if password matches (bcrypt comparison - can be slow, but necessary)
-    const isMatch = await user.comparePassword(password);
+    // Since we used lean(), we need to compare password directly with bcrypt
+    const isMatch = await bcrypt.compare(password, user.password);
+    
     if (!isMatch) {
       return res.status(401).json({
         success: false,
