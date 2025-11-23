@@ -699,8 +699,8 @@ const createWalkInAppointment = async (req, res, next) => {
       }
     }
 
-    // Get worker's salon
-    const worker = await User.findById(workerId).populate('salonId');
+    // Get worker's salon ID (don't populate - faster)
+    const worker = await User.findById(workerId).select('salonId paymentModel');
     if (!worker || !worker.salonId) {
       return res.status(400).json({
         success: false,
@@ -708,8 +708,10 @@ const createWalkInAppointment = async (req, res, next) => {
       });
     }
 
-    // Verify service exists
-    const service = await Service.findById(serviceId);
+    const salonId = worker.salonId;
+
+    // Verify service exists (parallel with other operations)
+    const service = await Service.findById(serviceId).select('name duration price');
     if (!service) {
       return res.status(404).json({
         success: false,
@@ -717,27 +719,7 @@ const createWalkInAppointment = async (req, res, next) => {
       });
     }
 
-    // Create appointment
-    const appointment = await Appointment.create({
-      clientId: finalClientId,
-      workerId,
-      serviceId,
-      salonId: worker.salonId._id,
-      dateTime: new Date(), // Walk-in = right now
-      status: 'Completed', // Already completed
-      isWalkIn: true,
-      servicePriceAtBooking: price,
-      finalPrice: price,
-      serviceDurationAtBooking: service.duration,
-      paymentStatus: paymentStatus || 'paid',
-      paymentMethod: paymentMethod || 'cash',
-      paidAmount: paymentStatus === 'paid' ? price : 0,
-      paidAt: paymentStatus === 'paid' ? new Date() : null,
-      completedAt: new Date(),
-      notes: 'Walk-in client'
-    });
-
-    // Calculate worker earnings
+    // Calculate worker earnings (before creating appointment)
     let workerEarning = 0;
     let commissionPercentage = 0;
 
@@ -754,67 +736,110 @@ const createWalkInAppointment = async (req, res, next) => {
       workerEarning = (price * 50) / 100;
     }
 
-    // Create earning record
     const isPaid = paymentStatus === 'paid';
-    await WorkerEarning.create({
+    const now = new Date();
+
+    // Create appointment (minimal fields, no populate)
+    const appointment = await Appointment.create({
+      clientId: finalClientId,
       workerId,
-      salonId: worker.salonId._id,
-      appointmentId: appointment._id,
       serviceId,
-      servicePrice: price,
-      commissionPercentage,
-      workerEarning,
-      paymentModelType: worker.paymentModel?.type || 'percentage_commission',
-      isPaid,
-      serviceDate: new Date()
+      salonId: salonId,
+      dateTime: now,
+      status: 'Completed',
+      isWalkIn: true,
+      servicePriceAtBooking: price,
+      finalPrice: price,
+      serviceDurationAtBooking: service.duration,
+      paymentStatus: paymentStatus || 'paid',
+      paymentMethod: paymentMethod || 'cash',
+      paidAmount: isPaid ? price : 0,
+      paidAt: isPaid ? now : null,
+      completedAt: now,
+      notes: 'Walk-in client'
     });
+
+    // Run database operations in parallel where possible
+    const dbOperations = [];
+
+    // Create earning record
+    dbOperations.push(
+      WorkerEarning.create({
+        workerId,
+        salonId: salonId,
+        appointmentId: appointment._id,
+        serviceId,
+        servicePrice: price,
+        commissionPercentage,
+        workerEarning,
+        paymentModelType: worker.paymentModel?.type || 'percentage_commission',
+        isPaid,
+        serviceDate: now
+      })
+    );
 
     // Update wallet if paid
     if (isPaid) {
-      let wallet = await WorkerWallet.findOne({ workerId });
-      if (!wallet) {
-        wallet = await WorkerWallet.create({
-          workerId,
-          salonId: worker.salonId._id,
-          balance: workerEarning,
-          totalEarned: workerEarning,
-          totalPaid: 0
-        });
-      } else {
-        wallet.balance += workerEarning;
-        wallet.totalEarned += workerEarning;
-        await wallet.save();
-      }
+      dbOperations.push(
+        WorkerWallet.findOne({ workerId }).then(wallet => {
+          if (!wallet) {
+            return WorkerWallet.create({
+              workerId,
+              salonId: salonId,
+              balance: workerEarning,
+              totalEarned: workerEarning,
+              totalPaid: 0
+            });
+          } else {
+            wallet.balance += workerEarning;
+            wallet.totalEarned += workerEarning;
+            return wallet.save();
+          }
+        })
+      );
 
       // Record payment
       const salonRevenue = price - workerEarning;
-      await Payment.create({
-        salonId: worker.salonId._id,
-        appointmentId: appointment._id,
-        clientId: finalClientId,
-        workerId,
-        amount: price,
-        paymentMethod: paymentMethod || 'cash',
-        status: 'completed',
-        paidAt: new Date(),
-        workerCommission: {
-          percentage: commissionPercentage,
-          amount: workerEarning
-        },
-        salonRevenue,
-        notes: `Walk-in payment for ${service.name}`
-      });
+      dbOperations.push(
+        Payment.create({
+          salonId: salonId,
+          appointmentId: appointment._id,
+          clientId: finalClientId,
+          workerId,
+          amount: price,
+          paymentMethod: paymentMethod || 'cash',
+          status: 'completed',
+          paidAt: now,
+          workerCommission: {
+            percentage: commissionPercentage,
+            amount: workerEarning
+          },
+          salonRevenue,
+          notes: `Walk-in payment for ${service.name}`
+        })
+      );
     }
 
-    // Populate appointment details
-    await appointment.populate('clientId', 'name phone email');
-    await appointment.populate('serviceId', 'name price');
-    await appointment.populate('workerId', 'name');
+    // Execute all database operations in parallel
+    await Promise.all(dbOperations);
 
+    // Return response immediately (don't populate - client can fetch details if needed)
     res.status(201).json({
       success: true,
       message: 'Walk-in appointment created successfully',
-      data: appointment
+      data: {
+        _id: appointment._id,
+        clientId: finalClientId,
+        workerId,
+        serviceId,
+        salonId,
+        dateTime: appointment.dateTime,
+        status: appointment.status,
+        isWalkIn: true,
+        finalPrice: price,
+        paymentStatus: appointment.paymentStatus,
+        paymentMethod: appointment.paymentMethod
+      }
     });
   } catch (error) {
     next(error);
