@@ -763,88 +763,7 @@ const createWalkInAppointment = async (req, res, next) => {
       notes: 'Walk-in client'
     });
 
-    // Run database operations in parallel where possible (with timeouts and error handling)
-    // These operations are non-critical - if they fail, the appointment is still created
-    const dbOperations = [];
-
-    // Create earning record (with error handling - don't fail if this fails)
-    dbOperations.push(
-      WorkerEarning.create({
-        workerId,
-        salonId: salonId,
-        appointmentId: appointment._id,
-        serviceId,
-        servicePrice: price,
-        commissionPercentage,
-        workerEarning,
-        paymentModelType: worker.paymentModel?.type || 'percentage_commission',
-        isPaid,
-        serviceDate: now
-      }).catch(err => {
-        console.error('Error creating worker earning (non-critical):', err.message);
-        return null; // Don't fail the whole request
-      })
-    );
-
-    // Update wallet if paid (with timeout and error handling)
-    if (isPaid) {
-      dbOperations.push(
-        WorkerWallet.findOne({ workerId }).maxTimeMS(2000).then(wallet => {
-          if (!wallet) {
-            return WorkerWallet.create({
-              workerId,
-              salonId: salonId,
-              balance: workerEarning,
-              totalEarned: workerEarning,
-              totalPaid: 0
-            });
-          } else {
-            wallet.balance += workerEarning;
-            wallet.totalEarned += workerEarning;
-            return wallet.save();
-          }
-        }).catch(err => {
-          console.error('Error updating worker wallet (non-critical):', err.message);
-          return null; // Don't fail the whole request
-        })
-      );
-
-      // Record payment (with error handling)
-      const salonRevenue = price - workerEarning;
-      dbOperations.push(
-        Payment.create({
-          salonId: salonId,
-          appointmentId: appointment._id,
-          clientId: finalClientId,
-          workerId,
-          amount: price,
-          paymentMethod: paymentMethod || 'cash',
-          status: 'completed',
-          paidAt: now,
-          workerCommission: {
-            percentage: commissionPercentage,
-            amount: workerEarning
-          },
-          salonRevenue,
-          notes: `Walk-in payment for ${service.name}`
-        }).catch(err => {
-          console.error('Error creating payment (non-critical):', err.message);
-          return null; // Don't fail the whole request
-        })
-      );
-    }
-
-    // Execute all database operations in parallel (with overall timeout)
-    // Use Promise.allSettled to continue even if some operations fail
-    await Promise.race([
-      Promise.allSettled(dbOperations),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Database operations timeout')), 8000))
-    ]).catch(err => {
-      console.error('Database operations timeout or error (non-critical):', err.message);
-      // Continue anyway - appointment is created, other operations are optional
-    });
-
-    // Return response immediately (don't populate - client can fetch details if needed)
+    // Return response IMMEDIATELY - don't wait for non-critical operations
     res.status(201).json({
       success: true,
       message: 'Walk-in appointment created successfully',
@@ -860,6 +779,92 @@ const createWalkInAppointment = async (req, res, next) => {
         finalPrice: price,
         paymentStatus: appointment.paymentStatus,
         paymentMethod: appointment.paymentMethod
+      }
+    });
+
+    // Run non-critical operations ASYNCHRONOUSLY in the background (don't await)
+    // These operations are not required for the response - they can happen after
+    setImmediate(async () => {
+      try {
+        const dbOperations = [];
+
+        // Create earning record (with error handling)
+        dbOperations.push(
+          WorkerEarning.create({
+            workerId,
+            salonId: salonId,
+            appointmentId: appointment._id,
+            serviceId,
+            servicePrice: price,
+            commissionPercentage,
+            workerEarning,
+            paymentModelType: worker.paymentModel?.type || 'percentage_commission',
+            isPaid,
+            serviceDate: now
+          }).catch(err => {
+            console.error('Error creating worker earning (background, non-critical):', err.message);
+            return null;
+          })
+        );
+
+        // Update wallet if paid (with timeout and error handling)
+        if (isPaid) {
+          dbOperations.push(
+            WorkerWallet.findOne({ workerId }).maxTimeMS(2000).then(wallet => {
+              if (!wallet) {
+                return WorkerWallet.create({
+                  workerId,
+                  salonId: salonId,
+                  balance: workerEarning,
+                  totalEarned: workerEarning,
+                  totalPaid: 0
+                });
+              } else {
+                wallet.balance += workerEarning;
+                wallet.totalEarned += workerEarning;
+                return wallet.save();
+              }
+            }).catch(err => {
+              console.error('Error updating worker wallet (background, non-critical):', err.message);
+              return null;
+            })
+          );
+
+          // Record payment (with error handling)
+          const salonRevenue = price - workerEarning;
+          dbOperations.push(
+            Payment.create({
+              salonId: salonId,
+              appointmentId: appointment._id,
+              clientId: finalClientId,
+              workerId,
+              amount: price,
+              paymentMethod: paymentMethod || 'cash',
+              status: 'completed',
+              paidAt: now,
+              workerCommission: {
+                percentage: commissionPercentage,
+                amount: workerEarning
+              },
+              salonRevenue,
+              notes: `Walk-in payment for ${service.name}`
+            }).catch(err => {
+              console.error('Error creating payment (background, non-critical):', err.message);
+              return null;
+            })
+          );
+        }
+
+        // Execute all database operations in parallel (with overall timeout)
+        await Promise.race([
+          Promise.allSettled(dbOperations),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Background operations timeout')), 10000))
+        ]).catch(err => {
+          console.error('Background database operations timeout (non-critical):', err.message);
+        });
+      } catch (error) {
+        // Silently log background errors - don't affect the response
+        console.error('Error in background operations (non-critical):', error.message);
       }
     });
   } catch (error) {
