@@ -630,12 +630,14 @@ const createWalkInAppointment = async (req, res, next) => {
             if (createError.code === 11000) {
               client = await User.findOne({ phone: normalizedPhone, role: 'Client' });
               if (!client) {
-                // Last resort: create with completely unique email (very unlikely to collide)
-                const uniqueEmail = `walkin.${Date.now()}.${Math.random().toString(36).substring(2, 15)}.${workerId}@xaura.temp`;
+                // Last resort: create with completely unique email (matches regex)
+                const timestamp = Date.now();
+                const random = Math.floor(Math.random() * 1000000);
+                const uniqueEmail = `walkin${timestamp}${random}${workerId.toString().slice(-6)}@xaura.temp`.toLowerCase();
                 client = await User.create({
                   name: clientName && clientName.trim() ? clientName.trim() : 'Walk-in Client',
                   phone: normalizedPhone,
-                  email: uniqueEmail.toLowerCase(),
+                  email: uniqueEmail,
                   role: 'Client',
                   password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
                   isWalkIn: true
