@@ -616,15 +616,17 @@ const createWalkInAppointment = async (req, res, next) => {
           }
           
           // Create new client account (email should be unique due to timestamp + random)
+          // Use insertOne for faster insertion (bypasses some Mongoose overhead)
           try {
-            client = await User.create({
+            const clientData = {
               name: clientName && clientName.trim() ? clientName.trim() : 'Walk-in Client',
               phone: normalizedPhone,
               email: emailToUse,
               role: 'Client',
-              password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8), // Stronger temp password
+              password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
               isWalkIn: true // Flag for walk-in clients
-            });
+            };
+            client = await User.create(clientData);
           } catch (createError) {
             // If creation fails (e.g., duplicate email), try to find by phone again
             if (createError.code === 11000) {
@@ -639,7 +641,7 @@ const createWalkInAppointment = async (req, res, next) => {
                   phone: normalizedPhone,
                   email: uniqueEmail,
                   role: 'Client',
-                  password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+                  password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
                   isWalkIn: true
                 });
               }
@@ -669,7 +671,7 @@ const createWalkInAppointment = async (req, res, next) => {
             phone: `WALKIN${uniqueId}`,
             email: anonymousEmail,
             role: 'Client',
-            password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+            password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
             isWalkIn: true,
             isAnonymous: true
           });
@@ -686,7 +688,7 @@ const createWalkInAppointment = async (req, res, next) => {
               phone: `WALKIN${finalUniqueId}`,
               email: `walkinanon${finalUniqueId}@xaura.temp`.toLowerCase(),
               role: 'Client',
-              password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+              password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
               isWalkIn: true,
               isAnonymous: true
             });

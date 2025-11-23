@@ -192,7 +192,8 @@ const getAllServices = async (req, res, next) => {
 const getMyServices = async (req, res, next) => {
   try {
     const User = require('../models/User');
-    const worker = await User.findById(req.user.id).select('salonId');
+    // Add timeout to prevent hanging
+    const worker = await User.findById(req.user.id).select('salonId').maxTimeMS(3000);
     
     if (!worker || !worker.salonId) {
       return res.json({
@@ -202,12 +203,14 @@ const getMyServices = async (req, res, next) => {
       });
     }
 
+    // Add timeout to service query
     const services = await Service.find({
       salonId: worker.salonId,
       isActive: true
     })
       .select('name description image category duration price')
-      .sort({ category: 1, name: 1 });
+      .sort({ category: 1, name: 1 })
+      .maxTimeMS(3000);
 
     res.json({
       success: true,

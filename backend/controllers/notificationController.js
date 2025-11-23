@@ -17,6 +17,7 @@ const getNotifications = async (req, res, next) => {
     }
 
     // Use lean() for better performance and handle populate errors gracefully
+    // Add timeout to prevent hanging
     const notifications = await Notification.find(query)
       .populate({
         path: 'relatedUser',
@@ -30,13 +31,14 @@ const getNotifications = async (req, res, next) => {
       })
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
-      .lean(); // Convert to plain objects for better performance
+      .lean() // Convert to plain objects for better performance
+      .maxTimeMS(3000); // 3 second timeout
 
-    // Get unread count
+    // Get unread count (with timeout)
     const unreadCount = await Notification.countDocuments({
       userId,
       isRead: false
-    });
+    }).maxTimeMS(2000); // 2 second timeout
 
     res.json({
       success: true,
