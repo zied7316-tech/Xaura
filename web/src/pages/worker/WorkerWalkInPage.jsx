@@ -2,23 +2,28 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { salonService } from '../../services/salonService'
 import { appointmentManagementService } from '../../services/appointmentManagementService'
+import { saveToQueue, getQueueCount, isOnline, onOnlineStatusChange } from '../../utils/offlineStorage'
+import { syncQueue, startAutoSync, setupOnlineListener } from '../../utils/offlineSync'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import toast from 'react-hot-toast'
-import { UserPlus, DollarSign, Calendar } from 'lucide-react'
+import { UserPlus, DollarSign, Calendar, Wifi, WifiOff, RefreshCw } from 'lucide-react'
 
 const WorkerWalkInPage = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState([])
   const [loadingServices, setLoadingServices] = useState(true)
+  const [online, setOnline] = useState(navigator.onLine)
+  const [queueCount, setQueueCount] = useState(0)
+  const [syncing, setSyncing] = useState(false)
 
   const [formData, setFormData] = useState({
-    clientName: '',
-    clientPhone: '',
-    clientEmail: '',
+    clientId: '', // Client ID if they have an account
+    clientName: '', // Optional
+    clientPhone: '', // Optional
     serviceId: '',
     price: '',
     paymentStatus: 'paid',
@@ -27,7 +32,57 @@ const WorkerWalkInPage = () => {
 
   useEffect(() => {
     loadServices()
+    setupOnlineListener()
+    startAutoSync()
+    updateQueueCount()
+    
+    // Listen for online/offline changes
+    const handleOnlineChange = (isOnline) => {
+      setOnline(isOnline)
+      if (isOnline) {
+        updateQueueCount()
+        syncQueue().then(() => updateQueueCount())
+      }
+    }
+    onOnlineStatusChange(handleOnlineChange)
+
+    // Update queue count every 5 seconds
+    const interval = setInterval(updateQueueCount, 5000)
+
+    return () => {
+      clearInterval(interval)
+    }
   }, [])
+
+  const updateQueueCount = async () => {
+    const count = await getQueueCount()
+    setQueueCount(count)
+  }
+
+  const handleManualSync = async () => {
+    if (!online) {
+      toast.error('You are offline. Cannot sync.')
+      return
+    }
+    setSyncing(true)
+    try {
+      const result = await syncQueue()
+      if (result.synced > 0) {
+        toast.success(`✅ Synced ${result.synced} walk-in(s)`)
+      }
+      if (result.failed > 0) {
+        toast.error(`⚠️ ${result.failed} failed to sync`)
+      }
+      if (result.total === 0) {
+        toast.success('✅ Queue is empty')
+      }
+      updateQueueCount()
+    } catch (error) {
+      toast.error('Failed to sync: ' + error.message)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const loadServices = async () => {
     try {
@@ -76,16 +131,77 @@ const WorkerWalkInPage = () => {
         paymentMethod: formData.paymentMethod
       };
 
-      // Only include client info if provided
+      // Include clientId if provided (client has account)
+      if (formData.clientId) {
+        appointmentData.clientId = formData.clientId;
+      }
+
+      // Only include client info if provided (optional fields)
       if (formData.clientName) appointmentData.clientName = formData.clientName;
       if (formData.clientPhone) appointmentData.clientPhone = formData.clientPhone;
-      if (formData.clientEmail) appointmentData.clientEmail = formData.clientEmail;
 
-      const result = await appointmentManagementService.createWalkInAppointment(appointmentData)
-
-      if (result.success) {
-        toast.success('Walk-in client added successfully!')
-        navigate('/worker/appointments')
+      // Check if online
+      if (online) {
+        // Try to send to server
+        try {
+          const result = await appointmentManagementService.createWalkInAppointment(appointmentData)
+          if (result.success) {
+            toast.success('Walk-in client added successfully!')
+            // Reset form
+            setFormData({
+              clientId: '',
+              clientName: '',
+              clientPhone: '',
+              serviceId: '',
+              price: '',
+              paymentStatus: 'paid',
+              paymentMethod: 'cash'
+            })
+            // Optionally navigate or stay on page
+            // navigate('/worker/appointments')
+          }
+        } catch (error) {
+          // If network error, save to offline queue
+          if (!navigator.onLine || error.message?.includes('timeout') || error.message?.includes('network')) {
+            console.log('📴 Offline or network error - saving to queue')
+            await saveToQueue(appointmentData)
+            toast.success('✅ Saved! Will sync when online', {
+              icon: '📦',
+              duration: 4000
+            })
+            updateQueueCount()
+            // Reset form
+            setFormData({
+              clientId: '',
+              clientName: '',
+              clientPhone: '',
+              serviceId: '',
+              price: '',
+              paymentStatus: 'paid',
+              paymentMethod: 'cash'
+            })
+          } else {
+            throw error
+          }
+        }
+      } else {
+        // Offline - save to queue
+        await saveToQueue(appointmentData)
+        toast.success('✅ Saved offline! Will sync when online', {
+          icon: '📦',
+          duration: 4000
+        })
+        updateQueueCount()
+        // Reset form
+        setFormData({
+          clientId: '',
+          clientName: '',
+          clientPhone: '',
+          serviceId: '',
+          price: '',
+          paymentStatus: 'paid',
+          paymentMethod: 'cash'
+        })
       }
     } catch (error) {
       console.error('Error creating walk-in appointment:', error)
@@ -129,20 +245,63 @@ const WorkerWalkInPage = () => {
           </div>
         </div>
 
-        {/* Info Banner */}
-        <Card className="mb-6 bg-green-50 border-green-200">
-          <div className="flex items-start gap-3">
-            <Calendar className="text-green-600 mt-1" size={20} />
-            <div className="text-sm text-green-800">
-              <p className="font-semibold mb-1">⚡ Quick Walk-in Process</p>
-              <p>
-                <strong>Required:</strong> Just select service & price!<br />
-                <strong>Optional:</strong> Add client details if you want to track them.<br />
-                Service recorded instantly in your finances.
-              </p>
+        {/* Status Banner */}
+        <div className="mb-6 space-y-3">
+          {/* Online/Offline Status */}
+          <Card className={online ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {online ? (
+                  <Wifi className="text-green-600" size={20} />
+                ) : (
+                  <WifiOff className="text-yellow-600" size={20} />
+                )}
+                <div className="text-sm">
+                  <p className="font-semibold">
+                    {online ? '🌐 Online' : '📴 Offline'}
+                  </p>
+                  <p className="text-gray-600">
+                    {online 
+                      ? 'Walk-ins will sync immediately' 
+                      : 'Walk-ins will be saved and synced when online'}
+                  </p>
+                </div>
+              </div>
+              {queueCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-700">
+                    📦 {queueCount} pending
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleManualSync}
+                    loading={syncing}
+                    disabled={!online || syncing}
+                  >
+                    <RefreshCw size={16} />
+                    Sync
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
-        </Card>
+          </Card>
+
+          {/* Info Banner */}
+          <Card className="bg-green-50 border-green-200">
+            <div className="flex items-start gap-3">
+              <Calendar className="text-green-600 mt-1" size={20} />
+              <div className="text-sm text-green-800">
+                <p className="font-semibold mb-1">⚡ Quick Walk-in Process</p>
+                <p>
+                  <strong>Required:</strong> Just select service & price!<br />
+                  <strong>Optional:</strong> Add client details if you want to track them.<br />
+                  Service recorded instantly in your finances.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
 
         {/* Form */}
         <Card>
@@ -156,6 +315,21 @@ const WorkerWalkInPage = () => {
               <p className="text-sm text-gray-600 mb-4">
                 Skip this section for quick walk-ins. Add client details if you want to track them.
               </p>
+              
+              {/* Client ID - if they have an account */}
+              <div className="mb-4">
+                <Input
+                  label="Client ID (If they have an account)"
+                  placeholder="Enter client ID"
+                  value={formData.clientId}
+                  onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 If client has an account, enter their ID. Otherwise, use name/phone below.
+                </p>
+              </div>
+
+              {/* Name and Phone - Optional */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Client Name (Optional)"
@@ -171,18 +345,9 @@ const WorkerWalkInPage = () => {
                   onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
                 />
               </div>
-              <div className="mt-4">
-                <Input
-                  label="Email (Optional)"
-                  type="email"
-                  placeholder="client@example.com"
-                  value={formData.clientEmail}
-                  onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  💡 If phone provided, we'll link to existing client or create new account
-                </p>
-              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 If phone provided, we'll link to existing client or create new account
+              </p>
             </div>
 
             <hr />

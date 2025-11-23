@@ -559,7 +559,7 @@ const reassignAppointment = async (req, res, next) => {
  */
 const createWalkInAppointment = async (req, res, next) => {
   try {
-    const { clientId, serviceId, price, paymentStatus, paymentMethod, clientName, clientPhone, clientEmail } = req.body;
+    const { clientId, serviceId, price, paymentStatus, paymentMethod, clientName, clientPhone } = req.body;
     
     const workerId = req.user.id;
 
@@ -571,10 +571,29 @@ const createWalkInAppointment = async (req, res, next) => {
       });
     }
 
-    // If no clientId provided, check if we have client info
+    // If clientId provided, validate it exists
     let finalClientId = clientId;
     
-    if (!finalClientId) {
+    if (finalClientId) {
+      try {
+        // Validate clientId exists and is a Client
+        const existingClient = await User.findById(finalClientId).select('_id role').maxTimeMS(2000);
+        if (!existingClient || existingClient.role !== 'Client') {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid client ID. Client not found.'
+          });
+        }
+        // Use the provided clientId
+        finalClientId = existingClient._id;
+      } catch (error) {
+        // If lookup fails, treat as invalid clientId
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid client ID format.'
+        });
+      }
+    } else {
       // Normalize phone - remove whitespace and check if actually provided
       const normalizedPhone = clientPhone && typeof clientPhone === 'string' ? clientPhone.trim() : '';
       const hasPhone = normalizedPhone && normalizedPhone.length > 0;
@@ -585,35 +604,22 @@ const createWalkInAppointment = async (req, res, next) => {
         let client = await User.findOne({ phone: normalizedPhone, role: 'Client' }).maxTimeMS(3000);
         
         if (!client) {
-          // Validate email - must be non-empty and valid format
-          // User model regex: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/
-          const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-          const normalizedEmail = clientEmail && typeof clientEmail === 'string' ? clientEmail.trim() : '';
-          const isValidEmail = normalizedEmail && normalizedEmail.length > 0 && emailRegex.test(normalizedEmail);
-          
-          // Generate unique email if not provided or invalid
-          let emailToUse;
-          if (isValidEmail) {
-            emailToUse = normalizedEmail.toLowerCase();
-          } else {
-            // Create unique email that matches User model regex
-            // Format: wordchars.wordchars@wordchars.wordchars (e.g., walkin123456789@xaura.temp)
-            const timestamp = Date.now();
-            const random = Math.floor(Math.random() * 1000000);
-            // Sanitize phone for email (keep only alphanumeric, ensure it starts with letter/digit)
-            let phoneSanitized = normalizedPhone.replace(/[^a-zA-Z0-9]/g, '');
-            // Ensure phone part is not empty and starts with alphanumeric
-            if (!phoneSanitized || phoneSanitized.length === 0) {
-              phoneSanitized = 'client';
-            }
-            // Ensure it starts with word character (not special char)
-            if (!/^\w/.test(phoneSanitized)) {
-              phoneSanitized = 'c' + phoneSanitized;
-            }
-            // Generate email that matches regex: wordchars.wordchars@wordchars.wordchars
-            // Use 'temp' as TLD (3 chars) to match \.\w{2,3} pattern
-            emailToUse = `walkin${phoneSanitized}${timestamp}${random}@xaura.temp`.toLowerCase();
+          // Auto-generate unique email (no email field needed in form)
+          const timestamp = Date.now();
+          const random = Math.floor(Math.random() * 1000000);
+          // Sanitize phone for email (keep only alphanumeric, ensure it starts with letter/digit)
+          let phoneSanitized = normalizedPhone.replace(/[^a-zA-Z0-9]/g, '');
+          // Ensure phone part is not empty and starts with alphanumeric
+          if (!phoneSanitized || phoneSanitized.length === 0) {
+            phoneSanitized = 'client';
           }
+          // Ensure it starts with word character (not special char)
+          if (!/^\w/.test(phoneSanitized)) {
+            phoneSanitized = 'c' + phoneSanitized;
+          }
+          // Generate email that matches regex: wordchars.wordchars@wordchars.wordchars
+          // Use 'temp' as TLD (3 chars) to match \.\w{2,3} pattern
+          const emailToUse = `walkin${phoneSanitized}${timestamp}${random}@xaura.temp`.toLowerCase();
           
           // Create new client account (email should be unique due to timestamp + random)
           // Use insertOne for faster insertion (bypasses some Mongoose overhead)
