@@ -236,8 +236,13 @@ const subscriptionSchema = new mongoose.Schema({
     paymentNote: { type: String, default: null },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: null
+      default: null,
+      validate: {
+        validator: function(v) {
+          return v === null || v === undefined || ['pending', 'approved', 'rejected'].includes(v)
+        },
+        message: 'SMS credit purchase status must be null or one of: pending, approved, rejected'
+      }
     },
     requestedAt: { type: Date, default: null }
   },
@@ -247,8 +252,13 @@ const subscriptionSchema = new mongoose.Schema({
     paymentNote: { type: String, default: null },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: null
+      default: null,
+      validate: {
+        validator: function(v) {
+          return v === null || v === undefined || ['pending', 'approved', 'rejected'].includes(v)
+        },
+        message: 'Pixel tracking purchase status must be null or one of: pending, approved, rejected'
+      }
     },
     requestedAt: { type: Date, default: null }
   },

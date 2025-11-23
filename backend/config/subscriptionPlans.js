@@ -393,6 +393,53 @@ const TUNISIA_PAYMENT_METHODS = {
   },
 };
 
+/**
+ * Create a trial subscription object for a new salon
+ * This ensures consistent trial creation across all endpoints
+ */
+const createTrialSubscription = (salonId, ownerId) => {
+  const now = new Date();
+  return {
+    salonId,
+    ownerId,
+    plan: null, // No plan during trial
+    status: 'trial',
+    monthlyFee: 0,
+    price: 0,
+    currency: 'TND',
+    billingInterval: 'month',
+    trial: {
+      startDate: now,
+      endDate: new Date(now.getTime() + TRIAL_CONFIG.initialTrialDays * 24 * 60 * 60 * 1000),
+      confirmationDay: new Date(now.getTime() + TRIAL_CONFIG.confirmationDay * 24 * 60 * 60 * 1000),
+      confirmationRequested: false,
+      confirmationResponded: false,
+      confirmed: false,
+      extended: false
+    },
+    startDate: now,
+    currentPeriodStart: now,
+    currentPeriodEnd: new Date(now.getTime() + TRIAL_CONFIG.initialTrialDays * 24 * 60 * 60 * 1000),
+    // Purchase requests should be null (not set) by default
+    smsCreditPurchase: {
+      status: null,
+      packageType: null,
+      credits: null,
+      price: null,
+      paymentMethod: null,
+      paymentNote: null,
+      requestedAt: null
+    },
+    pixelTrackingPurchase: {
+      status: null,
+      price: null,
+      paymentMethod: null,
+      paymentNote: null,
+      requestedAt: null
+    }
+  };
+};
+
 module.exports = {
   SUBSCRIPTION_PLANS,
   ADD_ONS,
@@ -403,4 +450,5 @@ module.exports = {
   formatCurrency,
   calculateAnnualPrice,
   TUNISIA_PAYMENT_METHODS,
+  createTrialSubscription,
 };
