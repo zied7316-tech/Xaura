@@ -575,43 +575,122 @@ const createWalkInAppointment = async (req, res, next) => {
     let finalClientId = clientId;
     
     if (!finalClientId) {
+      // Normalize phone - remove whitespace and check if actually provided
+      const normalizedPhone = clientPhone && typeof clientPhone === 'string' ? clientPhone.trim() : '';
+      const hasPhone = normalizedPhone && normalizedPhone.length > 0;
+      
       // If phone provided, try to find/create client
-      if (clientPhone) {
+      if (hasPhone) {
         // Try to find existing client by phone
-        let client = await User.findOne({ phone: clientPhone, role: 'Client' });
+        let client = await User.findOne({ phone: normalizedPhone, role: 'Client' });
         
         if (!client) {
           // Validate email - must be non-empty and valid format
           const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-          const isValidEmail = clientEmail && clientEmail.trim() && emailRegex.test(clientEmail.trim());
+          const normalizedEmail = clientEmail && typeof clientEmail === 'string' ? clientEmail.trim() : '';
+          const isValidEmail = normalizedEmail && normalizedEmail.length > 0 && emailRegex.test(normalizedEmail);
+          
+          // Generate unique email if not provided or invalid
+          let finalEmail;
+          if (isValidEmail) {
+            finalEmail = normalizedEmail;
+          } else {
+            // Create unique email using phone + timestamp + random
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 10000);
+            // Sanitize phone for email (remove non-alphanumeric)
+            const phoneSanitized = normalizedPhone.replace(/[^a-zA-Z0-9]/g, '');
+            finalEmail = `walkin.${phoneSanitized}.${timestamp}.${random}@xaura.temp`;
+          }
+          
+          // Ensure email is unique by checking and retrying if needed
+          let attempts = 0;
+          let emailToUse = finalEmail;
+          while (attempts < 5) {
+            const existingUser = await User.findOne({ email: emailToUse });
+            if (!existingUser) break;
+            // If email exists, add more randomness
+            const random = Math.floor(Math.random() * 100000);
+            emailToUse = `walkin.${phoneSanitized}.${Date.now()}.${random}@xaura.temp`;
+            attempts++;
+          }
           
           // Create new client account
-          client = await User.create({
-            name: clientName || 'Walk-in Client',
-            phone: clientPhone,
-            email: isValidEmail ? clientEmail.trim() : `${clientPhone}@walkin.temp`,
-            role: 'Client',
-            password: Math.random().toString(36).slice(-8), // Temporary password
-            isWalkIn: true // Flag for walk-in clients
-          });
+          try {
+            client = await User.create({
+              name: clientName && clientName.trim() ? clientName.trim() : 'Walk-in Client',
+              phone: normalizedPhone,
+              email: emailToUse.toLowerCase(),
+              role: 'Client',
+              password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8), // Stronger temp password
+              isWalkIn: true // Flag for walk-in clients
+            });
+          } catch (createError) {
+            // If creation fails (e.g., duplicate email), try to find by phone again
+            if (createError.code === 11000) {
+              client = await User.findOne({ phone: normalizedPhone, role: 'Client' });
+              if (!client) {
+                // Last resort: create with completely unique email
+                const uniqueEmail = `walkin.${Date.now()}.${Math.random().toString(36).substring(2, 15)}@xaura.temp`;
+                client = await User.create({
+                  name: clientName && clientName.trim() ? clientName.trim() : 'Walk-in Client',
+                  phone: normalizedPhone,
+                  email: uniqueEmail.toLowerCase(),
+                  role: 'Client',
+                  password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+                  isWalkIn: true
+                });
+              }
+            } else {
+              throw createError;
+            }
+          }
         }
         
         finalClientId = client._id;
       } else {
         // No client info - create anonymous walk-in client
         const timestamp = Date.now();
-        const randomNum = Math.floor(Math.random() * 1000);
-        const client = await User.create({
-          name: clientName || `Walk-in #${randomNum}`,
-          phone: `WALKIN${timestamp}`,
-          email: `walkin${timestamp}@temp.anon`,
-          role: 'Client',
-          password: Math.random().toString(36).slice(-8),
-          isWalkIn: true,
-          isAnonymous: true
-        });
+        const randomNum = Math.floor(Math.random() * 100000);
+        const uniqueId = `${timestamp}${randomNum}`;
         
-        finalClientId = client._id;
+        // Create unique email for anonymous client
+        let anonymousEmail = `walkin.anon.${uniqueId}@xaura.temp`;
+        let attempts = 0;
+        while (attempts < 5) {
+          const existingUser = await User.findOne({ email: anonymousEmail });
+          if (!existingUser) break;
+          anonymousEmail = `walkin.anon.${Date.now()}.${Math.floor(Math.random() * 1000000)}@xaura.temp`;
+          attempts++;
+        }
+        
+        try {
+          const client = await User.create({
+            name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${randomNum}`,
+            phone: `WALKIN${uniqueId}`,
+            email: anonymousEmail.toLowerCase(),
+            role: 'Client',
+            password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+            isWalkIn: true,
+            isAnonymous: true
+          });
+          
+          finalClientId = client._id;
+        } catch (createError) {
+          // If still fails, try one more time with completely unique values
+          const finalUniqueId = `${Date.now()}${Math.random().toString(36).substring(2, 15)}`;
+          const client = await User.create({
+            name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${Math.floor(Math.random() * 10000)}`,
+            phone: `WALKIN${finalUniqueId}`,
+            email: `walkin.anon.${finalUniqueId}@xaura.temp`.toLowerCase(),
+            role: 'Client',
+            password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+            isWalkIn: true,
+            isAnonymous: true
+          });
+          
+          finalClientId = client._id;
+        }
       }
     }
 
