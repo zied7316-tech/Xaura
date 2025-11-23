@@ -586,27 +586,34 @@ const createWalkInAppointment = async (req, res, next) => {
         
         if (!client) {
           // Validate email - must be non-empty and valid format
+          // User model regex: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/
           const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
           const normalizedEmail = clientEmail && typeof clientEmail === 'string' ? clientEmail.trim() : '';
           const isValidEmail = normalizedEmail && normalizedEmail.length > 0 && emailRegex.test(normalizedEmail);
           
           // Generate unique email if not provided or invalid
-          let finalEmail;
+          let emailToUse;
           if (isValidEmail) {
-            finalEmail = normalizedEmail;
+            emailToUse = normalizedEmail.toLowerCase();
           } else {
-            // Create unique email using phone + timestamp + random
+            // Create unique email that matches User model regex
+            // Format: wordchars.wordchars@wordchars.wordchars (e.g., walkin123456789@xaura.temp)
             const timestamp = Date.now();
-            const random = Math.floor(Math.random() * 10000);
-            // Sanitize phone for email (remove non-alphanumeric)
-            const phoneSanitized = normalizedPhone.replace(/[^a-zA-Z0-9]/g, '');
-            finalEmail = `walkin.${phoneSanitized}.${timestamp}.${random}@xaura.temp`;
+            const random = Math.floor(Math.random() * 1000000);
+            // Sanitize phone for email (keep only alphanumeric, ensure it starts with letter/digit)
+            let phoneSanitized = normalizedPhone.replace(/[^a-zA-Z0-9]/g, '');
+            // Ensure phone part is not empty and starts with alphanumeric
+            if (!phoneSanitized || phoneSanitized.length === 0) {
+              phoneSanitized = 'client';
+            }
+            // Ensure it starts with word character (not special char)
+            if (!/^\w/.test(phoneSanitized)) {
+              phoneSanitized = 'c' + phoneSanitized;
+            }
+            // Generate email that matches regex: wordchars.wordchars@wordchars.wordchars
+            // Use 'temp' as TLD (3 chars) to match \.\w{2,3} pattern
+            emailToUse = `walkin${phoneSanitized}${timestamp}${random}@xaura.temp`.toLowerCase();
           }
-          
-          // Generate unique email with high entropy to avoid collisions
-          // Use timestamp + random + workerId for uniqueness
-          const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${workerId.toString().slice(-6)}`;
-          const emailToUse = `walkin.${phoneSanitized}.${uniqueSuffix}@xaura.temp`.toLowerCase();
           
           // Create new client account (email should be unique due to timestamp + random)
           try {
@@ -645,12 +652,13 @@ const createWalkInAppointment = async (req, res, next) => {
         // No client info - create anonymous walk-in client
         // Use high entropy for uniqueness: timestamp + random + workerId
         const timestamp = Date.now();
-        const randomStr = Math.random().toString(36).substring(2, 15);
-        const uniqueId = `${timestamp}-${randomStr}-${workerId.toString().slice(-6)}`;
-        const randomNum = Math.floor(Math.random() * 100000);
+        const randomNum = Math.floor(Math.random() * 1000000);
+        const workerIdSuffix = workerId.toString().slice(-6).replace(/[^a-zA-Z0-9]/g, '');
         
-        // Create unique email for anonymous client (very unlikely to collide)
-        const anonymousEmail = `walkin.anon.${uniqueId}@xaura.temp`.toLowerCase();
+        // Create unique email that matches User model regex
+        // Format: wordchars@wordchars.wordchars (e.g., walkinanon123456789@xaura.temp)
+        // Ensure it starts with word character and matches: \w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$
+        const anonymousEmail = `walkinanon${timestamp}${randomNum}${workerIdSuffix}@xaura.temp`.toLowerCase();
         
         try {
           const client = await User.create({
@@ -667,11 +675,13 @@ const createWalkInAppointment = async (req, res, next) => {
         } catch (createError) {
           // If still fails (very rare), try one more time with completely unique values
           if (createError.code === 11000) {
-            const finalUniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${workerId}`;
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 1000000);
+            const finalUniqueId = `${timestamp}${random}${workerId.toString().slice(-6)}`;
             const client = await User.create({
               name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${Math.floor(Math.random() * 10000)}`,
               phone: `WALKIN${finalUniqueId}`,
-              email: `walkin.anon.${finalUniqueId}@xaura.temp`.toLowerCase(),
+              email: `walkinanon${finalUniqueId}@xaura.temp`.toLowerCase(),
               role: 'Client',
               password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
               isWalkIn: true,
