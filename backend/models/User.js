@@ -151,8 +151,21 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Critical indexes for performance - MUST be added for walk-in client creation
+userSchema.index({ phone: 1, role: 1 }); // For walk-in client lookup - CRITICAL!
+userSchema.index({ email: 1 }); // Ensure email index exists (already unique, but explicit index helps)
+userSchema.index({ salonId: 1, role: 1 }); // For worker queries
+userSchema.index({ role: 1 }); // General role-based queries
+
 // Hash password before saving
 userSchema.pre('save', async function(next) {
+  // Skip password hashing for walk-in clients (saves 100-500ms per creation)
+  // Walk-in clients don't need to log in, so password hashing is unnecessary overhead
+  if (this.isWalkIn && this.isModified('password')) {
+    this.password = 'WALKIN_NO_PASSWORD_' + Date.now();
+    return next();
+  }
+  
   if (!this.isModified('password')) {
     return next();
   }

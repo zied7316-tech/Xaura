@@ -20,12 +20,12 @@ const connectDB = async () => {
     const conn = await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000, // 10 second timeout
-      socketTimeoutMS: 25000, // 25 second socket timeout (before Railway's 30s)
+      serverSelectionTimeoutMS: 5000, // Reduced from 10s to 5s for faster failure detection
+      socketTimeoutMS: 20000, // Reduced from 25s to 20s (leaves 10s buffer for 30s API timeout)
       maxPoolSize: 10, // Maximum number of connections in the pool
       minPoolSize: 2, // Minimum number of connections in the pool
       maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      connectTimeoutMS: 10000, // 10 second connection timeout
+      connectTimeoutMS: 5000, // Reduced from 10s to 5s for faster failure detection
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);

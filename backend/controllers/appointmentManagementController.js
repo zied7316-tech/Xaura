@@ -581,8 +581,8 @@ const createWalkInAppointment = async (req, res, next) => {
       
       // If phone provided, try to find/create client
       if (hasPhone) {
-        // Try to find existing client by phone
-        let client = await User.findOne({ phone: normalizedPhone, role: 'Client' });
+        // Try to find existing client by phone (with timeout to prevent hanging)
+        let client = await User.findOne({ phone: normalizedPhone, role: 'Client' }).maxTimeMS(3000);
         
         if (!client) {
           // Validate email - must be non-empty and valid format
@@ -628,7 +628,7 @@ const createWalkInAppointment = async (req, res, next) => {
           } catch (createError) {
             // If creation fails (e.g., duplicate email), try to find by phone again
             if (createError.code === 11000) {
-              client = await User.findOne({ phone: normalizedPhone, role: 'Client' });
+              client = await User.findOne({ phone: normalizedPhone, role: 'Client' }).maxTimeMS(3000);
               if (!client) {
                 // Last resort: create with completely unique email (matches regex)
                 const timestamp = Date.now();
@@ -699,8 +699,12 @@ const createWalkInAppointment = async (req, res, next) => {
       }
     }
 
-    // Get worker's salon ID (don't populate - faster)
-    const worker = await User.findById(workerId).select('salonId paymentModel');
+    // Get worker and service in parallel (faster than sequential)
+    const [worker, service] = await Promise.all([
+      User.findById(workerId).select('salonId paymentModel').maxTimeMS(3000),
+      Service.findById(serviceId).select('name duration price').maxTimeMS(3000)
+    ]);
+
     if (!worker || !worker.salonId) {
       return res.status(400).json({
         success: false,
@@ -708,16 +712,14 @@ const createWalkInAppointment = async (req, res, next) => {
       });
     }
 
-    const salonId = worker.salonId;
-
-    // Verify service exists (parallel with other operations)
-    const service = await Service.findById(serviceId).select('name duration price');
     if (!service) {
       return res.status(404).json({
         success: false,
         message: 'Service not found'
       });
     }
+
+    const salonId = worker.salonId;
 
     // Calculate worker earnings (before creating appointment)
     let workerEarning = 0;
