@@ -656,11 +656,12 @@ const createWalkInAppointment = async (req, res, next) => {
         const timestamp = Date.now();
         const randomNum = Math.floor(Math.random() * 1000000);
         const workerIdSuffix = workerId.toString().slice(-6).replace(/[^a-zA-Z0-9]/g, '');
+        const uniqueId = `${timestamp}${randomNum}${workerIdSuffix}`;
         
         // Create unique email that matches User model regex
         // Format: wordchars@wordchars.wordchars (e.g., walkinanon123456789@xaura.temp)
         // Ensure it starts with word character and matches: \w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$
-        const anonymousEmail = `walkinanon${timestamp}${randomNum}${workerIdSuffix}@xaura.temp`.toLowerCase();
+        const anonymousEmail = `walkinanon${uniqueId}@xaura.temp`.toLowerCase();
         
         try {
           const client = await User.create({
