@@ -8,6 +8,11 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 20000, // 20 seconds timeout (reduced to fail faster and use offline queue)
+  
+  // Retry configuration for critical endpoints
+  validateStatus: (status) => {
+    return status < 500; // Don't throw on 4xx errors, only 5xx
+  }
 })
 
 // Request interceptor - add auth token

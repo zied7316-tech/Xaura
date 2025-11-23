@@ -151,9 +151,9 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Critical indexes for performance - MUST be added for walk-in client creation
+// Critical indexes for performance - MUST be added for walk-in client creation and login
+userSchema.index({ email: 1 }, { unique: true }); // For login - CRITICAL! (email is unique, but explicit index ensures fast lookups)
 userSchema.index({ phone: 1, role: 1 }); // For walk-in client lookup - CRITICAL!
-userSchema.index({ email: 1 }); // Ensure email index exists (already unique, but explicit index helps)
 userSchema.index({ salonId: 1, role: 1 }); // For worker queries
 userSchema.index({ role: 1 }); // General role-based queries
 

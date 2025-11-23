@@ -114,8 +114,19 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists and get password
-    const user = await User.findOne({ email }).select('+password');
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
+    }
+
+    // Check if user exists and get password (with timeout to prevent hanging)
+    const user = await User.findOne({ email: email.toLowerCase().trim() })
+      .select('+password')
+      .maxTimeMS(3000); // 3 second timeout
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -123,7 +134,7 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Check if password matches
+    // Check if password matches (bcrypt comparison - can be slow, but necessary)
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
@@ -132,9 +143,10 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Generate token
+    // Generate token (fast operation)
     const token = generateToken(user._id);
 
+    // Return response immediately (minimal data)
     res.json({
       success: true,
       token,
@@ -150,6 +162,13 @@ const login = async (req, res, next) => {
       },
     });
   } catch (error) {
+    // Handle timeout errors specifically
+    if (error.name === 'MongoServerError' && error.message?.includes('operation exceeded time limit')) {
+      return res.status(504).json({
+        success: false,
+        message: 'Login request timed out. Please try again.',
+      });
+    }
     next(error);
   }
 };
