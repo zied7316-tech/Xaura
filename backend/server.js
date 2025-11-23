@@ -72,24 +72,28 @@ app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Request timeout middleware - 25 seconds (Railway has 30s timeout)
+// Request timeout middleware - Faster timeout for critical endpoints
 app.use((req, res, next) => {
   // Skip timeout for health checks
   if (req.path === '/' || req.path === '/health') {
     return next();
   }
 
+  // Faster timeout for login (10 seconds) - critical endpoint
+  const isLogin = req.path === '/api/auth/login' && req.method === 'POST';
+  const timeoutDuration = isLogin ? 10000 : 25000; // 10s for login, 25s for others
+
   // Set a timeout for the request
   let timeoutId = setTimeout(() => {
     if (!res.headersSent) {
-      console.error(`⏱️  Request timeout: ${req.method} ${req.path}`);
+      console.error(`⏱️  Request timeout: ${req.method} ${req.path} (${timeoutDuration}ms)`);
       res.status(504).json({
         success: false,
         message: 'Request timeout - the server took too long to respond'
       });
       res.end();
     }
-  }, 25000); // 25 seconds
+  }, timeoutDuration);
 
   // Clear timeout when response is sent
   const originalEnd = res.end;
@@ -98,7 +102,7 @@ app.use((req, res, next) => {
       clearTimeout(timeoutId);
       timeoutId = null;
     }
-    originalEnd.apply(this, args);
+    return originalEnd.apply(this, args);
   };
 
   next();

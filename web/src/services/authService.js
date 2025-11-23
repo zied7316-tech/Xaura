@@ -1,4 +1,46 @@
 import api from './api'
+import axios from 'axios'
+import { API_URL } from '../utils/constants'
+
+// Create separate axios instance for login with faster timeout
+const loginApi = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 10000, // 10 seconds for login (critical endpoint - must be fast)
+})
+
+// Add request interceptor for login API
+loginApi.interceptors.request.use(
+  (config) => {
+    // No token needed for login
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Add response interceptor for login API
+loginApi.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    let message = 'Login failed'
+    
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      message = 'Login request timed out. Please check your connection and try again.'
+    } else if (error.response) {
+      message = error.response?.data?.message || error.message || 'Login failed'
+    } else if (error.request) {
+      message = 'No response from server. Please check your connection.'
+    } else {
+      message = error.message || 'Login failed'
+    }
+    
+    return Promise.reject(new Error(message))
+  }
+)
 
 export const authService = {
   // Register new user
@@ -12,10 +54,10 @@ export const authService = {
     return response
   },
 
-  // Login user
+  // Login user - use faster login API instance
   login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials)
-    // Note: api interceptor already unwraps response.data, so response IS the data
+    const response = await loginApi.post('/auth/login', credentials)
+    // Note: loginApi interceptor already unwraps response.data, so response IS the data
     if (response.token) {
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
