@@ -20,16 +20,16 @@ const connectDB = async () => {
     const conn = await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // 5 second timeout (faster failure detection)
-      socketTimeoutMS: 30000, // 30 second socket timeout (reduced for faster failure)
-      maxPoolSize: 10, // Optimal pool size (reduced from 20 to prevent connection exhaustion)
-      minPoolSize: 2, // Minimum pool size (reduced from 5)
-      maxIdleTimeMS: 30000, // Keep connections alive for 30 seconds (reduced from 60s)
-      connectTimeoutMS: 5000, // 5 second connection timeout (faster failure detection)
+      serverSelectionTimeoutMS: 10000, // 10 second timeout (increased for reliability)
+      socketTimeoutMS: 45000, // 45 second socket timeout (allows for slow queries)
+      maxPoolSize: 10, // Optimal pool size
+      minPoolSize: 2, // Minimum pool size
+      maxIdleTimeMS: 30000, // Keep connections alive for 30 seconds
+      connectTimeoutMS: 10000, // 10 second connection timeout (increased for reliability)
       heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
-      // Additional optimizations
-      bufferMaxEntries: 0, // Disable mongoose buffering (fail fast if not connected)
-      bufferCommands: false, // Disable mongoose buffering
+      // Keep buffering enabled for better reliability
+      // bufferMaxEntries: 0, // Removed - can cause issues
+      // bufferCommands: false, // Removed - can cause issues
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);

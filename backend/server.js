@@ -12,8 +12,18 @@ dotenv.config();
 const app = express();
 
 // Connect to MongoDB (non-blocking - server will start even if DB fails)
+// But retry connection in background
 connectDB().catch(err => {
   console.error('Database connection failed, but server will continue:', err.message);
+  console.error('Will retry connection in 5 seconds...');
+  
+  // Retry connection after 5 seconds
+  setTimeout(() => {
+    console.log('🔄 Retrying MongoDB connection...');
+    connectDB().catch(retryErr => {
+      console.error('Retry failed:', retryErr.message);
+    });
+  }, 5000);
 });
 
 // ============================================

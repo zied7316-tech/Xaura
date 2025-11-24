@@ -131,10 +131,28 @@ const login = async (req, res, next) => {
     const dbState = mongoose.connection.readyState;
     if (dbState !== 1) {
       console.error('[LOGIN] Database not connected. State:', dbState, '(0=disconnected, 1=connected, 2=connecting, 3=disconnecting)');
-      return res.status(503).json({
-        success: false,
-        message: 'Database connection unavailable. Please try again in a moment.',
-      });
+      
+      // If connecting, wait a bit and retry once
+      if (dbState === 2) {
+        console.log('[LOGIN] Database is connecting, waiting 500ms...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check again
+        if (mongoose.connection.readyState === 1) {
+          console.log('[LOGIN] Database connected after wait');
+        } else {
+          return res.status(503).json({
+            success: false,
+            message: 'Database is connecting. Please try again in a moment.',
+          });
+        }
+      } else {
+        // Disconnected or disconnecting - return error
+        return res.status(503).json({
+          success: false,
+          message: 'Database connection unavailable. Please try again in a moment.',
+        });
+      }
     }
 
     // Log connection pool status for debugging
