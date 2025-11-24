@@ -126,12 +126,27 @@ const login = async (req, res, next) => {
     // Normalize email (lowercase, trim)
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if user exists and get password (with timeout to prevent hanging)
+    // Check database connection before querying
+    if (mongoose.connection.readyState !== 1) {
+      console.error('[LOGIN] Database not connected. State:', mongoose.connection.readyState);
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection unavailable. Please try again in a moment.',
+      });
+    }
+
+    const queryStart = Date.now();
+    // Check if user exists and get password (with reasonable timeout)
     // Use lean() for faster query (returns plain object, not Mongoose document)
     const user = await User.findOne({ email: normalizedEmail })
       .select('+password')
       .lean() // Faster - returns plain object instead of Mongoose document
-      .maxTimeMS(2000); // 2 second timeout (faster for login)
+      .maxTimeMS(8000); // 8 second timeout (increased from 2s - allows for slow DB connections)
+    
+    const queryDuration = Date.now() - queryStart;
+    if (queryDuration > 2000) {
+      console.warn(`[LOGIN] Slow query: ${queryDuration}ms for email: ${normalizedEmail.substring(0, 3)}***`);
+    }
 
     if (!user) {
       return res.status(401).json({
@@ -142,7 +157,13 @@ const login = async (req, res, next) => {
 
     // Check if password matches (bcrypt comparison - can be slow, but necessary)
     // Since we used lean(), we need to compare password directly with bcrypt
+    const bcryptStart = Date.now();
     const isMatch = await bcrypt.compare(password, user.password);
+    const bcryptDuration = Date.now() - bcryptStart;
+    
+    if (bcryptDuration > 1000) {
+      console.warn(`[LOGIN] Slow bcrypt: ${bcryptDuration}ms`);
+    }
     
     if (!isMatch) {
       return res.status(401).json({
@@ -170,13 +191,26 @@ const login = async (req, res, next) => {
       },
     });
   } catch (error) {
+    console.error('[LOGIN] Error:', error.name, error.message);
+    
     // Handle timeout errors specifically
-    if (error.name === 'MongoServerError' && error.message?.includes('operation exceeded time limit')) {
+    if (error.name === 'MongoServerError' && (error.message?.includes('operation exceeded time limit') || error.message?.includes('timeout'))) {
+      console.error('[LOGIN] Database query timeout');
       return res.status(504).json({
         success: false,
         message: 'Login request timed out. Please try again.',
       });
     }
+    
+    // Handle database connection errors
+    if (error.name === 'MongoServerError' || error.name === 'MongooseError') {
+      console.error('[LOGIN] Database error:', error.message);
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection issue. Please try again in a moment.',
+      });
+    }
+    
     next(error);
   }
 };

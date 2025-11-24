@@ -2,13 +2,13 @@ import api from './api'
 import axios from 'axios'
 import { API_URL } from '../utils/constants'
 
-// Create separate axios instance for login with faster timeout
+// Create separate axios instance for login with reasonable timeout
 const loginApi = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds for login (critical endpoint - must be fast)
+  timeout: 20000, // 20 seconds for login (increased to allow for slow DB connections)
 })
 
 // Add request interceptor for login API
