@@ -782,6 +782,7 @@ const createWalkInAppointment = async (req, res, next) => {
     console.log('[WALK-IN] ========== WALK-IN REQUEST COMPLETED SUCCESSFULLY ==========');
 
     // Update wallet ASYNCHRONOUSLY (less critical - can happen in background)
+    // Note: Response already sent, so errors here won't affect the user
     if (isPaid) {
       setImmediate(async () => {
         try {
@@ -794,18 +795,18 @@ const createWalkInAppointment = async (req, res, next) => {
               totalEarned: workerEarning,
               totalPaid: 0
             });
+            console.log('[WALK-IN] ✅ Worker wallet created in background');
           } else {
             wallet.balance += workerEarning;
             wallet.totalEarned += workerEarning;
             await wallet.save();
+            console.log('[WALK-IN] ✅ Worker wallet updated in background');
           }
         } catch (walletError) {
-          console.error('[WALK-IN] Error updating worker wallet (background):', walletError.message);
-          // Don't throw - this is background operation
+          // Log but don't throw - this is background operation and response already sent
+          console.error('[WALK-IN] ⚠️ Error updating worker wallet (background):', walletError.message);
+          console.error('[WALK-IN] Wallet error stack:', walletError.stack);
         }
-      }).catch(err => {
-        // Catch any unhandled rejections from setImmediate
-        console.error('[WALK-IN] Unhandled error in setImmediate:', err.message);
       });
     }
   } catch (error) {
@@ -824,8 +825,16 @@ const createWalkInAppointment = async (req, res, next) => {
     console.error('[WALK-IN] Worker ID was:', req.user?.id);
     console.error('[WALK-IN] ============================================');
     
-    // Make sure to pass error to next middleware
-    next(error);
+    // Only send error response if headers haven't been sent yet
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Error creating walk-in appointment'
+      });
+    } else {
+      // Response already sent, just log the error
+      console.error('[WALK-IN] ⚠️ Error occurred after response was sent - ignoring');
+    }
   }
 };
 
