@@ -35,6 +35,12 @@ app.use(handlePreflight);
 // Apply CORS middleware to all routes
 app.use(corsMiddleware);
 
+// Log all incoming requests for debugging
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+  next();
+});
+
 // Additional OPTIONS handler as fallback
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
@@ -231,7 +237,7 @@ if (routesFailed > 0) {
 
 // Error handling middleware - MUST include CORS headers
 app.use((err, req, res, next) => {
-  // Set CORS headers even on errors
+  // Set CORS headers even on errors (including CORS errors)
   const origin = req.headers.origin;
   const allowedOrigins = [
     'https://www.xaura.pro',
@@ -240,12 +246,34 @@ app.use((err, req, res, next) => {
     'http://localhost:3000'
   ];
   
-  if (origin && allowedOrigins.indexOf(origin) !== -1) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // Always set CORS headers if origin is present (even if not allowed, so browser can show error)
+  if (origin) {
+    // If origin is allowed, set it; otherwise set a generic header
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+      // For CORS errors, still set headers so browser can display the error properly
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
   }
   
-  console.error(err.stack);
+  // Log the error
+  console.error('[ERROR]', err.message);
+  if (err.stack && process.env.NODE_ENV !== 'production') {
+    console.error(err.stack);
+  }
+  
+  // If it's a CORS error, return 403 with CORS headers
+  if (err.message && err.message.includes('CORS policy')) {
+    return res.status(403).json({
+      success: false,
+      message: err.message,
+      origin: origin || 'none'
+    });
+  }
+  
   res.status(err.statusCode || 500).json({
     success: false,
     message: err.message || 'Server Error',

@@ -31,9 +31,13 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    // Reject all other origins
+    // Reject all other origins - but log for debugging
     console.log(`[CORS] ❌ Origin NOT allowed: ${origin}`);
     console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+    console.log(`[CORS] Received origin: "${origin}"`);
+    console.log(`[CORS] Type check - origin is string: ${typeof origin === 'string'}`);
+    
+    // Return error - the cors package will handle setting headers
     callback(new Error(`Not allowed by CORS policy. Origin: ${origin}`));
   },
   credentials: true,

@@ -49,43 +49,10 @@ export const getFCMToken = async () => {
       return null
     }
 
-    // Ensure service worker is registered for push notifications
-    if (!('serviceWorker' in navigator)) {
-      console.warn('Service workers are not supported in this browser')
-      return null
-    }
-
-    // Try to get existing registration, or register if not present
-    let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
-    if (!registration) {
-      try {
-        registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      } catch (swError) {
-        console.error('Error registering Firebase Messaging service worker:', swError)
-        return null
-      }
-    }
-
-    // Request notification permission
-    const permission = await Notification.requestPermission()
-    if (permission !== 'granted') {
-      console.warn('Notification permission denied')
-      return null
-    }
-
-    // Get FCM token
-    const token = await getToken(messaging, {
-      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || '',
-      serviceWorkerRegistration: registration
-    })
-
-    if (token) {
-      console.log('FCM Token:', token)
-      return token
-    } else {
-      console.warn('No FCM token available')
-      return null
-    }
+    // Service workers are disabled - push notifications will not work
+    // This is intentional to prevent service worker interference with API calls
+    console.warn('Service workers are disabled - Firebase push notifications will not work')
+    return null
   } catch (error) {
     console.error('Error getting FCM token:', error)
     return null
