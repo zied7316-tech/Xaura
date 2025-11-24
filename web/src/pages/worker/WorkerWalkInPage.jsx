@@ -16,9 +16,6 @@ const WorkerWalkInPage = () => {
   const [loadingServices, setLoadingServices] = useState(true)
 
   const [formData, setFormData] = useState({
-    clientId: '', // Client ID if they have an account
-    clientName: '', // Optional
-    clientPhone: '', // Optional
     serviceId: '',
     price: '',
     paymentStatus: 'paid',
@@ -76,15 +73,6 @@ const WorkerWalkInPage = () => {
         paymentMethod: formData.paymentMethod
       };
 
-      // Include clientId if provided (client has account)
-      if (formData.clientId) {
-        appointmentData.clientId = formData.clientId;
-      }
-
-      // Only include client info if provided (optional fields)
-      if (formData.clientName) appointmentData.clientName = formData.clientName;
-      if (formData.clientPhone) appointmentData.clientPhone = formData.clientPhone;
-
       // Send directly to server (no offline queue)
       const result = await appointmentManagementService.createWalkInAppointment(appointmentData)
 
@@ -92,9 +80,6 @@ const WorkerWalkInPage = () => {
         toast.success('Walk-in client added successfully!')
         // Reset form
         setFormData({
-          clientId: '',
-          clientName: '',
-          clientPhone: '',
           serviceId: '',
           price: '',
           paymentStatus: 'paid',
@@ -152,7 +137,7 @@ const WorkerWalkInPage = () => {
                 <p className="font-semibold mb-1">⚡ Quick Walk-in Process</p>
                 <p>
                   <strong>Required:</strong> Just select service & price!<br />
-                  <strong>Optional:</strong> Add client details if you want to track them.<br />
+                  No client account needed - just record the service and payment.<br />
                   Service recorded instantly in your finances.
                 </p>
               </div>
@@ -163,51 +148,6 @@ const WorkerWalkInPage = () => {
         {/* Form */}
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Client Information - OPTIONAL */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <UserPlus size={20} />
-                Client Information <span className="text-sm font-normal text-gray-500">(Optional)</span>
-              </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Skip this section for quick walk-ins. Add client details if you want to track them.
-              </p>
-              
-              {/* Client ID - if they have an account */}
-              <div className="mb-4">
-                <Input
-                  label="Client ID (If they have an account)"
-                  placeholder="Enter client ID"
-                  value={formData.clientId}
-                  onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  💡 If client has an account, enter their ID. Otherwise, use name/phone below.
-                </p>
-              </div>
-
-              {/* Name and Phone - Optional */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Client Name (Optional)"
-                  placeholder="John Doe"
-                  value={formData.clientName}
-                  onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                />
-                <Input
-                  label="Phone Number (Optional)"
-                  type="tel"
-                  placeholder="+1234567890"
-                  value={formData.clientPhone}
-                  onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                💡 If phone provided, we'll link to existing client or create new account
-              </p>
-            </div>
-
-            <hr />
 
             {/* Service Information */}
             <div>

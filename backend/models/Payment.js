@@ -14,7 +14,8 @@ const paymentSchema = new mongoose.Schema({
   clientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Client is required']
+    required: false, // Optional for walk-in payments
+    default: null
   },
   workerId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -32,7 +33,7 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['cash', 'card', 'online', 'wallet'],
+    enum: ['cash', 'card', 'bank_transfer', 'other', 'online', 'wallet'],
     required: true
   },
   status: {

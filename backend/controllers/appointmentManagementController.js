@@ -565,7 +565,7 @@ const createWalkInAppointment = async (req, res, next) => {
   console.log('[WALK-IN] Worker role:', req.user?.role);
   
   try {
-    const { clientId, serviceId, price, paymentStatus, paymentMethod, clientName, clientPhone } = req.body;
+    const { serviceId, price, paymentStatus, paymentMethod } = req.body;
     
     const workerId = req.user.id;
     console.log('[WALK-IN] Step 1: Extracted data - serviceId:', serviceId, 'price:', price, 'type:', typeof price);
@@ -591,201 +591,11 @@ const createWalkInAppointment = async (req, res, next) => {
       });
     }
     
-    console.log('[WALK-IN] Step 3: Validation passed - proceeding with client creation');
-
-    // If clientId provided, validate it exists
-    let finalClientId = clientId;
+    console.log('[WALK-IN] Step 3: Validation passed - proceeding without client creation');
     
-    if (finalClientId) {
-      console.log('[WALK-IN] Step 4: ClientId provided, validating:', finalClientId);
-      try {
-        // Validate clientId exists and is a Client
-        const existingClient = await User.findById(finalClientId).select('_id role').maxTimeMS(2000);
-        if (!existingClient || existingClient.role !== 'Client') {
-          console.log('[WALK-IN] ❌ Invalid client ID');
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid client ID. Client not found.'
-          });
-        }
-        // Use the provided clientId
-        finalClientId = existingClient._id;
-        console.log('[WALK-IN] Step 4: Client validated, using:', finalClientId);
-      } catch (error) {
-        console.error('[WALK-IN] ❌ Error validating clientId:', error.message);
-        // If lookup fails, treat as invalid clientId
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid client ID format.'
-        });
-      }
-    } else {
-      console.log('[WALK-IN] Step 4: No clientId provided, creating anonymous client');
-      // Normalize phone - remove whitespace and check if actually provided
-      const normalizedPhone = clientPhone && typeof clientPhone === 'string' ? clientPhone.trim() : '';
-      const hasPhone = normalizedPhone && normalizedPhone.length > 0;
-      console.log('[WALK-IN] Step 5: Phone check - hasPhone:', hasPhone, 'normalizedPhone:', normalizedPhone);
-      
-      // If phone provided, try to find/create client
-      if (hasPhone) {
-        console.log('[WALK-IN] Step 6: Phone provided, looking up client by phone');
-        // Try to find existing client by phone (with timeout to prevent hanging)
-        let client;
-        try {
-          client = await User.findOne({ phone: normalizedPhone, role: 'Client' }).maxTimeMS(3000);
-          console.log('[WALK-IN] Step 7: Client lookup result:', client ? 'Found' : 'Not found');
-        } catch (lookupError) {
-          console.error('[WALK-IN] ❌ Error looking up client by phone:', lookupError.message);
-          throw lookupError;
-        }
-        
-        if (!client) {
-          console.log('[WALK-IN] Step 8: Creating new client with phone');
-          // Auto-generate unique email (no email field needed in form)
-          const timestamp = Date.now();
-          const random = Math.floor(Math.random() * 1000000);
-          // Sanitize phone for email (keep only alphanumeric, ensure it starts with letter/digit)
-          let phoneSanitized = normalizedPhone.replace(/[^a-zA-Z0-9]/g, '');
-          // Ensure phone part is not empty and starts with alphanumeric
-          if (!phoneSanitized || phoneSanitized.length === 0) {
-            phoneSanitized = 'client';
-          }
-          // Ensure it starts with word character (not special char)
-          if (!/^\w/.test(phoneSanitized)) {
-            phoneSanitized = 'c' + phoneSanitized;
-          }
-          // Generate email that matches regex: wordchars.wordchars@wordchars.wordchars
-          // Use 'temp' as TLD (3 chars) to match \.\w{2,3} pattern
-          const emailToUse = `walkin${phoneSanitized}${timestamp}${random}@xaura.temp`.toLowerCase();
-          
-          // Create new client account (email should be unique due to timestamp + random)
-          // Use insertOne for faster insertion (bypasses some Mongoose overhead)
-          try {
-            const clientData = {
-              name: clientName && clientName.trim() ? clientName.trim() : 'Walk-in Client',
-              phone: normalizedPhone,
-              email: emailToUse,
-              role: 'Client',
-              password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
-              isWalkIn: true // Flag for walk-in clients
-            };
-            console.log('[WALK-IN] Step 9: Creating client with data:', { name: clientData.name, phone: clientData.phone, email: clientData.email });
-            client = await User.create(clientData);
-            console.log('[WALK-IN] Step 9: Client created successfully:', client._id);
-          } catch (createError) {
-            console.error('[WALK-IN] ❌ Error creating client:', createError.message);
-            console.error('[WALK-IN] Error code:', createError.code);
-            console.error('[WALK-IN] Error stack:', createError.stack);
-            // If creation fails (e.g., duplicate email), try to find by phone again
-            if (createError.code === 11000) {
-              client = await User.findOne({ phone: normalizedPhone, role: 'Client' }).maxTimeMS(3000);
-              if (!client) {
-                // Last resort: create with completely unique email (matches regex)
-                const timestamp = Date.now();
-                const random = Math.floor(Math.random() * 1000000);
-                const uniqueEmail = `walkin${timestamp}${random}${workerId.toString().slice(-6)}@xaura.temp`.toLowerCase();
-                client = await User.create({
-                  name: clientName && clientName.trim() ? clientName.trim() : 'Walk-in Client',
-                  phone: normalizedPhone,
-                  email: uniqueEmail,
-                  role: 'Client',
-                  password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
-                  isWalkIn: true
-                });
-              }
-            } else {
-              throw createError;
-            }
-          }
-        }
-        
-        finalClientId = client._id;
-        console.log('[WALK-IN] Step 10: Final client ID set:', finalClientId);
-      } else {
-        // No client info - create anonymous walk-in client
-        console.log('[WALK-IN] Step 6: No phone provided, creating anonymous client');
-        // Use high entropy for uniqueness: timestamp + random + workerId
-        const timestamp = Date.now();
-        const randomNum = Math.floor(Math.random() * 1000000);
-        // Safely convert workerId to string
-        const workerIdStr = workerId ? workerId.toString() : '';
-        const workerIdSuffix = workerIdStr.slice(-6).replace(/[^a-zA-Z0-9]/g, '') || '000000';
-        const uniqueId = `${timestamp}${randomNum}${workerIdSuffix}`;
-        
-        // Create unique email that matches User model regex
-        // Format: wordchars@wordchars.wordchars (e.g., walkinanon123456789@xaura.temp)
-        // Ensure it starts with word character and matches: \w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$
-        const anonymousEmail = `walkinanon${uniqueId}@xaura.temp`.toLowerCase();
-        console.log('[WALK-IN] Step 7: Generated anonymous email:', anonymousEmail);
-        
-        try {
-          const clientData = {
-            name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${randomNum}`,
-            phone: `WALKIN${uniqueId}`,
-            email: anonymousEmail,
-            role: 'Client',
-            password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
-            isWalkIn: true,
-            isAnonymous: true
-          };
-          console.log('[WALK-IN] Step 8: Creating anonymous client with data:', { 
-            name: clientData.name, 
-            email: clientData.email,
-            phone: clientData.phone,
-            role: clientData.role,
-            isWalkIn: clientData.isWalkIn
-          });
-          console.log('[WALK-IN] Step 8: About to call User.create()...');
-          console.log('[WALK-IN] Step 8: Client data password length:', clientData.password?.length);
-          console.log('[WALK-IN] Step 8: Client data isWalkIn:', clientData.isWalkIn);
-          
-          // Add timeout wrapper to prevent hanging
-          const createPromise = User.create(clientData);
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('User.create() timed out after 10 seconds')), 10000);
-          });
-          
-          const client = await Promise.race([createPromise, timeoutPromise]);
-          console.log('[WALK-IN] Step 8: ✅ Anonymous client created successfully:', client._id);
-          finalClientId = client._id;
-        } catch (createError) {
-          console.error('[WALK-IN] ❌ Error creating anonymous client:', createError.message);
-          console.error('[WALK-IN] Error name:', createError.name);
-          console.error('[WALK-IN] Error code:', createError.code);
-          console.error('[WALK-IN] Error stack:', createError.stack);
-          if (createError.errors) {
-            console.error('[WALK-IN] Validation errors:', JSON.stringify(createError.errors));
-          }
-          // If still fails (very rare), try one more time with completely unique values
-          if (createError.code === 11000) {
-            console.log('[WALK-IN] Step 8: Duplicate email error, retrying with new unique email...');
-            const timestamp = Date.now();
-            const random = Math.floor(Math.random() * 1000000);
-            const workerIdStr = workerId ? workerId.toString() : '';
-            const finalUniqueId = `${timestamp}${random}${workerIdStr.slice(-6) || '000000'}`;
-            try {
-              const client = await User.create({
-                name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${Math.floor(Math.random() * 10000)}`,
-                phone: `WALKIN${finalUniqueId}`,
-                email: `walkinanon${finalUniqueId}@xaura.temp`.toLowerCase(),
-                role: 'Client',
-                password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
-                isWalkIn: true,
-                isAnonymous: true
-              });
-              console.log('[WALK-IN] Step 8: ✅ Retry successful, client created:', client._id);
-              finalClientId = client._id;
-            } catch (retryError) {
-              console.error('[WALK-IN] ❌ Retry also failed:', retryError.message);
-              throw retryError;
-            }
-          } else {
-            // Re-throw the error so it's caught by outer try-catch
-            throw createError;
-          }
-        }
-      }
-    }
+    // Walk-in appointments don't require a client - set to null
+    const finalClientId = null;
+    console.log('[WALK-IN] Step 4: Walk-in appointment - no client required, clientId set to null');
 
     // Get worker and service in parallel (faster than sequential)
     console.log('[WALK-IN] Step 11: Fetching worker and service - workerId:', workerId, 'serviceId:', serviceId);
@@ -861,7 +671,7 @@ const createWalkInAppointment = async (req, res, next) => {
     let appointment;
     try {
       const appointmentData = {
-        clientId: finalClientId,
+        clientId: null, // No client for walk-in appointments
         workerId,
         serviceId,
         salonId: salonId,
@@ -876,7 +686,7 @@ const createWalkInAppointment = async (req, res, next) => {
         paidAmount: isPaid ? numericPrice : 0,
         paidAt: isPaid ? now : null,
         completedAt: now,
-        notes: 'Walk-in client'
+        notes: 'Walk-in service (no client account)'
       };
       console.log('[WALK-IN] Step 15: Appointment data prepared, creating...');
       appointment = await Appointment.create(appointmentData);
@@ -916,22 +726,22 @@ const createWalkInAppointment = async (req, res, next) => {
       // Create payment record if paid (CRITICAL - must be synchronous for owner finance)
       if (isPaid) {
         const salonRevenue = numericPrice - workerEarning;
-        const paymentData = {
-          salonId: salonId,
-          appointmentId: appointment._id,
-          clientId: finalClientId,
-          workerId,
-          amount: numericPrice,
-          paymentMethod: paymentMethod || 'cash',
-          status: 'completed',
-          paidAt: now,
-          workerCommission: {
-            percentage: commissionPercentage,
-            amount: workerEarning
-          },
-          salonRevenue,
-          notes: `Walk-in payment for ${service.name || 'service'}`
-        };
+      const paymentData = {
+        salonId: salonId,
+        appointmentId: appointment._id,
+        clientId: null, // No client for walk-ins
+        workerId,
+        amount: numericPrice,
+        paymentMethod: paymentMethod || 'cash',
+        status: 'completed',
+        paidAt: now,
+        workerCommission: {
+          percentage: commissionPercentage,
+          amount: workerEarning
+        },
+        salonRevenue,
+        notes: `Walk-in payment for ${service.name || 'service'}`
+      };
         console.log('[WALK-IN] Step 16b: Creating Payment with data:', paymentData);
         await Payment.create(paymentData);
         console.log('[WALK-IN] Step 16b: ✅ Payment created successfully');
@@ -955,7 +765,7 @@ const createWalkInAppointment = async (req, res, next) => {
       message: 'Walk-in appointment created successfully',
       data: {
         _id: appointment._id,
-        clientId: finalClientId,
+        clientId: null, // No client for walk-ins
         workerId,
         serviceId,
         salonId,

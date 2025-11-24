@@ -4,7 +4,11 @@ const appointmentSchema = new mongoose.Schema({
   clientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Client is required']
+    required: function() {
+      // Client not required for walk-in appointments
+      return !this.isWalkIn;
+    },
+    default: null
   },
   workerId: {
     type: mongoose.Schema.Types.ObjectId,
