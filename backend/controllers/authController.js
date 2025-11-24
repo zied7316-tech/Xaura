@@ -128,25 +128,34 @@ const login = async (req, res, next) => {
     const normalizedEmail = email.toLowerCase().trim();
 
     // Check database connection before querying
-    if (mongoose.connection.readyState !== 1) {
-      console.error('[LOGIN] Database not connected. State:', mongoose.connection.readyState);
+    const dbState = mongoose.connection.readyState;
+    if (dbState !== 1) {
+      console.error('[LOGIN] Database not connected. State:', dbState, '(0=disconnected, 1=connected, 2=connecting, 3=disconnecting)');
       return res.status(503).json({
         success: false,
         message: 'Database connection unavailable. Please try again in a moment.',
       });
     }
 
+    // Log connection pool status for debugging
+    const poolSize = mongoose.connection.db?.serverConfig?.poolSize || 'unknown';
+    console.log(`[LOGIN] DB connected, pool size: ${poolSize}`);
+
     const queryStart = Date.now();
-    // Check if user exists and get password (with reasonable timeout)
+    // Check if user exists and get password (optimized query)
     // Use lean() for faster query (returns plain object, not Mongoose document)
+    // Use hint() to force index usage
     const user = await User.findOne({ email: normalizedEmail })
       .select('+password')
       .lean() // Faster - returns plain object instead of Mongoose document
-      .maxTimeMS(8000); // 8 second timeout (increased from 2s - allows for slow DB connections)
+      .hint({ email: 1 }) // Force use of email index
+      .maxTimeMS(5000); // 5 second timeout (reduced from 8s - fail faster if DB is slow)
     
     const queryDuration = Date.now() - queryStart;
-    if (queryDuration > 2000) {
-      console.warn(`[LOGIN] Slow query: ${queryDuration}ms for email: ${normalizedEmail.substring(0, 3)}***`);
+    if (queryDuration > 1000) {
+      console.warn(`[LOGIN] ⚠️ Slow query: ${queryDuration}ms for email: ${normalizedEmail.substring(0, 3)}***`);
+    } else {
+      console.log(`[LOGIN] ✅ Query fast: ${queryDuration}ms`);
     }
 
     if (!user) {
@@ -158,12 +167,34 @@ const login = async (req, res, next) => {
 
     // Check if password matches (bcrypt comparison - can be slow, but necessary)
     // Since we used lean(), we need to compare password directly with bcrypt
+    // Add timeout wrapper for bcrypt to prevent hanging
     const bcryptStart = Date.now();
-    const isMatch = await bcrypt.compare(password, user.password);
-    const bcryptDuration = Date.now() - bcryptStart;
+    let isMatch = false;
     
-    if (bcryptDuration > 1000) {
-      console.warn(`[LOGIN] Slow bcrypt: ${bcryptDuration}ms`);
+    try {
+      // Wrap bcrypt in Promise.race to timeout after 3 seconds
+      isMatch = await Promise.race([
+        bcrypt.compare(password, user.password),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Bcrypt comparison timeout')), 3000)
+        )
+      ]);
+    } catch (bcryptError) {
+      if (bcryptError.message === 'Bcrypt comparison timeout') {
+        console.error('[LOGIN] ⚠️ Bcrypt comparison timed out (>3s)');
+        return res.status(504).json({
+          success: false,
+          message: 'Login request timed out. Please try again.',
+        });
+      }
+      throw bcryptError;
+    }
+    
+    const bcryptDuration = Date.now() - bcryptStart;
+    if (bcryptDuration > 500) {
+      console.warn(`[LOGIN] ⚠️ Slow bcrypt: ${bcryptDuration}ms`);
+    } else {
+      console.log(`[LOGIN] ✅ Bcrypt fast: ${bcryptDuration}ms`);
     }
     
     if (!isMatch) {

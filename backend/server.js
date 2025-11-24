@@ -61,9 +61,9 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // Reasonable timeout for login (15 seconds) - allows for slow DB connections
+  // Faster timeout for login (12 seconds) - optimized for better UX
   const isLogin = req.path === '/api/auth/login' && req.method === 'POST';
-  const timeoutDuration = isLogin ? 15000 : 25000; // 15s for login (increased from 10s), 25s for others
+  const timeoutDuration = isLogin ? 12000 : 25000; // 12s for login (optimized), 25s for others
 
   // Set a timeout for the request
   let timeoutId = setTimeout(() => {
