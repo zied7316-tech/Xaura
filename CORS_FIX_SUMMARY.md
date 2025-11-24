@@ -20,14 +20,13 @@
 - 404 handler includes CORS headers
 - All routes automatically support OPTIONS
 
-### 3. Created Caddyfile
-**File:** `Caddyfile` (root directory)
+### 3. Caddyfile (Reference Only)
+**File:** `docs/Caddyfile.example` (if needed for manual Caddy setup)
 
-- Configured for `api.xaura.pro`
-- Reverse proxy with proper header forwarding
-- CORS headers as fallback
-- Preflight OPTIONS handling
-- Security headers included
+- **Note:** Railway doesn't use Caddy by default
+- The CORS middleware handles all CORS requirements
+- Caddyfile is in `.gitignore` to prevent Railway build issues
+- Only use if you manually configure Caddy as reverse proxy
 
 ## 📋 Allowed Origins (Strict)
 
