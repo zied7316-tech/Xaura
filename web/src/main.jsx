@@ -7,10 +7,7 @@ import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import App from './App'
 import './index.css'
-import { registerServiceWorker } from './utils/serviceWorkerRegistration'
-
-// Register Service Worker for offline support
-registerServiceWorker()
+import './forceSWCleanup'
 
 const queryClient = new QueryClient({
   defaultOptions: {

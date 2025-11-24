@@ -2,23 +2,18 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { salonService } from '../../services/salonService'
 import { appointmentManagementService } from '../../services/appointmentManagementService'
-import { saveToQueue, getQueueCount, isOnline, onOnlineStatusChange } from '../../utils/offlineStorage'
-import { syncQueue, startAutoSync, setupOnlineListener } from '../../utils/offlineSync'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import toast from 'react-hot-toast'
-import { UserPlus, DollarSign, Calendar, Wifi, WifiOff, RefreshCw } from 'lucide-react'
+import { UserPlus, DollarSign, Calendar } from 'lucide-react'
 
 const WorkerWalkInPage = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState([])
   const [loadingServices, setLoadingServices] = useState(true)
-  const [online, setOnline] = useState(navigator.onLine)
-  const [queueCount, setQueueCount] = useState(0)
-  const [syncing, setSyncing] = useState(false)
 
   const [formData, setFormData] = useState({
     clientId: '', // Client ID if they have an account
@@ -32,57 +27,7 @@ const WorkerWalkInPage = () => {
 
   useEffect(() => {
     loadServices()
-    setupOnlineListener()
-    startAutoSync()
-    updateQueueCount()
-    
-    // Listen for online/offline changes
-    const handleOnlineChange = (isOnline) => {
-      setOnline(isOnline)
-      if (isOnline) {
-        updateQueueCount()
-        syncQueue().then(() => updateQueueCount())
-      }
-    }
-    onOnlineStatusChange(handleOnlineChange)
-
-    // Update queue count every 5 seconds
-    const interval = setInterval(updateQueueCount, 5000)
-
-    return () => {
-      clearInterval(interval)
-    }
   }, [])
-
-  const updateQueueCount = async () => {
-    const count = await getQueueCount()
-    setQueueCount(count)
-  }
-
-  const handleManualSync = async () => {
-    if (!online) {
-      toast.error('You are offline. Cannot sync.')
-      return
-    }
-    setSyncing(true)
-    try {
-      const result = await syncQueue()
-      if (result.synced > 0) {
-        toast.success(`✅ Synced ${result.synced} walk-in(s)`)
-      }
-      if (result.failed > 0) {
-        toast.error(`⚠️ ${result.failed} failed to sync`)
-      }
-      if (result.total === 0) {
-        toast.success('✅ Queue is empty')
-      }
-      updateQueueCount()
-    } catch (error) {
-      toast.error('Failed to sync: ' + error.message)
-    } finally {
-      setSyncing(false)
-    }
-  }
 
   const loadServices = async () => {
     try {
@@ -140,89 +85,11 @@ const WorkerWalkInPage = () => {
       if (formData.clientName) appointmentData.clientName = formData.clientName;
       if (formData.clientPhone) appointmentData.clientPhone = formData.clientPhone;
 
-      // Check if online
-      if (online && navigator.onLine) {
-        // Try to send to server with timeout wrapper
-        try {
-          // Create a timeout promise (15 seconds - faster than API timeout)
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('TIMEOUT')), 15000)
-          )
+      // Send directly to server (no offline queue)
+      const result = await appointmentManagementService.createWalkInAppointment(appointmentData)
 
-          // Race between API call and timeout
-          const result = await Promise.race([
-            appointmentManagementService.createWalkInAppointment(appointmentData),
-            timeoutPromise
-          ])
-
-          if (result && result.success) {
-            toast.success('Walk-in client added successfully!')
-            // Reset form
-            setFormData({
-              clientId: '',
-              clientName: '',
-              clientPhone: '',
-              serviceId: '',
-              price: '',
-              paymentStatus: 'paid',
-              paymentMethod: 'cash'
-            })
-            updateQueueCount()
-            return // Success - exit early
-          }
-        } catch (error) {
-          // Check if it's a timeout or network error
-          const isTimeout = error.message === 'TIMEOUT' || 
-                           error.message?.includes('timeout') || 
-                           error.message?.includes('timed out') ||
-                           error.code === 'ECONNABORTED'
-          
-          const isNetworkError = !navigator.onLine || 
-                                error.message?.includes('network') ||
-                                error.message?.includes('connection') ||
-                                error.message?.includes('Failed to fetch')
-
-          // If timeout or network error, save to offline queue
-          if (isTimeout || isNetworkError) {
-            console.log('📴 Timeout or network error - saving to queue:', error.message)
-            try {
-              await saveToQueue(appointmentData)
-              toast.success('✅ Saved! Will sync when online', {
-                icon: '📦',
-                duration: 4000
-              })
-              updateQueueCount()
-              // Reset form
-              setFormData({
-                clientId: '',
-                clientName: '',
-                clientPhone: '',
-                serviceId: '',
-                price: '',
-                paymentStatus: 'paid',
-                paymentMethod: 'cash'
-              })
-              return // Saved to queue - exit
-            } catch (queueError) {
-              console.error('Failed to save to queue:', queueError)
-              toast.error('Failed to save. Please try again.')
-              return
-            }
-          } else {
-            // Other error - show error message
-            console.error('Error creating walk-in appointment:', error)
-            toast.error(error.response?.data?.message || error.message || 'Failed to add walk-in client')
-            return
-          }
-        }
-      } else {
-        // Offline - save to queue
-        await saveToQueue(appointmentData)
-        toast.success('✅ Saved offline! Will sync when online', {
-          icon: '📦',
-          duration: 4000
-        })
-        updateQueueCount()
+      if (result && result.success) {
+        toast.success('Walk-in client added successfully!')
         // Reset form
         setFormData({
           clientId: '',
@@ -276,49 +143,8 @@ const WorkerWalkInPage = () => {
           </div>
         </div>
 
-        {/* Status Banner */}
-        <div className="mb-6 space-y-3">
-          {/* Online/Offline Status */}
-          <Card className={online ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {online ? (
-                  <Wifi className="text-green-600" size={20} />
-                ) : (
-                  <WifiOff className="text-yellow-600" size={20} />
-                )}
-                <div className="text-sm">
-                  <p className="font-semibold">
-                    {online ? '🌐 Online' : '📴 Offline'}
-                  </p>
-                  <p className="text-gray-600">
-                    {online 
-                      ? 'Walk-ins will sync immediately' 
-                      : 'Walk-ins will be saved and synced when online'}
-                  </p>
-                </div>
-              </div>
-              {queueCount > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-700">
-                    📦 {queueCount} pending
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleManualSync}
-                    loading={syncing}
-                    disabled={!online || syncing}
-                  >
-                    <RefreshCw size={16} />
-                    Sync
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Info Banner */}
+        {/* Info Banner */}
+        <div className="mb-6">
           <Card className="bg-green-50 border-green-200">
             <div className="flex items-start gap-3">
               <Calendar className="text-green-600 mt-1" size={20} />
