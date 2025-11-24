@@ -215,11 +215,15 @@ userSchema.pre('validate', async function(next) {
     this.password = 'WALKIN_NO_PASSWORD_' + Date.now();
   }
 
-  // Generate userID for new users if not provided
-  if (this.isNew && !this.userID) {
+  // Generate userID for ALL users (new and existing) if not provided
+  if (!this.userID) {
     try {
       this.userID = await generateUniqueUserID();
-      console.log(`[USER] Generated new userID: ${this.userID} for user: ${this.email}`);
+      if (this.isNew) {
+        console.log(`[USER] Generated new userID: ${this.userID} for new user: ${this.email}`);
+      } else {
+        console.log(`[USER] Generated userID for existing user: ${this.userID} (${this.email})`);
+      }
     } catch (error) {
       console.error('[USER] Error generating userID:', error.message);
       return next(error);

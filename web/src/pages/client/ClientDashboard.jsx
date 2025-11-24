@@ -94,7 +94,12 @@ const ClientDashboard = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome, {user?.name}</p>
+        <p className="text-gray-600 mt-1">
+          Welcome, {user?.name}
+          {user?.userID && (
+            <span className="ml-2 text-sm font-mono text-primary-600">#{user.userID}</span>
+          )}
+        </p>
       </div>
 
       {/* VIP Status Card */}
