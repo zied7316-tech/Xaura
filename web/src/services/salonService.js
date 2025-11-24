@@ -27,8 +27,8 @@ export const salonService = {
   },
 
   // Add worker to salon
-  addWorker: async (salonId, email) => {
-    const response = await api.post(`/salons/${salonId}/workers`, { email })
+  addWorker: async (salonId, userID, email) => {
+    const response = await api.post(`/salons/${salonId}/workers`, { userID, email })
     return response.data.worker
   },
 

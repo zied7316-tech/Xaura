@@ -21,6 +21,10 @@ const createSalonValidation = [
 ];
 
 const addWorkerValidation = [
+  body('userID')
+    .notEmpty().withMessage('Worker ID is required')
+    .isLength({ min: 4, max: 4 }).withMessage('Worker ID must be exactly 4 digits')
+    .matches(/^\d{4}$/).withMessage('Worker ID must contain only digits'),
   body('email').isEmail().withMessage('Please provide a valid worker email')
 ];
 

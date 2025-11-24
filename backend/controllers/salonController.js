@@ -196,7 +196,14 @@ const updateSalon = async (req, res, next) => {
  */
 const addWorker = async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const { userID, email } = req.body;
+
+    if (!userID) {
+      return res.status(400).json({
+        success: false,
+        message: 'Worker ID is required'
+      });
+    }
 
     if (!email) {
       return res.status(400).json({
@@ -205,13 +212,21 @@ const addWorker = async (req, res, next) => {
       });
     }
 
-    // Find the worker user
-    const worker = await User.findOne({ email, role: 'Worker' });
+    // Validate userID format
+    if (!/^\d{4}$/.test(userID)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Worker ID must be exactly 4 digits'
+      });
+    }
+
+    // Find the worker user by both userID and email
+    const worker = await User.findOne({ userID, email, role: 'Worker' });
 
     if (!worker) {
       return res.status(404).json({
         success: false,
-        message: 'Worker not found or user is not a worker'
+        message: 'Worker not found. Please verify the Worker ID and email match a registered worker account.'
       });
     }
 
