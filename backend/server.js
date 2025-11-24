@@ -219,8 +219,22 @@ if (routesFailed > 0) {
   console.warn(`⚠️  ${routesFailed} route(s) failed to load. Server will continue but those endpoints will not work.`);
 }
 
-// Error handling middleware
+// Error handling middleware - MUST include CORS headers
 app.use((err, req, res, next) => {
+  // Set CORS headers even on errors
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://www.xaura.pro',
+    'https://xaura.pro',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
   console.error(err.stack);
   res.status(err.statusCode || 500).json({
     success: false,
@@ -229,8 +243,22 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - MUST include CORS headers
 app.use((req, res) => {
+  // Set CORS headers even on 404
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://www.xaura.pro',
+    'https://xaura.pro',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
   res.status(404).json({
     success: false,
     message: 'Route not found'
