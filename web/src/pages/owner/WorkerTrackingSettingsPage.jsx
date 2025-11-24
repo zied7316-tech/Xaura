@@ -45,25 +45,85 @@ const WorkerTrackingSettingsPage = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const response = await workerTrackingService.updateSettings(settings);
+
+      // Prepare settings with auto-enable logic
+      let settingsToSave = { ...settings };
+
+      // Validate and auto-enable WiFi settings if WiFi method is selected
+      if (settingsToSave.method === 'wifi') {
+        if (!settingsToSave.wifi.ssid || settingsToSave.wifi.ssid.trim() === '') {
+          toast.error('Please enter a WiFi network name (SSID)');
+          setSaving(false);
+          return;
+        }
+        // Auto-enable WiFi if SSID is provided
+        settingsToSave.wifi = {
+          ...settingsToSave.wifi,
+          ssid: settingsToSave.wifi.ssid.trim(),
+          enabled: true
+        };
+      }
+
+      // Validate and auto-enable GPS settings if GPS method is selected
+      if (settingsToSave.method === 'gps') {
+        if (!settingsToSave.gps.latitude || !settingsToSave.gps.longitude) {
+          toast.error('Please set the salon location (latitude and longitude)');
+          setSaving(false);
+          return;
+        }
+        // Auto-enable GPS if coordinates are provided
+        settingsToSave.gps = {
+          ...settingsToSave.gps,
+          enabled: true,
+          radius: settingsToSave.gps.radius || 100
+        };
+      }
+
+      // Prepare the payload to match backend expectations
+      const payload = {
+        method: settingsToSave.method,
+        wifi: settingsToSave.method === 'wifi' ? {
+          ssid: settingsToSave.wifi.ssid,
+          enabled: settingsToSave.wifi.enabled
+        } : undefined,
+        gps: settingsToSave.method === 'gps' ? {
+          latitude: settingsToSave.gps.latitude,
+          longitude: settingsToSave.gps.longitude,
+          radius: settingsToSave.gps.radius,
+          enabled: settingsToSave.gps.enabled
+        } : undefined
+      };
+
+      console.log('[TRACKING] Saving settings:', payload);
+      const response = await workerTrackingService.updateSettings(payload);
+      
       if (response.success) {
         toast.success('Tracking settings saved successfully!');
+        // Update local state with the saved settings
+        setSettings(settingsToSave);
+        // Reload settings to get the updated data from backend
+        await loadSettings();
+      } else {
+        toast.error(response.message || 'Failed to save settings');
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error(error.response?.data?.message || 'Failed to save settings');
+      toast.error(error.response?.data?.message || error.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }
   };
 
   const handleMethodChange = (method) => {
-    setSettings(prev => ({
-      ...prev,
-      method,
-      wifi: { ...prev.wifi, enabled: method === 'wifi' ? prev.wifi.enabled : false },
-      gps: { ...prev.gps, enabled: method === 'gps' ? prev.gps.enabled : false }
-    }));
+    setSettings(prev => {
+      const newSettings = {
+        ...prev,
+        method,
+        wifi: { ...prev.wifi, enabled: method === 'wifi' && prev.wifi.ssid ? true : (method === 'wifi' ? prev.wifi.enabled : false) },
+        gps: { ...prev.gps, enabled: method === 'gps' && prev.gps.latitude && prev.gps.longitude ? true : (method === 'gps' ? prev.gps.enabled : false) }
+      };
+      return newSettings;
+    });
   };
 
   const getCurrentLocation = () => {
@@ -81,7 +141,8 @@ const WorkerTrackingSettingsPage = () => {
             ...prev.gps,
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-            enabled: true
+            enabled: true,
+            radius: prev.gps.radius || 100
           }
         }));
         toast.success('Location captured!', { id: 'location' });
@@ -169,10 +230,17 @@ const WorkerTrackingSettingsPage = () => {
                         label="WiFi Network Name (SSID)"
                         placeholder="Salon-WiFi"
                         value={settings.wifi.ssid}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          wifi: { ...prev.wifi, ssid: e.target.value }
-                        }))}
+                        onChange={(e) => {
+                          const ssid = e.target.value;
+                          setSettings(prev => ({
+                            ...prev,
+                            wifi: { 
+                              ...prev.wifi, 
+                              ssid: ssid,
+                              enabled: ssid.trim() !== '' ? true : prev.wifi.enabled
+                            }
+                          }));
+                        }}
                         className="mt-2"
                       />
                       <div className="flex items-center gap-2 mt-3">
@@ -235,10 +303,17 @@ const WorkerTrackingSettingsPage = () => {
                           step="any"
                           placeholder="40.7128"
                           value={settings.gps.latitude || ''}
-                          onChange={(e) => setSettings(prev => ({
-                            ...prev,
-                            gps: { ...prev.gps, latitude: parseFloat(e.target.value) || null }
-                          }))}
+                          onChange={(e) => {
+                            const lat = parseFloat(e.target.value) || null;
+                            setSettings(prev => ({
+                              ...prev,
+                              gps: { 
+                                ...prev.gps, 
+                                latitude: lat,
+                                enabled: lat !== null && prev.gps.longitude !== null ? true : prev.gps.enabled
+                              }
+                            }));
+                          }}
                           className="flex-1"
                         />
                         <Input
@@ -247,10 +322,17 @@ const WorkerTrackingSettingsPage = () => {
                           step="any"
                           placeholder="-74.0060"
                           value={settings.gps.longitude || ''}
-                          onChange={(e) => setSettings(prev => ({
-                            ...prev,
-                            gps: { ...prev.gps, longitude: parseFloat(e.target.value) || null }
-                          }))}
+                          onChange={(e) => {
+                            const lng = parseFloat(e.target.value) || null;
+                            setSettings(prev => ({
+                              ...prev,
+                              gps: { 
+                                ...prev.gps, 
+                                longitude: lng,
+                                enabled: prev.gps.latitude !== null && lng !== null ? true : prev.gps.enabled
+                              }
+                            }));
+                          }}
                           className="flex-1"
                         />
                       </div>
