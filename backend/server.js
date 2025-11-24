@@ -37,7 +37,20 @@ app.use(corsMiddleware);
 
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
-  console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+  // Enhanced logging for walk-in endpoint
+  if (req.path && req.path.includes('walk-in')) {
+    console.log('[SERVER] ========== INCOMING WALK-IN REQUEST ==========');
+    console.log('[SERVER] Method:', req.method);
+    console.log('[SERVER] Path:', req.path);
+    console.log('[SERVER] Full URL:', req.originalUrl);
+    console.log('[SERVER] Origin:', req.headers.origin || 'none');
+    console.log('[SERVER] Authorization:', req.headers.authorization ? 'Present' : 'Missing');
+    console.log('[SERVER] Content-Type:', req.headers['content-type'] || 'none');
+    console.log('[SERVER] Body:', JSON.stringify(req.body));
+    console.log('[SERVER] ============================================');
+  } else {
+    console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+  }
   next();
 });
 
@@ -259,10 +272,29 @@ app.use((err, req, res, next) => {
     }
   }
   
+  // Enhanced error logging - especially for walk-in endpoint
+  const isWalkIn = req.path && req.path.includes('walk-in');
+  if (isWalkIn) {
+    console.error('[ERROR HANDLER] ========== ERROR IN WALK-IN REQUEST ==========');
+    console.error('[ERROR HANDLER] Path:', req.path);
+    console.error('[ERROR HANDLER] Method:', req.method);
+    console.error('[ERROR HANDLER] Body:', JSON.stringify(req.body));
+    console.error('[ERROR HANDLER] User:', req.user ? { id: req.user.id, role: req.user.role } : 'NO USER');
+  }
+  
   // Log the error
   console.error('[ERROR]', err.message);
-  if (err.stack && process.env.NODE_ENV !== 'production') {
-    console.error(err.stack);
+  console.error('[ERROR] Error name:', err.name);
+  console.error('[ERROR] Error code:', err.code);
+  if (err.stack) {
+    console.error('[ERROR] Stack:', err.stack);
+  }
+  if (err.errors) {
+    console.error('[ERROR] Validation errors:', JSON.stringify(err.errors));
+  }
+  
+  if (isWalkIn) {
+    console.error('[ERROR HANDLER] ============================================');
   }
   
   // If it's a CORS error, return 403 with CORS headers
@@ -272,6 +304,11 @@ app.use((err, req, res, next) => {
       message: err.message,
       origin: origin || 'none'
     });
+  }
+  
+  // Don't send response if headers already sent
+  if (res.headersSent) {
+    return next(err);
   }
   
   res.status(err.statusCode || 500).json({
