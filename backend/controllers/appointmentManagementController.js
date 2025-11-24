@@ -736,7 +736,16 @@ const createWalkInAppointment = async (req, res, next) => {
             isWalkIn: clientData.isWalkIn
           });
           console.log('[WALK-IN] Step 8: About to call User.create()...');
-          const client = await User.create(clientData);
+          console.log('[WALK-IN] Step 8: Client data password length:', clientData.password?.length);
+          console.log('[WALK-IN] Step 8: Client data isWalkIn:', clientData.isWalkIn);
+          
+          // Add timeout wrapper to prevent hanging
+          const createPromise = User.create(clientData);
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('User.create() timed out after 10 seconds')), 10000);
+          });
+          
+          const client = await Promise.race([createPromise, timeoutPromise]);
           console.log('[WALK-IN] Step 8: ✅ Anonymous client created successfully:', client._id);
           finalClientId = client._id;
         } catch (createError) {

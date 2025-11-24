@@ -12,8 +12,19 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
+    required: function() {
+      // Password not required for walk-in clients (they don't log in)
+      return !this.isWalkIn;
+    },
+    validate: {
+      validator: function(v) {
+        // Skip validation for walk-in clients (pre-save hook will set it)
+        if (this.isWalkIn) return true;
+        // For regular users, password must be at least 6 characters
+        return v && v.length >= 6;
+      },
+      message: 'Password must be at least 6 characters'
+    },
     select: false // Don't return password by default
   },
   role: {
