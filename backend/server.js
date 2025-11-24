@@ -23,6 +23,7 @@ const allowedOrigins = [
   'https://xaura-production.up.railway.app',
   'https://www.xaura.pro',
   'https://xaura.pro',
+  'https://api.xaura.pro', // API subdomain
 ];
 
 const corsOptions = {
@@ -47,8 +48,8 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    // Allow any xaura.pro subdomain
-    if (origin.includes('.xaura.pro') || origin === 'https://xaura.pro' || origin === 'https://www.xaura.pro') {
+    // Allow any xaura.pro subdomain (including api.xaura.pro)
+    if (origin.includes('.xaura.pro') || origin === 'https://xaura.pro' || origin === 'https://www.xaura.pro' || origin === 'https://api.xaura.pro') {
       console.log(`[CORS] ✅ Origin allowed (xaura.pro): ${origin}`);
       return callback(null, true);
     }
