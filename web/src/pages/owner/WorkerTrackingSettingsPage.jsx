@@ -31,11 +31,22 @@ const WorkerTrackingSettingsPage = () => {
     try {
       setLoading(true);
       const response = await workerTrackingService.getSettings();
-      if (response.success) {
+      console.log('[TRACKING] Load settings response:', response);
+      
+      // Handle response structure: backend returns {success: true, data: {...}}
+      // Service returns response.data, so we get {success: true, data: {...}}
+      if (response && response.success && response.data) {
         setSettings(response.data);
+        console.log('[TRACKING] Settings loaded:', response.data);
+      } else if (response && response.method) {
+        // Fallback: if response is already the data object
+        setSettings(response);
+        console.log('[TRACKING] Settings loaded (direct):', response);
+      } else {
+        console.warn('[TRACKING] Unexpected response structure:', response);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('[TRACKING] Error loading settings:', error);
       toast.error('Failed to load tracking settings');
     } finally {
       setLoading(false);
@@ -98,17 +109,40 @@ const WorkerTrackingSettingsPage = () => {
       console.log('[TRACKING] Saving settings:', JSON.stringify(payload, null, 2));
       
       try {
+        console.log('[TRACKING] Making API call to save settings...');
         const response = await workerTrackingService.updateSettings(payload);
         console.log('[TRACKING] Response received:', response);
+        console.log('[TRACKING] Response type:', typeof response);
+        console.log('[TRACKING] Response keys:', response ? Object.keys(response) : 'null');
         
-        // The service returns response.data, which contains the data object
-        // Check if response has the expected structure (method, wifi, gps) as success indicator
-        if (response && (response.success || (response.method && response.wifi && response.gps))) {
+        // The service returns response.data from the API interceptor
+        // Backend returns: {success: true, message: '...', data: {...}}
+        // After interceptor: {success: true, message: '...', data: {...}}
+        // After service: {success: true, message: '...', data: {...}}
+        
+        // Check if response indicates success
+        const isSuccess = response && (
+          response.success === true || 
+          (response.method && response.wifi && response.gps) ||
+          (response.data && response.data.method)
+        );
+        
+        if (isSuccess) {
           toast.success('Tracking settings saved successfully!');
-          // Update local state with the saved settings
-          setSettings(settingsToSave);
-          // Reload settings to get the updated data from backend
-          await loadSettings();
+          
+          // Get the actual settings data
+          const savedSettings = response.data || response;
+          console.log('[TRACKING] Saved settings data:', savedSettings);
+          
+          // Update local state with the saved settings from backend
+          if (savedSettings.method && savedSettings.wifi && savedSettings.gps) {
+            setSettings(savedSettings);
+            console.log('[TRACKING] State updated with saved settings');
+          } else {
+            // If structure is different, reload from backend
+            console.log('[TRACKING] Reloading settings from backend...');
+            await loadSettings();
+          }
         } else {
           const errorMsg = response?.message || 'Failed to save settings';
           console.error('[TRACKING] Save failed - response:', response);
