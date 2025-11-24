@@ -178,6 +178,7 @@ userSchema.index({ userID: 1 }, { unique: true, sparse: true }); // For userID u
 
 // Generate unique 4-digit userID
 async function generateUniqueUserID() {
+  const UserModel = mongoose.model('User');
   let userID;
   let isUnique = false;
   let attempts = 0;
@@ -188,9 +189,14 @@ async function generateUniqueUserID() {
     userID = String(Math.floor(1000 + Math.random() * 9000));
     
     // Check if this userID already exists
-    const existingUser = await mongoose.model('User').findOne({ userID });
-    if (!existingUser) {
-      isUnique = true;
+    try {
+      const existingUser = await UserModel.findOne({ userID }).maxTimeMS(5000);
+      if (!existingUser) {
+        isUnique = true;
+      }
+    } catch (error) {
+      console.error('[USER] Error checking userID uniqueness:', error.message);
+      // Continue to next attempt
     }
     attempts++;
   }

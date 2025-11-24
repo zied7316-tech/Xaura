@@ -16,7 +16,15 @@ export const profileService = {
   // Regenerate userID
   regenerateUserID: async () => {
     const response = await api.post('/profile/regenerate-userid')
-    return response.data.data.user
+    // Response structure: { success: true, data: { userID: "...", user: {...} } }
+    if (response.data && response.data.data && response.data.data.user) {
+      return response.data.data.user
+    }
+    // Fallback: try alternative response structure
+    if (response.data && response.data.user) {
+      return response.data.user
+    }
+    throw new Error('Unexpected response structure from regenerate userID endpoint')
   }
 }
 

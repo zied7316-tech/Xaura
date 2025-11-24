@@ -55,6 +55,13 @@ const register = async (req, res, next) => {
       emailVerificationExpire: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     });
 
+    // Log userID generation for debugging
+    if (user.userID) {
+      console.log(`[AUTH] ✅ UserID generated for new user: ${user.userID} (${user.email})`);
+    } else {
+      console.warn(`[AUTH] ⚠️ UserID NOT generated for new user: ${user.email}`);
+    }
+
     // Send verification email
     let emailSent = false;
     let emailError = null;
@@ -81,20 +88,31 @@ const register = async (req, res, next) => {
     // Generate token
     const token = generateToken(user._id);
 
+    // Refresh user to get userID (in case it was generated in pre-validate hook)
+    const freshUser = await User.findById(user._id).select('-password');
+    
+    // Log userID generation for debugging
+    if (freshUser.userID) {
+      console.log(`[AUTH] ✅ UserID generated for new user: ${freshUser.userID} (${freshUser.email})`);
+    } else {
+      console.warn(`[AUTH] ⚠️ UserID NOT generated for new user: ${freshUser.email}`);
+    }
+
     // Return response with email status
     res.status(201).json({
       success: true,
       token,
       user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-        salonId: user.salonId,
-        avatar: user.avatar,
-        birthday: user.birthday,
-        emailVerified: user.emailVerified,
+        id: freshUser._id,
+        userID: freshUser.userID, // Include userID in registration response
+        email: freshUser.email,
+        name: freshUser.name,
+        phone: freshUser.phone,
+        role: freshUser.role,
+        salonId: freshUser.salonId,
+        avatar: freshUser.avatar,
+        birthday: freshUser.birthday,
+        emailVerified: freshUser.emailVerified,
       },
       message: emailSent 
         ? 'Registration successful! Please check your email to verify your account.'
