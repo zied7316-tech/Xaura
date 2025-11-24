@@ -344,9 +344,9 @@ try {
     console.log(`✅ Health check available at: http://0.0.0.0:${PORT}/`);
     console.log(`✅ Server will stay alive and handle requests`);
     
-    // Set server timeout to 25 seconds (before Railway's 30s timeout)
+    // Set server timeout to 30 seconds (Railway's limit is 30s, but we need buffer)
     if (server) {
-      server.timeout = 25000;
+      server.timeout = 30000; // Increased from 25s to 30s for better reliability
       server.keepAliveTimeout = 65000; // Keep connections alive for 65 seconds
       server.headersTimeout = 66000; // Headers timeout slightly higher than keepAliveTimeout
       console.log(`✅ Server timeouts configured: timeout=${server.timeout}ms, keepAlive=${server.keepAliveTimeout}ms`);
