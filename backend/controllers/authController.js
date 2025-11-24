@@ -330,6 +330,7 @@ const getMe = async (req, res, next) => {
       success: true,
       user: {
         id: user._id,
+        userID: user.userID, // Include userID
         email: user.email,
         name: user.name,
         phone: user.phone,

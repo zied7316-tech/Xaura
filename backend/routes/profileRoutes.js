@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { getProfile, updateProfile } = require('../controllers/profileController');
+const { getProfile, updateProfile, regenerateUserID } = require('../controllers/profileController');
 const { protect } = require('../middleware/authMiddleware');
 
 const updateProfileValidation = [
@@ -16,6 +16,7 @@ const updateProfileValidation = [
 
 router.get('/', protect, getProfile);
 router.put('/', protect, updateProfileValidation, updateProfile);
+router.post('/regenerate-userid', protect, regenerateUserID);
 
 module.exports = router;
 

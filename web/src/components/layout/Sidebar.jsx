@@ -152,6 +152,9 @@ const Sidebar = ({ isOpen, onClose }) => {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-gray-900 truncate">
                   {user?.name}
+                  {user?.userID && (
+                    <span className="ml-2 text-xs font-mono text-primary-600">#{user.userID}</span>
+                  )}
                 </div>
                 <div className="text-xs text-gray-500">{user?.role}</div>
               </div>

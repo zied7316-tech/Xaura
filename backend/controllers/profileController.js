@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { generateUniqueUserID } = require('../models/User');
 const { validationResult } = require('express-validator');
 
 /**
@@ -70,8 +71,71 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Regenerate userID for current user
+ * @route   POST /api/profile/regenerate-userid
+ * @access  Private
+ */
+const regenerateUserID = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Generate new unique userID
+    let newUserID;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    while (!isUnique && attempts < maxAttempts) {
+      // Generate random 4-digit number (1000-9999)
+      newUserID = String(Math.floor(1000 + Math.random() * 9000));
+      
+      // Check if this userID already exists (excluding current user)
+      const existingUser = await User.findOne({ 
+        userID: newUserID,
+        _id: { $ne: user._id }
+      });
+      
+      if (!existingUser) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to generate unique userID. Please try again.'
+      });
+    }
+
+    // Update user with new userID
+    user.userID = newUserID;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'User ID regenerated successfully',
+      data: { 
+        userID: newUserID,
+        user: await User.findById(user._id).select('-password')
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProfile,
-  updateProfile
+  updateProfile,
+  regenerateUserID
 };
 

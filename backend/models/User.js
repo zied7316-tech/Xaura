@@ -155,6 +155,15 @@ const userSchema = new mongoose.Schema({
   isAnonymous: {
     type: Boolean,
     default: false
+  },
+  // User ID - 4-digit unique identifier
+  userID: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow null values but enforce uniqueness for non-null values
+    minlength: 4,
+    maxlength: 4,
+    match: [/^\d{4}$/, 'User ID must be exactly 4 digits']
   }
 }, {
   timestamps: true
@@ -165,13 +174,52 @@ userSchema.index({ email: 1 }, { unique: true }); // For login - CRITICAL! (emai
 userSchema.index({ phone: 1, role: 1 }); // For walk-in client lookup - CRITICAL!
 userSchema.index({ salonId: 1, role: 1 }); // For worker queries
 userSchema.index({ role: 1 }); // General role-based queries
+userSchema.index({ userID: 1 }, { unique: true, sparse: true }); // For userID uniqueness
+
+// Generate unique 4-digit userID
+async function generateUniqueUserID() {
+  let userID;
+  let isUnique = false;
+  let attempts = 0;
+  const maxAttempts = 100; // Prevent infinite loop
+
+  while (!isUnique && attempts < maxAttempts) {
+    // Generate random 4-digit number (1000-9999)
+    userID = String(Math.floor(1000 + Math.random() * 9000));
+    
+    // Check if this userID already exists
+    const existingUser = await mongoose.model('User').findOne({ userID });
+    if (!existingUser) {
+      isUnique = true;
+    }
+    attempts++;
+  }
+
+  if (!isUnique) {
+    throw new Error('Failed to generate unique userID after multiple attempts');
+  }
+
+  return userID;
+}
 
 // Hash password before saving
-userSchema.pre('validate', function(next) {
+userSchema.pre('validate', async function(next) {
   // For walk-in clients, set password BEFORE validation to pass minlength check
   if (this.isWalkIn && this.isNew && !this.password) {
     this.password = 'WALKIN_NO_PASSWORD_' + Date.now();
   }
+
+  // Generate userID for new users if not provided
+  if (this.isNew && !this.userID) {
+    try {
+      this.userID = await generateUniqueUserID();
+      console.log(`[USER] Generated new userID: ${this.userID} for user: ${this.email}`);
+    } catch (error) {
+      console.error('[USER] Error generating userID:', error.message);
+      return next(error);
+    }
+  }
+
   next();
 });
 
@@ -214,5 +262,8 @@ userSchema.methods.toJSON = function() {
   return user;
 };
 
-module.exports = mongoose.model('User', userSchema);
+// Export the User model and the generateUniqueUserID function
+const User = mongoose.model('User', userSchema);
+module.exports = User;
+module.exports.generateUniqueUserID = generateUniqueUserID;
 

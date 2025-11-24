@@ -8,7 +8,7 @@ import Input from '../../components/ui/Input'
 import Textarea from '../../components/ui/Textarea'
 import ImageUpload from '../../components/ui/ImageUpload'
 import PushNotificationSetup from '../../components/notifications/PushNotificationSetup'
-import { User, Mail, Phone, Briefcase, Edit2, Save, X, Trash2 } from 'lucide-react'
+import { User, Mail, Phone, Briefcase, Edit2, Save, X, Trash2, RefreshCw, Hash } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const ProfilePage = () => {
@@ -29,6 +29,7 @@ const ProfilePage = () => {
 
   const [newSkill, setNewSkill] = useState('')
   const [newCertification, setNewCertification] = useState('')
+  const [regeneratingUserID, setRegeneratingUserID] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -130,6 +131,24 @@ const ProfilePage = () => {
     })
   }
 
+  const handleRegenerateUserID = async () => {
+    if (!confirm('Are you sure you want to generate a new User ID? This action cannot be undone.')) {
+      return
+    }
+
+    setRegeneratingUserID(true)
+    try {
+      const updatedUser = await profileService.regenerateUserID()
+      updateUser(updatedUser)
+      toast.success('User ID regenerated successfully!')
+    } catch (error) {
+      console.error('Error regenerating userID:', error)
+      toast.error(error.response?.data?.message || 'Failed to regenerate User ID')
+    } finally {
+      setRegeneratingUserID(false)
+    }
+  }
+
   const isWorker = user?.role === 'Worker'
 
   return (
@@ -220,6 +239,34 @@ const ProfilePage = () => {
                   <span>{user?.phone}</span>
                 </div>
               )}
+            </div>
+
+            {/* User ID Section */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Hash size={20} className="text-gray-500" />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-mono font-semibold text-primary-600">
+                        {user?.userID || 'Not assigned'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Your unique 4-digit identifier</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRegenerateUserID}
+                  loading={regeneratingUserID}
+                  disabled={regeneratingUserID}
+                >
+                  <RefreshCw size={16} />
+                  Generate New ID
+                </Button>
+              </div>
             </div>
 
             {/* Worker-Specific Fields */}
