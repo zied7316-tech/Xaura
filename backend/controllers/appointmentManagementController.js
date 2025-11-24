@@ -564,10 +564,19 @@ const createWalkInAppointment = async (req, res, next) => {
     const workerId = req.user.id;
 
     // Validate required fields
-    if (!serviceId || !price) {
+    if (!serviceId || price === undefined || price === null) {
       return res.status(400).json({
         success: false,
         message: 'Service and price are required'
+      });
+    }
+
+    // Convert price to number and validate
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a valid positive number'
       });
     }
 
@@ -663,7 +672,9 @@ const createWalkInAppointment = async (req, res, next) => {
         // Use high entropy for uniqueness: timestamp + random + workerId
         const timestamp = Date.now();
         const randomNum = Math.floor(Math.random() * 1000000);
-        const workerIdSuffix = workerId.toString().slice(-6).replace(/[^a-zA-Z0-9]/g, '');
+        // Safely convert workerId to string
+        const workerIdStr = workerId ? workerId.toString() : '';
+        const workerIdSuffix = workerIdStr.slice(-6).replace(/[^a-zA-Z0-9]/g, '') || '000000';
         const uniqueId = `${timestamp}${randomNum}${workerIdSuffix}`;
         
         // Create unique email that matches User model regex
@@ -688,7 +699,8 @@ const createWalkInAppointment = async (req, res, next) => {
           if (createError.code === 11000) {
             const timestamp = Date.now();
             const random = Math.floor(Math.random() * 1000000);
-            const finalUniqueId = `${timestamp}${random}${workerId.toString().slice(-6)}`;
+            const workerIdStr = workerId ? workerId.toString() : '';
+            const finalUniqueId = `${timestamp}${random}${workerIdStr.slice(-6) || '000000'}`;
             const client = await User.create({
               name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${Math.floor(Math.random() * 10000)}`,
               phone: `WALKIN${finalUniqueId}`,
@@ -745,14 +757,14 @@ const createWalkInAppointment = async (req, res, next) => {
     if (worker.paymentModel && worker.paymentModel.type) {
       if (worker.paymentModel.type === 'percentage_commission') {
         commissionPercentage = worker.paymentModel.commissionPercentage || 50;
-        workerEarning = (price * commissionPercentage) / 100;
+        workerEarning = (numericPrice * commissionPercentage) / 100;
       } else if (worker.paymentModel.type === 'hybrid') {
         commissionPercentage = worker.paymentModel.commissionPercentage || 30;
-        workerEarning = (price * commissionPercentage) / 100;
+        workerEarning = (numericPrice * commissionPercentage) / 100;
       }
     } else {
       commissionPercentage = 50;
-      workerEarning = (price * 50) / 100;
+      workerEarning = (numericPrice * 50) / 100;
     }
 
     const isPaid = paymentStatus === 'paid';
@@ -769,12 +781,12 @@ const createWalkInAppointment = async (req, res, next) => {
         dateTime: now,
         status: 'Completed',
         isWalkIn: true,
-        servicePriceAtBooking: price,
-        finalPrice: price,
+        servicePriceAtBooking: numericPrice,
+        finalPrice: numericPrice,
         serviceDurationAtBooking: service.duration || 0,
         paymentStatus: paymentStatus || 'paid',
         paymentMethod: paymentMethod || 'cash',
-        paidAmount: isPaid ? price : 0,
+        paidAmount: isPaid ? numericPrice : 0,
         paidAt: isPaid ? now : null,
         completedAt: now,
         notes: 'Walk-in client'
@@ -796,7 +808,7 @@ const createWalkInAppointment = async (req, res, next) => {
         salonId: salonId,
         appointmentId: appointment._id,
         serviceId,
-        servicePrice: price,
+        servicePrice: numericPrice,
         commissionPercentage,
         workerEarning,
         paymentModelType: worker.paymentModel?.type || 'percentage_commission',
@@ -806,13 +818,13 @@ const createWalkInAppointment = async (req, res, next) => {
 
       // Create payment record if paid (CRITICAL - must be synchronous for owner finance)
       if (isPaid) {
-        const salonRevenue = price - workerEarning;
+        const salonRevenue = numericPrice - workerEarning;
         await Payment.create({
           salonId: salonId,
           appointmentId: appointment._id,
           clientId: finalClientId,
           workerId,
-          amount: price,
+          amount: numericPrice,
           paymentMethod: paymentMethod || 'cash',
           status: 'completed',
           paidAt: now,
@@ -844,7 +856,7 @@ const createWalkInAppointment = async (req, res, next) => {
         dateTime: appointment.dateTime,
         status: appointment.status,
         isWalkIn: true,
-        finalPrice: price,
+        finalPrice: numericPrice,
         paymentStatus: appointment.paymentStatus,
         paymentMethod: appointment.paymentMethod
       }
