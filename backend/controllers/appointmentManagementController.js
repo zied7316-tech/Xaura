@@ -728,32 +728,50 @@ const createWalkInAppointment = async (req, res, next) => {
             isWalkIn: true,
             isAnonymous: true
           };
-          console.log('[WALK-IN] Step 8: Creating anonymous client with data:', { name: clientData.name, email: clientData.email });
+          console.log('[WALK-IN] Step 8: Creating anonymous client with data:', { 
+            name: clientData.name, 
+            email: clientData.email,
+            phone: clientData.phone,
+            role: clientData.role,
+            isWalkIn: clientData.isWalkIn
+          });
+          console.log('[WALK-IN] Step 8: About to call User.create()...');
           const client = await User.create(clientData);
-          console.log('[WALK-IN] Step 8: Anonymous client created successfully:', client._id);
+          console.log('[WALK-IN] Step 8: ✅ Anonymous client created successfully:', client._id);
           finalClientId = client._id;
         } catch (createError) {
           console.error('[WALK-IN] ❌ Error creating anonymous client:', createError.message);
+          console.error('[WALK-IN] Error name:', createError.name);
           console.error('[WALK-IN] Error code:', createError.code);
           console.error('[WALK-IN] Error stack:', createError.stack);
+          if (createError.errors) {
+            console.error('[WALK-IN] Validation errors:', JSON.stringify(createError.errors));
+          }
           // If still fails (very rare), try one more time with completely unique values
           if (createError.code === 11000) {
+            console.log('[WALK-IN] Step 8: Duplicate email error, retrying with new unique email...');
             const timestamp = Date.now();
             const random = Math.floor(Math.random() * 1000000);
             const workerIdStr = workerId ? workerId.toString() : '';
             const finalUniqueId = `${timestamp}${random}${workerIdStr.slice(-6) || '000000'}`;
-            const client = await User.create({
-              name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${Math.floor(Math.random() * 10000)}`,
-              phone: `WALKIN${finalUniqueId}`,
-              email: `walkinanon${finalUniqueId}@xaura.temp`.toLowerCase(),
-              role: 'Client',
-              password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
-              isWalkIn: true,
-              isAnonymous: true
-            });
-            
-            finalClientId = client._id;
+            try {
+              const client = await User.create({
+                name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${Math.floor(Math.random() * 10000)}`,
+                phone: `WALKIN${finalUniqueId}`,
+                email: `walkinanon${finalUniqueId}@xaura.temp`.toLowerCase(),
+                role: 'Client',
+                password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
+                isWalkIn: true,
+                isAnonymous: true
+              });
+              console.log('[WALK-IN] Step 8: ✅ Retry successful, client created:', client._id);
+              finalClientId = client._id;
+            } catch (retryError) {
+              console.error('[WALK-IN] ❌ Retry also failed:', retryError.message);
+              throw retryError;
+            }
           } else {
+            // Re-throw the error so it's caught by outer try-catch
             throw createError;
           }
         }

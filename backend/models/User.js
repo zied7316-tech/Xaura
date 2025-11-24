@@ -146,7 +146,16 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
-  }]
+  }],
+  // Walk-in client flags
+  isWalkIn: {
+    type: Boolean,
+    default: false
+  },
+  isAnonymous: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });
@@ -161,15 +170,19 @@ userSchema.index({ role: 1 }); // General role-based queries
 userSchema.pre('save', async function(next) {
   // Skip password hashing for walk-in clients (saves 100-500ms per creation)
   // Walk-in clients don't need to log in, so password hashing is unnecessary overhead
-  if (this.isWalkIn && this.isModified('password')) {
+  // Check for new documents OR modified password
+  if (this.isWalkIn && (this.isNew || this.isModified('password'))) {
+    // For walk-in clients, set a simple password that meets minlength requirement
     this.password = 'WALKIN_NO_PASSWORD_' + Date.now();
     return next();
   }
   
+  // Skip if password not modified (for existing documents)
   if (!this.isModified('password')) {
     return next();
   }
   
+  // Hash password for regular users
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
