@@ -46,6 +46,7 @@ export const appointmentManagementService = {
   // Create walk-in appointment (Worker only)
   createWalkInAppointment: async (appointmentData) => {
     const response = await api.post('/appointment-management/walk-in', appointmentData)
-    return response.data
+    // API interceptor already unwraps response.data, so response IS the data
+    return response
   }
 }
