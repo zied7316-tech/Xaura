@@ -708,10 +708,19 @@ const createWalkInAppointment = async (req, res, next) => {
     }
 
     // Get worker and service in parallel (faster than sequential)
-    const [worker, service] = await Promise.all([
-      User.findById(workerId).select('salonId paymentModel').maxTimeMS(3000),
-      Service.findById(serviceId).select('name duration price').maxTimeMS(3000)
-    ]);
+    let worker, service;
+    try {
+      [worker, service] = await Promise.all([
+        User.findById(workerId).select('salonId paymentModel').maxTimeMS(3000),
+        Service.findById(serviceId).select('name duration price').maxTimeMS(3000)
+      ]);
+    } catch (queryError) {
+      console.error('[WALK-IN] Error fetching worker/service:', queryError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching worker or service information'
+      });
+    }
 
     if (!worker || !worker.salonId) {
       return res.status(400).json({
@@ -750,24 +759,33 @@ const createWalkInAppointment = async (req, res, next) => {
     const now = new Date();
 
     // Create appointment (minimal fields, no populate)
-    const appointment = await Appointment.create({
-      clientId: finalClientId,
-      workerId,
-      serviceId,
-      salonId: salonId,
-      dateTime: now,
-      status: 'Completed',
-      isWalkIn: true,
-      servicePriceAtBooking: price,
-      finalPrice: price,
-      serviceDurationAtBooking: service.duration,
-      paymentStatus: paymentStatus || 'paid',
-      paymentMethod: paymentMethod || 'cash',
-      paidAmount: isPaid ? price : 0,
-      paidAt: isPaid ? now : null,
-      completedAt: now,
-      notes: 'Walk-in client'
-    });
+    let appointment;
+    try {
+      appointment = await Appointment.create({
+        clientId: finalClientId,
+        workerId,
+        serviceId,
+        salonId: salonId,
+        dateTime: now,
+        status: 'Completed',
+        isWalkIn: true,
+        servicePriceAtBooking: price,
+        finalPrice: price,
+        serviceDurationAtBooking: service.duration || 0,
+        paymentStatus: paymentStatus || 'paid',
+        paymentMethod: paymentMethod || 'cash',
+        paidAmount: isPaid ? price : 0,
+        paidAt: isPaid ? now : null,
+        completedAt: now,
+        notes: 'Walk-in client'
+      });
+    } catch (appointmentError) {
+      console.error('[WALK-IN] Error creating appointment:', appointmentError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Error creating appointment. Please try again.'
+      });
+    }
 
     // CRITICAL: Create finance records SYNCHRONOUSLY so they appear immediately
     // WorkerEarning and Payment must be created before response to show in finance
@@ -803,12 +821,14 @@ const createWalkInAppointment = async (req, res, next) => {
             amount: workerEarning
           },
           salonRevenue,
-          notes: `Walk-in payment for ${service.name}`
+          notes: `Walk-in payment for ${service.name || 'service'}`
         });
       }
     } catch (financeError) {
       // Log but don't fail the request - finance records are important but appointment is created
       console.error('[WALK-IN] Error creating finance records:', financeError.message);
+      console.error('[WALK-IN] Finance error stack:', financeError.stack);
+      // Continue - appointment is already created, finance can be fixed later
     }
 
     // Return response
@@ -850,10 +870,20 @@ const createWalkInAppointment = async (req, res, next) => {
           }
         } catch (walletError) {
           console.error('[WALK-IN] Error updating worker wallet (background):', walletError.message);
+          // Don't throw - this is background operation
         }
+      }).catch(err => {
+        // Catch any unhandled rejections from setImmediate
+        console.error('[WALK-IN] Unhandled error in setImmediate:', err.message);
       });
     }
   } catch (error) {
+    // Log the error with full details for debugging
+    console.error('[WALK-IN] Unhandled error:', error.message);
+    console.error('[WALK-IN] Error stack:', error.stack);
+    console.error('[WALK-IN] Error name:', error.name);
+    
+    // Make sure to pass error to next middleware
     next(error);
   }
 };
