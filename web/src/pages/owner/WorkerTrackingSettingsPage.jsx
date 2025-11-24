@@ -101,7 +101,9 @@ const WorkerTrackingSettingsPage = () => {
         const response = await workerTrackingService.updateSettings(payload);
         console.log('[TRACKING] Response received:', response);
         
-        if (response && response.success) {
+        // The service returns response.data, which contains the data object
+        // Check if response has the expected structure (method, wifi, gps) as success indicator
+        if (response && (response.success || (response.method && response.wifi && response.gps))) {
           toast.success('Tracking settings saved successfully!');
           // Update local state with the saved settings
           setSettings(settingsToSave);
