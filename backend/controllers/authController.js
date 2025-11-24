@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt'); // Added for direct password comparison in login
+const mongoose = require('mongoose'); // Required for connection state check
 const { generateEmailVerificationToken, generatePasswordResetToken, hashToken } = require('../utils/generateToken');
 const globalEmailService = require('../services/globalEmailService');
 
