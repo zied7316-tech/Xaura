@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import { workerStatusService } from '../../services/workerStatusService'
-import { CheckCircle, Coffee, XCircle, ChevronDown } from 'lucide-react'
+import { workerTrackingService } from '../../services/workerTrackingService'
+import { CheckCircle, Coffee, XCircle, ChevronDown, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const WorkerStatusToggle = () => {
   const [currentStatus, setCurrentStatus] = useState('available')
   const [showDropdown, setShowDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [isTrackingEnabled, setIsTrackingEnabled] = useState(false)
 
   useEffect(() => {
     loadStatus()
+    checkTrackingSettings()
   }, [])
 
   const loadStatus = async () => {
@@ -21,7 +24,25 @@ const WorkerStatusToggle = () => {
     }
   }
 
+  const checkTrackingSettings = async () => {
+    try {
+      const response = await workerTrackingService.getMySalonSettings()
+      if (response && response.data) {
+        setIsTrackingEnabled(response.data.isTrackingEnabled || false)
+      }
+    } catch (error) {
+      console.error('Error checking tracking settings:', error)
+      // If error, assume manual mode (allow status changes)
+      setIsTrackingEnabled(false)
+    }
+  }
+
   const handleStatusChange = async (newStatus) => {
+    if (isTrackingEnabled) {
+      toast.error('Status is automatically managed by WiFi/GPS tracking')
+      return
+    }
+
     setLoading(true)
     try {
       await workerStatusService.toggleStatus(newStatus)
@@ -75,18 +96,26 @@ const WorkerStatusToggle = () => {
   return (
     <div className="relative">
       <button
-        onClick={() => setShowDropdown(!showDropdown)}
-        disabled={loading}
-        className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg border-2 transition-all ${current.bgColor} ${current.borderColor} ${current.hoverBg} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        onClick={() => {
+          if (isTrackingEnabled) {
+            toast.info('Status is automatically managed by WiFi/GPS tracking. Connect to salon WiFi or be at salon location to show as Available.')
+            return
+          }
+          setShowDropdown(!showDropdown)
+        }}
+        disabled={loading || isTrackingEnabled}
+        className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg border-2 transition-all ${current.bgColor} ${current.borderColor} ${isTrackingEnabled ? '' : current.hoverBg} ${loading || isTrackingEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        title={isTrackingEnabled ? 'Status is automatically managed by WiFi/GPS tracking' : 'Change status'}
       >
+        {isTrackingEnabled && <Lock size={14} className={`${current.color} sm:w-3 sm:h-3`} />}
         <CurrentIcon size={16} className={`${current.color} sm:w-[18px] sm:h-[18px]`} />
         <span className={`font-medium text-xs sm:text-sm ${current.color}`}>
           {current.label}
         </span>
-        <ChevronDown size={14} className={`${current.color} sm:w-4 sm:h-4`} />
+        {!isTrackingEnabled && <ChevronDown size={14} className={`${current.color} sm:w-4 sm:h-4`} />}
       </button>
 
-      {showDropdown && (
+      {showDropdown && !isTrackingEnabled && (
         <>
           {/* Backdrop */}
           <div 

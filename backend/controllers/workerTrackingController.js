@@ -136,6 +136,42 @@ const updateTrackingSettings = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get worker's salon tracking settings (for worker to check if tracking is enabled)
+ * @route   GET /api/worker-tracking/my-salon-settings
+ * @access  Private (Worker)
+ */
+const getMySalonTrackingSettings = async (req, res, next) => {
+  try {
+    const worker = await User.findById(req.user.id).select('salonId');
+    
+    if (!worker || !worker.salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Worker not associated with a salon'
+      });
+    }
+
+    const salon = await Salon.findById(worker.salonId);
+    if (!salon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        method: salon.workerTracking?.method || 'manual',
+        isTrackingEnabled: salon.workerTracking?.method !== 'manual'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Worker reports WiFi connection or GPS location
  * @route   POST /api/worker-tracking/report
  * @access  Private (Worker)
@@ -210,7 +246,21 @@ const reportLocation = async (req, res, next) => {
 
     // Update worker status if needed
     const currentStatus = worker.currentStatus || 'offline';
-    const newStatus = shouldBeAvailable ? 'available' : 'offline';
+    let newStatus = shouldBeAvailable ? 'available' : 'offline';
+    
+    // If worker was "available" and now disconnecting, set to "on_break" instead of "offline"
+    // This handles the case where worker goes out in the middle of the day
+    if (currentStatus === 'available' && !shouldBeAvailable) {
+      // Check if it's during working hours (9 AM - 6 PM) to determine if it's a break
+      const now = new Date();
+      const currentHour = now.getHours();
+      const isWorkingHours = currentHour >= 9 && currentHour < 18;
+      
+      if (isWorkingHours) {
+        newStatus = 'on_break';
+        reason = reason + ' (Set to On Break)';
+      }
+    }
 
     if (currentStatus !== newStatus) {
       const previousStatusChangeTime = worker.lastStatusChange || new Date();
@@ -276,6 +326,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 module.exports = {
   getTrackingSettings,
   updateTrackingSettings,
-  reportLocation
+  reportLocation,
+  getMySalonTrackingSettings
 };
 
