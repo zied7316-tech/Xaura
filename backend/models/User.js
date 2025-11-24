@@ -12,19 +12,8 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: function() {
-      // Password not required for walk-in clients (they don't log in)
-      return !this.isWalkIn;
-    },
-    validate: {
-      validator: function(v) {
-        // Skip validation for walk-in clients (pre-save hook will set it)
-        if (this.isWalkIn) return true;
-        // For regular users, password must be at least 6 characters
-        return v && v.length >= 6;
-      },
-      message: 'Password must be at least 6 characters'
-    },
+    required: [true, 'Password is required'],
+    minlength: [6, 'Password must be at least 6 characters'],
     select: false // Don't return password by default
   },
   role: {
@@ -178,14 +167,24 @@ userSchema.index({ salonId: 1, role: 1 }); // For worker queries
 userSchema.index({ role: 1 }); // General role-based queries
 
 // Hash password before saving
+userSchema.pre('validate', function(next) {
+  // For walk-in clients, set password BEFORE validation to pass minlength check
+  if (this.isWalkIn && this.isNew && !this.password) {
+    this.password = 'WALKIN_NO_PASSWORD_' + Date.now();
+  }
+  next();
+});
+
 userSchema.pre('save', async function(next) {
   // Skip password hashing for walk-in clients (saves 100-500ms per creation)
   // Walk-in clients don't need to log in, so password hashing is unnecessary overhead
   // Check for new documents OR modified password
   if (this.isWalkIn && (this.isNew || this.isModified('password'))) {
-    // For walk-in clients, set a simple password that meets minlength requirement
-    this.password = 'WALKIN_NO_PASSWORD_' + Date.now();
-    return next();
+    // Ensure password is set (should already be set by pre-validate hook)
+    if (!this.password || this.password.startsWith('WALKIN_')) {
+      this.password = 'WALKIN_NO_PASSWORD_' + Date.now();
+    }
+    return next(); // Skip hashing for walk-ins
   }
   
   // Skip if password not modified (for existing documents)
