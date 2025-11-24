@@ -558,13 +558,21 @@ const reassignAppointment = async (req, res, next) => {
  * @access  Private (Worker)
  */
 const createWalkInAppointment = async (req, res, next) => {
+  const startTime = Date.now();
+  console.log('[WALK-IN] ========== START WALK-IN REQUEST ==========');
+  console.log('[WALK-IN] Request body:', JSON.stringify(req.body));
+  console.log('[WALK-IN] Worker ID:', req.user?.id);
+  console.log('[WALK-IN] Worker role:', req.user?.role);
+  
   try {
     const { clientId, serviceId, price, paymentStatus, paymentMethod, clientName, clientPhone } = req.body;
     
     const workerId = req.user.id;
+    console.log('[WALK-IN] Step 1: Extracted data - serviceId:', serviceId, 'price:', price, 'type:', typeof price);
 
     // Validate required fields
     if (!serviceId || price === undefined || price === null) {
+      console.log('[WALK-IN] ❌ Validation failed - missing serviceId or price');
       return res.status(400).json({
         success: false,
         message: 'Service and price are required'
@@ -573,21 +581,28 @@ const createWalkInAppointment = async (req, res, next) => {
 
     // Convert price to number and validate
     const numericPrice = parseFloat(price);
+    console.log('[WALK-IN] Step 2: Price conversion - original:', price, 'numeric:', numericPrice, 'isNaN:', isNaN(numericPrice));
+    
     if (isNaN(numericPrice) || numericPrice <= 0) {
+      console.log('[WALK-IN] ❌ Validation failed - invalid price');
       return res.status(400).json({
         success: false,
         message: 'Price must be a valid positive number'
       });
     }
+    
+    console.log('[WALK-IN] Step 3: Validation passed - proceeding with client creation');
 
     // If clientId provided, validate it exists
     let finalClientId = clientId;
     
     if (finalClientId) {
+      console.log('[WALK-IN] Step 4: ClientId provided, validating:', finalClientId);
       try {
         // Validate clientId exists and is a Client
         const existingClient = await User.findById(finalClientId).select('_id role').maxTimeMS(2000);
         if (!existingClient || existingClient.role !== 'Client') {
+          console.log('[WALK-IN] ❌ Invalid client ID');
           return res.status(400).json({
             success: false,
             message: 'Invalid client ID. Client not found.'
@@ -595,7 +610,9 @@ const createWalkInAppointment = async (req, res, next) => {
         }
         // Use the provided clientId
         finalClientId = existingClient._id;
+        console.log('[WALK-IN] Step 4: Client validated, using:', finalClientId);
       } catch (error) {
+        console.error('[WALK-IN] ❌ Error validating clientId:', error.message);
         // If lookup fails, treat as invalid clientId
         return res.status(400).json({
           success: false,
@@ -603,16 +620,27 @@ const createWalkInAppointment = async (req, res, next) => {
         });
       }
     } else {
+      console.log('[WALK-IN] Step 4: No clientId provided, creating anonymous client');
       // Normalize phone - remove whitespace and check if actually provided
       const normalizedPhone = clientPhone && typeof clientPhone === 'string' ? clientPhone.trim() : '';
       const hasPhone = normalizedPhone && normalizedPhone.length > 0;
+      console.log('[WALK-IN] Step 5: Phone check - hasPhone:', hasPhone, 'normalizedPhone:', normalizedPhone);
       
       // If phone provided, try to find/create client
       if (hasPhone) {
+        console.log('[WALK-IN] Step 6: Phone provided, looking up client by phone');
         // Try to find existing client by phone (with timeout to prevent hanging)
-        let client = await User.findOne({ phone: normalizedPhone, role: 'Client' }).maxTimeMS(3000);
+        let client;
+        try {
+          client = await User.findOne({ phone: normalizedPhone, role: 'Client' }).maxTimeMS(3000);
+          console.log('[WALK-IN] Step 7: Client lookup result:', client ? 'Found' : 'Not found');
+        } catch (lookupError) {
+          console.error('[WALK-IN] ❌ Error looking up client by phone:', lookupError.message);
+          throw lookupError;
+        }
         
         if (!client) {
+          console.log('[WALK-IN] Step 8: Creating new client with phone');
           // Auto-generate unique email (no email field needed in form)
           const timestamp = Date.now();
           const random = Math.floor(Math.random() * 1000000);
@@ -641,8 +669,13 @@ const createWalkInAppointment = async (req, res, next) => {
               password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
               isWalkIn: true // Flag for walk-in clients
             };
+            console.log('[WALK-IN] Step 9: Creating client with data:', { name: clientData.name, phone: clientData.phone, email: clientData.email });
             client = await User.create(clientData);
+            console.log('[WALK-IN] Step 9: Client created successfully:', client._id);
           } catch (createError) {
+            console.error('[WALK-IN] ❌ Error creating client:', createError.message);
+            console.error('[WALK-IN] Error code:', createError.code);
+            console.error('[WALK-IN] Error stack:', createError.stack);
             // If creation fails (e.g., duplicate email), try to find by phone again
             if (createError.code === 11000) {
               client = await User.findOne({ phone: normalizedPhone, role: 'Client' }).maxTimeMS(3000);
@@ -667,8 +700,10 @@ const createWalkInAppointment = async (req, res, next) => {
         }
         
         finalClientId = client._id;
+        console.log('[WALK-IN] Step 10: Final client ID set:', finalClientId);
       } else {
         // No client info - create anonymous walk-in client
+        console.log('[WALK-IN] Step 6: No phone provided, creating anonymous client');
         // Use high entropy for uniqueness: timestamp + random + workerId
         const timestamp = Date.now();
         const randomNum = Math.floor(Math.random() * 1000000);
@@ -681,9 +716,10 @@ const createWalkInAppointment = async (req, res, next) => {
         // Format: wordchars@wordchars.wordchars (e.g., walkinanon123456789@xaura.temp)
         // Ensure it starts with word character and matches: \w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$
         const anonymousEmail = `walkinanon${uniqueId}@xaura.temp`.toLowerCase();
+        console.log('[WALK-IN] Step 7: Generated anonymous email:', anonymousEmail);
         
         try {
-          const client = await User.create({
+          const clientData = {
             name: clientName && clientName.trim() ? clientName.trim() : `Walk-in #${randomNum}`,
             phone: `WALKIN${uniqueId}`,
             email: anonymousEmail,
@@ -691,10 +727,15 @@ const createWalkInAppointment = async (req, res, next) => {
             password: 'WALKIN_TEMP_' + Date.now(), // Will be replaced by pre-save hook for walk-ins
             isWalkIn: true,
             isAnonymous: true
-          });
-          
+          };
+          console.log('[WALK-IN] Step 8: Creating anonymous client with data:', { name: clientData.name, email: clientData.email });
+          const client = await User.create(clientData);
+          console.log('[WALK-IN] Step 8: Anonymous client created successfully:', client._id);
           finalClientId = client._id;
         } catch (createError) {
+          console.error('[WALK-IN] ❌ Error creating anonymous client:', createError.message);
+          console.error('[WALK-IN] Error code:', createError.code);
+          console.error('[WALK-IN] Error stack:', createError.stack);
           // If still fails (very rare), try one more time with completely unique values
           if (createError.code === 11000) {
             const timestamp = Date.now();
@@ -720,14 +761,22 @@ const createWalkInAppointment = async (req, res, next) => {
     }
 
     // Get worker and service in parallel (faster than sequential)
+    console.log('[WALK-IN] Step 11: Fetching worker and service - workerId:', workerId, 'serviceId:', serviceId);
     let worker, service;
     try {
+      const queryStart = Date.now();
       [worker, service] = await Promise.all([
         User.findById(workerId).select('salonId paymentModel').maxTimeMS(3000),
         Service.findById(serviceId).select('name duration price').maxTimeMS(3000)
       ]);
+      const queryDuration = Date.now() - queryStart;
+      console.log('[WALK-IN] Step 11: Queries completed in', queryDuration, 'ms');
+      console.log('[WALK-IN] Worker found:', !!worker, 'Service found:', !!service);
+      if (worker) console.log('[WALK-IN] Worker salonId:', worker.salonId);
+      if (service) console.log('[WALK-IN] Service name:', service.name, 'duration:', service.duration);
     } catch (queryError) {
-      console.error('[WALK-IN] Error fetching worker/service:', queryError.message);
+      console.error('[WALK-IN] ❌ Error fetching worker/service:', queryError.message);
+      console.error('[WALK-IN] Error stack:', queryError.stack);
       return res.status(500).json({
         success: false,
         message: 'Error fetching worker or service information'
@@ -749,8 +798,10 @@ const createWalkInAppointment = async (req, res, next) => {
     }
 
     const salonId = worker.salonId;
+    console.log('[WALK-IN] Step 12: Salon ID:', salonId);
 
     // Calculate worker earnings (before creating appointment)
+    console.log('[WALK-IN] Step 13: Calculating earnings - price:', numericPrice, 'paymentModel:', worker.paymentModel);
     let workerEarning = 0;
     let commissionPercentage = 0;
 
@@ -766,14 +817,23 @@ const createWalkInAppointment = async (req, res, next) => {
       commissionPercentage = 50;
       workerEarning = (numericPrice * 50) / 100;
     }
+    console.log('[WALK-IN] Step 13: Earnings calculated - commission:', commissionPercentage, 'workerEarning:', workerEarning);
 
     const isPaid = paymentStatus === 'paid';
     const now = new Date();
+    console.log('[WALK-IN] Step 14: Payment status - isPaid:', isPaid, 'now:', now);
 
     // Create appointment (minimal fields, no populate)
+    console.log('[WALK-IN] Step 15: Creating appointment with data:', {
+      clientId: finalClientId,
+      workerId,
+      serviceId,
+      salonId,
+      price: numericPrice
+    });
     let appointment;
     try {
-      appointment = await Appointment.create({
+      const appointmentData = {
         clientId: finalClientId,
         workerId,
         serviceId,
@@ -790,9 +850,15 @@ const createWalkInAppointment = async (req, res, next) => {
         paidAt: isPaid ? now : null,
         completedAt: now,
         notes: 'Walk-in client'
-      });
+      };
+      console.log('[WALK-IN] Step 15: Appointment data prepared, creating...');
+      appointment = await Appointment.create(appointmentData);
+      console.log('[WALK-IN] Step 15: ✅ Appointment created successfully:', appointment._id);
     } catch (appointmentError) {
-      console.error('[WALK-IN] Error creating appointment:', appointmentError.message);
+      console.error('[WALK-IN] ❌ Error creating appointment:', appointmentError.message);
+      console.error('[WALK-IN] Error name:', appointmentError.name);
+      console.error('[WALK-IN] Error code:', appointmentError.code);
+      console.error('[WALK-IN] Error stack:', appointmentError.stack);
       return res.status(500).json({
         success: false,
         message: 'Error creating appointment. Please try again.'
@@ -801,9 +867,10 @@ const createWalkInAppointment = async (req, res, next) => {
 
     // CRITICAL: Create finance records SYNCHRONOUSLY so they appear immediately
     // WorkerEarning and Payment must be created before response to show in finance
+    console.log('[WALK-IN] Step 16: Creating finance records');
     try {
       // Create earning record (CRITICAL - must be synchronous)
-      await WorkerEarning.create({
+      const earningData = {
         workerId,
         salonId: salonId,
         appointmentId: appointment._id,
@@ -814,12 +881,15 @@ const createWalkInAppointment = async (req, res, next) => {
         paymentModelType: worker.paymentModel?.type || 'percentage_commission',
         isPaid,
         serviceDate: now
-      });
+      };
+      console.log('[WALK-IN] Step 16a: Creating WorkerEarning with data:', earningData);
+      await WorkerEarning.create(earningData);
+      console.log('[WALK-IN] Step 16a: ✅ WorkerEarning created successfully');
 
       // Create payment record if paid (CRITICAL - must be synchronous for owner finance)
       if (isPaid) {
         const salonRevenue = numericPrice - workerEarning;
-        await Payment.create({
+        const paymentData = {
           salonId: salonId,
           appointmentId: appointment._id,
           clientId: finalClientId,
@@ -834,17 +904,26 @@ const createWalkInAppointment = async (req, res, next) => {
           },
           salonRevenue,
           notes: `Walk-in payment for ${service.name || 'service'}`
-        });
+        };
+        console.log('[WALK-IN] Step 16b: Creating Payment with data:', paymentData);
+        await Payment.create(paymentData);
+        console.log('[WALK-IN] Step 16b: ✅ Payment created successfully');
+      } else {
+        console.log('[WALK-IN] Step 16b: Skipping payment creation (not paid)');
       }
     } catch (financeError) {
       // Log but don't fail the request - finance records are important but appointment is created
-      console.error('[WALK-IN] Error creating finance records:', financeError.message);
+      console.error('[WALK-IN] ❌ Error creating finance records:', financeError.message);
+      console.error('[WALK-IN] Error name:', financeError.name);
+      console.error('[WALK-IN] Error code:', financeError.code);
       console.error('[WALK-IN] Finance error stack:', financeError.stack);
       // Continue - appointment is already created, finance can be fixed later
     }
 
     // Return response
-    res.status(201).json({
+    const totalDuration = Date.now() - startTime;
+    console.log('[WALK-IN] Step 17: Preparing response - total duration:', totalDuration, 'ms');
+    const responseData = {
       success: true,
       message: 'Walk-in appointment created successfully',
       data: {
@@ -860,7 +939,10 @@ const createWalkInAppointment = async (req, res, next) => {
         paymentStatus: appointment.paymentStatus,
         paymentMethod: appointment.paymentMethod
       }
-    });
+    };
+    console.log('[WALK-IN] Step 17: Sending response:', JSON.stringify(responseData));
+    res.status(201).json(responseData);
+    console.log('[WALK-IN] ========== WALK-IN REQUEST COMPLETED SUCCESSFULLY ==========');
 
     // Update wallet ASYNCHRONOUSLY (less critical - can happen in background)
     if (isPaid) {
@@ -891,9 +973,19 @@ const createWalkInAppointment = async (req, res, next) => {
     }
   } catch (error) {
     // Log the error with full details for debugging
-    console.error('[WALK-IN] Unhandled error:', error.message);
-    console.error('[WALK-IN] Error stack:', error.stack);
+    const totalDuration = Date.now() - startTime;
+    console.error('[WALK-IN] ========== WALK-IN REQUEST FAILED ==========');
+    console.error('[WALK-IN] Total duration before error:', totalDuration, 'ms');
+    console.error('[WALK-IN] ❌ Unhandled error:', error.message);
     console.error('[WALK-IN] Error name:', error.name);
+    console.error('[WALK-IN] Error code:', error.code);
+    console.error('[WALK-IN] Error stack:', error.stack);
+    if (error.errors) {
+      console.error('[WALK-IN] Validation errors:', JSON.stringify(error.errors));
+    }
+    console.error('[WALK-IN] Request body was:', JSON.stringify(req.body));
+    console.error('[WALK-IN] Worker ID was:', req.user?.id);
+    console.error('[WALK-IN] ============================================');
     
     // Make sure to pass error to next middleware
     next(error);
