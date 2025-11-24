@@ -23,6 +23,13 @@ const WorkerAnalyticsPage = () => {
 
   useEffect(() => {
     loadSalonAnalytics()
+    
+    // Poll for real-time worker status updates every 15 seconds
+    const pollInterval = setInterval(() => {
+      loadSalonAnalytics()
+    }, 15000)
+    
+    return () => clearInterval(pollInterval)
   }, [filters])
 
   useEffect(() => {

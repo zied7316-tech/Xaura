@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { workerStatusService } from '../../services/workerStatusService'
 import { workerTrackingService } from '../../services/workerTrackingService'
 import { CheckCircle, Coffee, XCircle, ChevronDown, Lock } from 'lucide-react'
@@ -9,10 +9,96 @@ const WorkerStatusToggle = () => {
   const [showDropdown, setShowDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isTrackingEnabled, setIsTrackingEnabled] = useState(false)
+  const locationIntervalRef = useRef(null)
 
   useEffect(() => {
     loadStatus()
     checkTrackingSettings()
+    
+    // Periodically check tracking settings (every 30 seconds)
+    const trackingInterval = setInterval(() => {
+      checkTrackingSettings()
+    }, 30000)
+    
+    // Check on window focus (when user comes back to tab)
+    const handleFocus = () => {
+      checkTrackingSettings()
+      loadStatus()
+    }
+    window.addEventListener('focus', handleFocus)
+    
+    // Auto-report location if tracking is enabled (every 60 seconds)
+    const startLocationReporting = async () => {
+      try {
+        const response = await workerTrackingService.getMySalonSettings()
+        const trackingEnabled = response?.data?.isTrackingEnabled || response?.isTrackingEnabled || false
+        const method = response?.data?.method || response?.method || 'manual'
+        
+        console.log('[WORKER STATUS] Starting location reporting - enabled:', trackingEnabled, 'method:', method)
+        
+        if (trackingEnabled && method === 'gps') {
+          // Report immediately on first check
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              async (position) => {
+                try {
+                  await workerTrackingService.reportLocation({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                  })
+                  loadStatus()
+                } catch (error) {
+                  console.error('[TRACKING] Error reporting location:', error)
+                }
+              },
+              (error) => {
+                console.log('[TRACKING] GPS error:', error.message)
+              },
+              { timeout: 10000, maximumAge: 60000 }
+            )
+          }
+          
+          // Then set up interval for periodic reporting
+          locationIntervalRef.current = setInterval(() => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                  try {
+                    await workerTrackingService.reportLocation({
+                      latitude: position.coords.latitude,
+                      longitude: position.coords.longitude
+                    })
+                    loadStatus()
+                  } catch (error) {
+                    console.error('[TRACKING] Error reporting location:', error)
+                  }
+                },
+                (error) => {
+                  console.log('[TRACKING] GPS error:', error.message)
+                },
+                { timeout: 10000, maximumAge: 60000 }
+              )
+            }
+          }, 60000) // Report every 60 seconds
+        }
+      } catch (error) {
+        console.error('[WORKER STATUS] Error starting location reporting:', error)
+      }
+    }
+    
+    // Start location reporting after initial check
+    checkTrackingSettings().then(() => {
+      startLocationReporting()
+    })
+    
+    return () => {
+      clearInterval(trackingInterval)
+      if (locationIntervalRef.current) {
+        clearInterval(locationIntervalRef.current)
+        locationIntervalRef.current = null
+      }
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   const loadStatus = async () => {
@@ -27,11 +113,22 @@ const WorkerStatusToggle = () => {
   const checkTrackingSettings = async () => {
     try {
       const response = await workerTrackingService.getMySalonSettings()
+      console.log('[WORKER STATUS] Tracking settings response:', response)
+      
+      // Handle different response structures
+      let isEnabled = false
       if (response && response.data) {
-        setIsTrackingEnabled(response.data.isTrackingEnabled || false)
+        isEnabled = response.data.isTrackingEnabled || false
+      } else if (response && response.isTrackingEnabled !== undefined) {
+        isEnabled = response.isTrackingEnabled
+      } else if (response && response.method) {
+        isEnabled = response.method !== 'manual'
       }
+      
+      console.log('[WORKER STATUS] Tracking enabled:', isEnabled)
+      setIsTrackingEnabled(isEnabled)
     } catch (error) {
-      console.error('Error checking tracking settings:', error)
+      console.error('[WORKER STATUS] Error checking tracking settings:', error)
       // If error, assume manual mode (allow status changes)
       setIsTrackingEnabled(false)
     }
