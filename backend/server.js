@@ -1,9 +1,9 @@
 const express = require('express');
-const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 const connectDB = require('./config/database');
+const { corsMiddleware, handlePreflight } = require('./middleware/corsMiddleware');
 
 // Load environment variables
 dotenv.config();
@@ -16,60 +16,41 @@ connectDB().catch(err => {
   console.error('Database connection failed, but server will continue:', err.message);
 });
 
-// CORS Configuration for Production
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://xaura-production.up.railway.app',
-  'https://www.xaura.pro',
-  'https://xaura.pro',
-  'https://api.xaura.pro', // API subdomain
-];
+// ============================================
+// CORS MIDDLEWARE - MUST BE FIRST
+// ============================================
+// Handle preflight OPTIONS requests FIRST (before CORS middleware)
+app.use(handlePreflight);
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
-    if (!origin) {
-      console.log('[CORS] Request with no origin - allowing');
-      return callback(null, true);
-    }
-    
-    console.log(`[CORS] Checking origin: ${origin}`);
-    
-    // Check exact matches first
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`[CORS] ✅ Origin allowed (exact match): ${origin}`);
-      return callback(null, true);
-    }
-    
-    // Allow any Railway domain
-    if (origin.includes('.railway.app') || origin.includes('.up.railway.app')) {
-      console.log(`[CORS] ✅ Origin allowed (Railway): ${origin}`);
-      return callback(null, true);
-    }
-    
-    // Allow any xaura.pro subdomain (including api.xaura.pro)
-    if (origin.includes('.xaura.pro') || origin === 'https://xaura.pro' || origin === 'https://www.xaura.pro' || origin === 'https://api.xaura.pro') {
-      console.log(`[CORS] ✅ Origin allowed (xaura.pro): ${origin}`);
-      return callback(null, true);
-    }
-    
-    console.log(`[CORS] ❌ Origin NOT allowed: ${origin}`);
-    callback(new Error(`Not allowed by CORS: ${origin}`));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  optionsSuccessStatus: 200,
-  preflightContinue: false
-};
+// Apply CORS middleware to all routes
+app.use(corsMiddleware);
 
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Additional OPTIONS handler for preflight requests
-app.options('*', cors(corsOptions));
+// Additional OPTIONS handler as fallback
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://www.xaura.pro',
+    'https://xaura.pro',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  
+  if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    return res.status(200).end();
+  }
+  
+  return res.status(403).json({
+    success: false,
+    message: 'CORS policy: Origin not allowed'
+  });
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
