@@ -80,35 +80,57 @@ const WorkerTrackingSettingsPage = () => {
       }
 
       // Prepare the payload to match backend expectations
+      // Always send both wifi and gps objects, but disable the non-selected method
       const payload = {
         method: settingsToSave.method,
-        wifi: settingsToSave.method === 'wifi' ? {
-          ssid: settingsToSave.wifi.ssid,
-          enabled: settingsToSave.wifi.enabled
-        } : undefined,
-        gps: settingsToSave.method === 'gps' ? {
-          latitude: settingsToSave.gps.latitude,
-          longitude: settingsToSave.gps.longitude,
-          radius: settingsToSave.gps.radius,
-          enabled: settingsToSave.gps.enabled
-        } : undefined
+        wifi: {
+          ssid: settingsToSave.method === 'wifi' ? settingsToSave.wifi.ssid : (settingsToSave.wifi.ssid || ''),
+          enabled: settingsToSave.method === 'wifi' ? settingsToSave.wifi.enabled : false
+        },
+        gps: {
+          latitude: settingsToSave.method === 'gps' ? settingsToSave.gps.latitude : (settingsToSave.gps.latitude || null),
+          longitude: settingsToSave.method === 'gps' ? settingsToSave.gps.longitude : (settingsToSave.gps.longitude || null),
+          radius: settingsToSave.gps.radius || 100,
+          enabled: settingsToSave.method === 'gps' ? settingsToSave.gps.enabled : false
+        }
       };
 
-      console.log('[TRACKING] Saving settings:', payload);
-      const response = await workerTrackingService.updateSettings(payload);
+      console.log('[TRACKING] Saving settings:', JSON.stringify(payload, null, 2));
       
-      if (response.success) {
-        toast.success('Tracking settings saved successfully!');
-        // Update local state with the saved settings
-        setSettings(settingsToSave);
-        // Reload settings to get the updated data from backend
-        await loadSettings();
-      } else {
-        toast.error(response.message || 'Failed to save settings');
+      try {
+        const response = await workerTrackingService.updateSettings(payload);
+        console.log('[TRACKING] Response received:', response);
+        
+        if (response && response.success) {
+          toast.success('Tracking settings saved successfully!');
+          // Update local state with the saved settings
+          setSettings(settingsToSave);
+          // Reload settings to get the updated data from backend
+          await loadSettings();
+        } else {
+          const errorMsg = response?.message || 'Failed to save settings';
+          console.error('[TRACKING] Save failed - response:', response);
+          toast.error(errorMsg);
+        }
+      } catch (apiError) {
+        // Handle API errors separately
+        console.error('[TRACKING] API Error:', apiError);
+        console.error('[TRACKING] API Error response:', apiError.response);
+        console.error('[TRACKING] API Error data:', apiError.response?.data);
+        const errorMsg = apiError.response?.data?.message || apiError.message || 'Failed to save settings';
+        toast.error(errorMsg);
+        throw apiError; // Re-throw to be caught by outer catch
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
-      toast.error(error.response?.data?.message || error.message || 'Failed to save settings');
+      console.error('[TRACKING] Error saving settings:', error);
+      console.error('[TRACKING] Error details:', {
+        message: error.message,
+        response: error.response,
+        responseData: error.response?.data,
+        stack: error.stack
+      });
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to save settings';
+      toast.error(errorMsg);
     } finally {
       setSaving(false);
     }
