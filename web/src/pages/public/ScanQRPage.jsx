@@ -47,6 +47,12 @@ const ScanQRPage = () => {
         salonData = await salonService.getSalonBySlug(slug)
       } else if (qrCode) {
         salonData = await salonService.getSalonByQRCode(qrCode)
+        // If salon has a slug, redirect to slug URL for better SEO and cleaner URLs
+        if (salonData && salonData.slug) {
+          // Redirect to slug URL (will trigger re-fetch with slug)
+          navigate(`/SALON/${salonData.slug}`, { replace: true })
+          return
+        }
       } else {
         throw new Error('No salon identifier provided')
       }

@@ -47,7 +47,7 @@ const searchSalons = async (req, res, next) => {
 
     // Execute query
     let salons = await Salon.find(filter)
-      .select('name description logo phone email address qrCode createdAt')
+      .select('name description logo phone email address qrCode slug createdAt')
       .sort(sort)
       .limit(parseInt(limit));
 
@@ -122,7 +122,7 @@ const getSalonDetails = async (req, res, next) => {
     }
 
     const salon = await Salon.findById(salonId)
-      .select('name description logo phone email address qrCode operatingHours createdAt');
+      .select('name description logo phone email address qrCode slug operatingHours createdAt');
 
     if (!salon) {
       return res.status(404).json({

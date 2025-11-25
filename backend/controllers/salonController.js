@@ -146,6 +146,18 @@ const getSalonByQRCode = async (req, res, next) => {
       });
     }
 
+    // Auto-generate slug if missing (lazy generation for existing salons)
+    if (!salon.slug && salon.name) {
+      try {
+        salon.slug = await generateUniqueSlug(salon.name, Salon, salon._id);
+        await salon.save();
+        console.log(`✅ Auto-generated slug "${salon.slug}" for salon "${salon.name}"`);
+      } catch (error) {
+        console.error('Error generating slug:', error);
+        // Continue without slug - backward compatibility
+      }
+    }
+
     res.json({
       success: true,
       data: { salon }
