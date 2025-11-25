@@ -5,15 +5,34 @@ const appointmentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: function() {
-      // Client not required for walk-in appointments
-      return !this.isWalkIn;
+      // Client not required for walk-in appointments or anonymous bookings
+      return !this.isWalkIn && !this.isAnonymous;
     },
     default: null
+  },
+  // Anonymous client information (for bookings without account)
+  clientName: {
+    type: String,
+    trim: true,
+    required: function() {
+      return this.isAnonymous && !this.clientId;
+    }
+  },
+  clientPhone: {
+    type: String,
+    trim: true,
+    required: function() {
+      return this.isAnonymous && !this.clientId;
+    }
   },
   workerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Worker is required']
+    required: function() {
+      // Worker not required for anonymous bookings (will be assigned by owner)
+      return !this.isAnonymous;
+    },
+    default: null
   },
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -89,6 +108,11 @@ const appointmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Flag for anonymous bookings (no client account)
+  isAnonymous: {
+    type: Boolean,
+    default: false
+  },
   // Tracking timestamps for appointment lifecycle
   acceptedAt: {
     type: Date,
@@ -116,13 +140,14 @@ appointmentSchema.index({ clientId: 1, status: 1 });
 appointmentSchema.index({ workerId: 1, dateTime: 1 });
 appointmentSchema.index({ salonId: 1, dateTime: 1 });
 
-// Prevent double booking - same worker at same time
+// Prevent double booking - same worker at same time (only for non-anonymous bookings with assigned workers)
 appointmentSchema.index(
   { workerId: 1, dateTime: 1 },
   { 
     unique: true,
     partialFilterExpression: { 
-      status: { $in: ['pending', 'confirmed'] } 
+      status: { $in: ['Pending', 'Confirmed'] },
+      workerId: { $ne: null }
     }
   }
 );

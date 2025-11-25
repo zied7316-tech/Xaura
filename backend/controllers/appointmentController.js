@@ -354,8 +354,8 @@ const getAppointments = async (req, res, next) => {
     }
 
     const appointments = await Appointment.find(filter)
-      .populate('clientId', 'name email phone avatar')
-      .populate('workerId', 'name email phone avatar')
+      .populate({ path: 'clientId', select: 'name email phone avatar', strictPopulate: false })
+      .populate({ path: 'workerId', select: 'name email phone avatar', strictPopulate: false })
       .populate('serviceId', 'name duration price category')
       .populate('salonId', 'name address phone')
       .sort({ dateTime: -1 });
@@ -380,8 +380,8 @@ const getAppointments = async (req, res, next) => {
 const getAppointmentById = async (req, res, next) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
-      .populate('clientId', 'name email phone')
-      .populate('workerId', 'name email phone')
+      .populate({ path: 'clientId', select: 'name email phone', strictPopulate: false })
+      .populate({ path: 'workerId', select: 'name email phone', strictPopulate: false })
       .populate('serviceId', 'name duration price category')
       .populate('salonId', 'name address phone');
 
@@ -392,10 +392,10 @@ const getAppointmentById = async (req, res, next) => {
       });
     }
 
-    // Check authorization
+    // Check authorization (handle anonymous bookings)
     const isAuthorized = 
-      appointment.clientId._id.toString() === req.user.id ||
-      appointment.workerId._id.toString() === req.user.id ||
+      (appointment.clientId && appointment.clientId._id.toString() === req.user.id) ||
+      (appointment.workerId && appointment.workerId._id.toString() === req.user.id) ||
       (req.user.role === 'Owner' && await Salon.findOne({ _id: appointment.salonId, ownerId: req.user.id }));
 
     if (!isAuthorized) {
@@ -439,11 +439,11 @@ const updateAppointmentStatus = async (req, res, next) => {
       });
     }
 
-    // Authorization check
+    // Authorization check (handle anonymous bookings)
     const salon = await Salon.findById(appointment.salonId);
     const isOwner = salon.ownerId.toString() === req.user.id;
-    const isWorker = appointment.workerId.toString() === req.user.id;
-    const isClient = appointment.clientId.toString() === req.user.id;
+    const isWorker = appointment.workerId && appointment.workerId.toString() === req.user.id;
+    const isClient = appointment.clientId && appointment.clientId.toString() === req.user.id;
 
     // Only owner, worker, or client can update status
     if (!isOwner && !isWorker && !isClient) {
@@ -466,8 +466,8 @@ const updateAppointmentStatus = async (req, res, next) => {
     await appointment.save();
 
     await appointment.populate([
-      { path: 'clientId', select: 'name email phone role' },
-      { path: 'workerId', select: 'name email phone role' },
+      { path: 'clientId', select: 'name email phone role', strictPopulate: false },
+      { path: 'workerId', select: 'name email phone role', strictPopulate: false },
       { path: 'serviceId', select: 'name duration price category' },
       { path: 'salonId', select: 'name address phone' }
     ]);
@@ -618,11 +618,160 @@ const getAvailableTimeSlots = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Create anonymous appointment (no account required)
+ * @route   POST /api/appointments/anonymous
+ * @access  Public
+ */
+const createAnonymousAppointment = async (req, res, next) => {
+  try {
+    const { salonId, serviceId, services, dateTime, clientName, clientPhone, notes } = req.body;
+
+    // Validate required fields
+    if (!salonId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Salon ID is required'
+      });
+    }
+
+    if (!clientName || !clientPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Client name and phone are required'
+      });
+    }
+
+    // Validate that at least one service is provided
+    if (!serviceId && (!services || !Array.isArray(services) || services.length === 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Either serviceId or services array is required'
+      });
+    }
+
+    // Validate date is in the future
+    if (!isDateInFuture(dateTime)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment date must be in the future'
+      });
+    }
+
+    // Verify salon exists
+    const salon = await Salon.findById(salonId);
+    if (!salon || !salon.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found or inactive'
+      });
+    }
+
+    // Support multiple services or single service
+    let servicesToBook = [];
+    if (services && Array.isArray(services) && services.length > 0) {
+      servicesToBook = services;
+    } else if (serviceId) {
+      const service = await Service.findById(serviceId);
+      if (!service || !service.isActive) {
+        return res.status(404).json({
+          success: false,
+          message: 'Service not found or inactive'
+        });
+      }
+      servicesToBook = [{
+        serviceId: service._id,
+        name: service.name,
+        price: service.price,
+        duration: service.duration
+      }];
+    }
+
+    // Verify all services exist and are active and belong to the salon
+    const serviceIds = servicesToBook.map(s => s.serviceId);
+    const verifiedServices = await Service.find({ _id: { $in: serviceIds }, isActive: true, salonId: salonId });
+    
+    if (verifiedServices.length !== serviceIds.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'One or more services not found, inactive, or do not belong to this salon'
+      });
+    }
+
+    // Calculate total duration and price
+    const totalDuration = servicesToBook.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const totalPrice = servicesToBook.reduce((sum, s) => sum + (s.price || 0), 0);
+
+    // Create anonymous appointment (no worker assigned yet - owner will assign)
+    const appointment = await Appointment.create({
+      salonId: salonId,
+      clientName: clientName.trim(),
+      clientPhone: clientPhone.trim(),
+      serviceId: servicesToBook[0].serviceId, // Keep for backward compatibility
+      services: servicesToBook,
+      dateTime,
+      notes: notes || '',
+      servicePriceAtBooking: totalPrice,
+      serviceDurationAtBooking: totalDuration,
+      status: 'Pending',
+      isAnonymous: true,
+      workerId: null // Will be assigned by owner
+    });
+
+    console.log('Anonymous appointment created:', {
+      id: appointment._id,
+      salonId: appointment.salonId,
+      clientName: appointment.clientName,
+      clientPhone: appointment.clientPhone,
+      dateTime: appointment.dateTime,
+      status: appointment.status
+    });
+
+    // Populate appointment details
+    await appointment.populate([
+      { path: 'serviceId', select: 'name duration price category' },
+      { path: 'salonId', select: 'name address phone ownerId' }
+    ]);
+
+    // Create notification for owner
+    const serviceNames = servicesToBook.map(s => s.name).join(', ');
+    
+    if (salon && salon.ownerId) {
+      await createNotification({
+        userId: salon.ownerId,
+        salonId: salonId,
+        type: 'new_appointment',
+        title: 'New Anonymous Booking Request',
+        message: `${clientName} (${clientPhone}) booked ${serviceNames} - Awaiting your approval and worker assignment`,
+        relatedAppointment: appointment._id,
+        priority: 'high',
+        data: {
+          clientName: clientName,
+          clientPhone: clientPhone,
+          serviceName: serviceNames,
+          dateTime: appointment.dateTime,
+          isAnonymous: true
+        }
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Booking request submitted successfully. The salon owner will review and confirm your appointment.',
+      data: { appointment }
+    });
+  } catch (error) {
+    console.error('Error creating anonymous appointment:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   createAppointment,
   getAppointments,
   getAppointmentById,
   updateAppointmentStatus,
-  getAvailableTimeSlots
+  getAvailableTimeSlots,
+  createAnonymousAppointment
 };
 

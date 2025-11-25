@@ -14,6 +14,7 @@ import VerifyEmailPage from './pages/auth/VerifyEmailPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import ScanQRPage from './pages/public/ScanQRPage'
+import AnonymousBookingPage from './pages/public/AnonymousBookingPage'
 
 // Owner pages
 import OwnerDashboard from './pages/owner/OwnerDashboard'
@@ -108,6 +109,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/scan/:qrCode" element={<ScanQRPage />} />
+      <Route path="/book/:salonId" element={<AnonymousBookingPage />} />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>

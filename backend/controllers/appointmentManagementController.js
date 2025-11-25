@@ -535,11 +535,18 @@ const reassignAppointment = async (req, res, next) => {
       appointment.acceptedAt = null;
     }
     
-    appointment.notes = `Reassigned from worker ${oldWorkerId} to worker ${newWorkerId} by owner`;
+    // Update notes - handle anonymous bookings (no previous worker)
+    if (oldWorkerId) {
+      appointment.notes = (appointment.notes || '') + `\nReassigned from worker ${oldWorkerId} to worker ${newWorkerId} by owner`;
+    } else {
+      appointment.notes = (appointment.notes || '') + `\nWorker ${newWorkerId} assigned by owner`;
+    }
     await appointment.save();
 
     await appointment.populate('workerId', 'name email');
-    await appointment.populate('clientId', 'name email');
+    if (appointment.clientId) {
+      await appointment.populate('clientId', 'name email');
+    }
     await appointment.populate('serviceId', 'name price duration');
 
     res.json({

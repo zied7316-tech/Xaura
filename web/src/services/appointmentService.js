@@ -1,4 +1,6 @@
 import api from './api'
+import axios from 'axios'
+import { API_URL } from '../utils/constants'
 
 export const appointmentService = {
   // Create appointment
@@ -40,6 +42,12 @@ export const appointmentService = {
   getAvailableSlots: async (params) => {
     const queryString = new URLSearchParams(params).toString()
     const response = await api.get(`/appointments/available-slots?${queryString}`)
+    return response.data
+  },
+
+  // Create anonymous appointment (no authentication required)
+  createAnonymousAppointment: async (appointmentData) => {
+    const response = await axios.post(`${API_URL}/appointments/anonymous`, appointmentData)
     return response.data
   },
 }

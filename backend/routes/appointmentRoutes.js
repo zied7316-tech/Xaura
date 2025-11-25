@@ -6,7 +6,8 @@ const {
   getAppointments,
   getAppointmentById,
   updateAppointmentStatus,
-  getAvailableTimeSlots
+  getAvailableTimeSlots,
+  createAnonymousAppointment
 } = require('../controllers/appointmentController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -24,8 +25,9 @@ const updateStatusValidation = [
   body('status').isIn(['confirmed', 'completed', 'cancelled']).withMessage('Invalid status')
 ];
 
-// Public route - get available slots
+// Public routes
 router.get('/available-slots', getAvailableTimeSlots);
+router.post('/anonymous', createAnonymousAppointment);
 
 // Protected routes
 router.post('/', protect, authorize('Client', 'Owner'), createAppointmentValidation, createAppointment);
