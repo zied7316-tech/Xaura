@@ -11,7 +11,7 @@ import { formatCurrency, formatDuration } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const ScanQRPage = () => {
-  const { qrCode } = useParams()
+  const { qrCode, slug } = useParams()
   const navigate = useNavigate()
   const [salon, setSalon] = useState(null)
   const [services, setServices] = useState([])
@@ -33,16 +33,23 @@ const ScanQRPage = () => {
   const minDate = tomorrow.toISOString().split('T')[0]
 
   useEffect(() => {
-    if (qrCode) {
+    if (qrCode || slug) {
       fetchSalonData()
     }
-  }, [qrCode])
+  }, [qrCode, slug])
 
   const fetchSalonData = async () => {
     try {
       setLoading(true)
-      // Fetch salon by QR code
-      const salonData = await salonService.getSalonByQRCode(qrCode)
+      // Fetch salon by slug (preferred) or QR code (backward compatibility)
+      let salonData
+      if (slug) {
+        salonData = await salonService.getSalonBySlug(slug)
+      } else if (qrCode) {
+        salonData = await salonService.getSalonByQRCode(qrCode)
+      } else {
+        throw new Error('No salon identifier provided')
+      }
       setSalon(salonData)
       
       // Fetch salon services

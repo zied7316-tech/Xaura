@@ -5,6 +5,7 @@ const {
   createSalon,
   getSalonById,
   getSalonByQRCode,
+  getSalonBySlug,
   updateSalon,
   addWorker,
   getSalonServices,
@@ -30,6 +31,7 @@ const addWorkerValidation = [
 
 // Public routes
 router.get('/qr/:qrCode', getSalonByQRCode);
+router.get('/slug/:slug', getSalonBySlug);
 router.get('/:id', getSalonById);
 router.get('/:id/services', getSalonServices);
 router.get('/:id/schedule', getSalonSchedule);

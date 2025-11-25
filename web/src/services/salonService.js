@@ -20,6 +20,12 @@ export const salonService = {
     return response.data.salon
   },
 
+  // Get salon by slug
+  getSalonBySlug: async (slug) => {
+    const response = await api.get(`/salons/slug/${slug}`)
+    return response.data.salon
+  },
+
   // Update salon
   updateSalon: async (id, salonData) => {
     const response = await api.put(`/salons/${id}`, salonData)

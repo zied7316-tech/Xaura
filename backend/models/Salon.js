@@ -38,6 +38,13 @@ const salonSchema = new mongoose.Schema({
     unique: true,
     required: true
   },
+  slug: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows multiple null values (for existing salons without slugs)
+    lowercase: true,
+    trim: true
+  },
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -110,6 +117,8 @@ const salonSchema = new mongoose.Schema({
 
 // Index for QR code lookups
 salonSchema.index({ qrCode: 1 });
+// Index for slug lookups
+salonSchema.index({ slug: 1 });
 
 module.exports = mongoose.model('Salon', salonSchema);
 

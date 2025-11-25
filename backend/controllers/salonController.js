@@ -4,6 +4,7 @@ const SalonOwnership = require('../models/SalonOwnership');
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 const { validationResult } = require('express-validator');
+const { generateUniqueSlug } = require('../utils/slugGenerator');
 
 /**
  * Generate unique QR code string
@@ -49,11 +50,15 @@ const createSalon = async (req, res, next) => {
 
     // Generate unique QR code
     const qrCodeString = await generateUniqueQRCode();
+    
+    // Generate unique slug from salon name
+    const slug = await generateUniqueSlug(req.body.name, Salon);
 
     const salon = await Salon.create({
       ...req.body,
       ownerId: req.user.id,
-      qrCode: qrCodeString
+      qrCode: qrCodeString,
+      slug: slug
     });
 
     // Check if this is user's first salon (check both ownership and direct ownerId)
@@ -151,6 +156,32 @@ const getSalonByQRCode = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get salon by slug
+ * @route   GET /api/salons/slug/:slug
+ * @access  Public
+ */
+const getSalonBySlug = async (req, res, next) => {
+  try {
+    const salon = await Salon.findOne({ slug: req.params.slug })
+      .populate('ownerId', 'name email phone');
+
+    if (!salon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found with this slug'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { salon }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Update salon
  * @route   PUT /api/salons/:id
  * @access  Private (Owner only)
@@ -170,6 +201,11 @@ const updateSalon = async (req, res, next) => {
       });
     }
 
+    // If salon name changed, regenerate slug
+    if (updateData.name && updateData.name !== currentSalon.name) {
+      updateData.slug = await generateUniqueSlug(updateData.name, Salon, req.params.id);
+    }
+    
     // Preserve logo field - never overwrite it in this endpoint
     const salon = await Salon.findByIdAndUpdate(
       req.params.id,
@@ -379,6 +415,7 @@ module.exports = {
   createSalon,
   getSalonById,
   getSalonByQRCode,
+  getSalonBySlug,
   updateSalon,
   addWorker,
   getSalonServices,

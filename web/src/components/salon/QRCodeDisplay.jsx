@@ -5,30 +5,43 @@ import Button from '../ui/Button'
 import { Download, Share2, Copy, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const QRCodeDisplay = ({ salonId, qrCode }) => {
+const QRCodeDisplay = ({ salonId, qrCode, slug }) => {
   const [qrImage, setQrImage] = useState(null)
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [salon, setSalon] = useState(null)
 
   const baseUrl = window.location.origin
-  const qrUrl = `${baseUrl}/scan/${qrCode}`
 
   useEffect(() => {
-    const fetchQRImage = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch salon to get slug if not provided
+        if (salonId && !slug) {
+          const salonData = await salonService.getSalonById(salonId)
+          setSalon(salonData)
+        }
+        
+        // Fetch QR image
         const data = await salonService.getQRCodeImage(salonId)
         setQrImage(data.qrCodeImage)
       } catch (error) {
-        console.error('Failed to load QR image:', error)
+        console.error('Failed to load data:', error)
       } finally {
         setLoading(false)
       }
     }
 
     if (salonId) {
-      fetchQRImage()
+      fetchData()
     }
-  }, [salonId])
+  }, [salonId, slug])
+  
+  // Use salon slug if available, otherwise use prop
+  const finalSlug = slug || salon?.slug
+  const finalBookingLink = finalSlug 
+    ? `${baseUrl}/SALON/${finalSlug}` 
+    : `${baseUrl}/scan/${qrCode}`
 
   const handleDownload = () => {
     const svg = document.getElementById('qr-code-svg')
@@ -55,7 +68,7 @@ const QRCodeDisplay = ({ salonId, qrCode }) => {
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(qrUrl)
+      await navigator.clipboard.writeText(finalBookingLink)
       setCopied(true)
       toast.success('Link copied to clipboard!')
       setTimeout(() => setCopied(false), 2000)
@@ -70,7 +83,7 @@ const QRCodeDisplay = ({ salonId, qrCode }) => {
         await navigator.share({
           title: 'Book an Appointment',
           text: 'Scan this QR code or click the link to book an appointment at our salon',
-          url: qrUrl,
+          url: finalBookingLink,
         })
       } catch (error) {
         console.error('Error sharing:', error)
@@ -94,7 +107,7 @@ const QRCodeDisplay = ({ salonId, qrCode }) => {
       <div className="flex justify-center p-8 bg-white rounded-lg border-2 border-dashed border-gray-300">
         <QRCodeSVG 
           id="qr-code-svg"
-          value={qrUrl} 
+          value={finalBookingLink} 
           size={256}
           level="H"
           includeMargin={true}
@@ -137,7 +150,7 @@ const QRCodeDisplay = ({ salonId, qrCode }) => {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            value={qrUrl}
+            value={finalBookingLink}
             readOnly
             className="input flex-1 bg-white"
           />

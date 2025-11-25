@@ -2,6 +2,7 @@ const Salon = require('../models/Salon');
 const User = require('../models/User');
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
+const { generateUniqueSlug } = require('../utils/slugGenerator');
 const { generateToken } = require('../utils/jwt');
 const { validationResult } = require('express-validator');
 
@@ -78,6 +79,9 @@ const createSalonAccount = async (req, res, next) => {
 
     // Step 2: Generate unique QR code for the salon
     const qrCodeString = await generateUniqueQRCode();
+    
+    // Step 2.5: Generate unique slug from salon name
+    const slug = await generateUniqueSlug(salonName, Salon);
 
     // Step 3: Create Salon Account (Primary Business Entity)
     const salon = await Salon.create({
@@ -97,6 +101,7 @@ const createSalonAccount = async (req, res, next) => {
       },
       operatingMode: operatingMode || 'solo',
       qrCode: qrCodeString,
+      slug: slug,
       ownerId: owner._id,
       isActive: true
     });

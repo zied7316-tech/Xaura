@@ -58,35 +58,42 @@ const ClientDashboard = () => {
     }
   }
 
-  const handleCopyQRUrl = async (qrCode) => {
+  const getBookingLink = (salon) => {
     const baseUrl = window.location.origin
-    const qrUrl = `${baseUrl}/scan/${qrCode}`
+    // Use slug if available, otherwise fallback to QR code
+    if (salon.salonId?.slug) {
+      return `${baseUrl}/SALON/${salon.salonId.slug}`
+    }
+    return `${baseUrl}/scan/${salon.salonId.qrCode}`
+  }
+
+  const handleCopyQRUrl = async (salon) => {
+    const bookingLink = getBookingLink(salon)
     try {
-      await navigator.clipboard.writeText(qrUrl)
-      toast.success('QR link copied to clipboard!')
+      await navigator.clipboard.writeText(bookingLink)
+      toast.success('Booking link copied to clipboard!')
     } catch (error) {
       toast.error('Failed to copy link')
     }
   }
 
   const handleShareQRUrl = async (salon) => {
-    const baseUrl = window.location.origin
-    const qrUrl = `${baseUrl}/scan/${salon.salonId.qrCode}`
+    const bookingLink = getBookingLink(salon)
     
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Join ${salon.salonId.name}`,
           text: `Scan this QR code or click the link to join ${salon.salonId.name} and book appointments!`,
-          url: qrUrl,
+          url: bookingLink,
         })
       } catch (error) {
         if (error.name !== 'AbortError') {
-          handleCopyQRUrl(salon.salonId.qrCode)
+          handleCopyQRUrl(salon)
         }
       }
     } else {
-      handleCopyQRUrl(salon.salonId.qrCode)
+      handleCopyQRUrl(salon)
     }
   }
 
@@ -315,7 +322,7 @@ const ClientDashboard = () => {
               {/* QR Code Display */}
               <div className="flex justify-center p-6 bg-white rounded-lg border-2 border-dashed border-gray-300 mb-4">
                 <QRCodeSVG 
-                  value={`${window.location.origin}/scan/${selectedSalonForQR.salonId.qrCode}`}
+                  value={getBookingLink(selectedSalonForQR)}
                   size={256}
                   level="H"
                   includeMargin={true}
@@ -344,7 +351,7 @@ const ClientDashboard = () => {
                 </div>
               </div>
 
-              {/* QR Code URL */}
+              {/* Booking Link */}
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Booking Link
@@ -352,14 +359,14 @@ const ClientDashboard = () => {
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={`${window.location.origin}/scan/${selectedSalonForQR.salonId.qrCode}`}
+                    value={getBookingLink(selectedSalonForQR)}
                     readOnly
                     className="input flex-1 bg-white text-sm"
                   />
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleCopyQRUrl(selectedSalonForQR.salonId.qrCode)}
+                    onClick={() => handleCopyQRUrl(selectedSalonForQR)}
                   >
                     Copy
                   </Button>

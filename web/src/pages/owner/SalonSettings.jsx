@@ -342,7 +342,7 @@ const SalonSettings = () => {
                 <CardTitle>QR Code</CardTitle>
               </CardHeader>
               <CardContent>
-                <QRCodeDisplay salonId={salon._id} qrCode={salon.qrCode} />
+                <QRCodeDisplay salonId={salon._id} qrCode={salon.qrCode} slug={salon.slug} />
               </CardContent>
             </Card>
           )}

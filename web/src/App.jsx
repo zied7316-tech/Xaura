@@ -109,6 +109,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/scan/:qrCode" element={<ScanQRPage />} />
+      <Route path="/SALON/:slug" element={<ScanQRPage />} />
       <Route path="/book/:salonId" element={<AnonymousBookingPage />} />
 
       {/* Protected routes */}
