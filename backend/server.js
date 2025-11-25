@@ -248,6 +248,16 @@ if (routesFailed > 0) {
   console.warn(`⚠️  ${routesFailed} route(s) failed to load. Server will continue but those endpoints will not work.`);
 }
 
+// Start worker status scheduler (end-of-day auto-offline)
+if (process.env.NODE_ENV !== 'test') {
+  try {
+    require('./jobs/workerStatusScheduler');
+    console.log('✅ Worker status scheduler started');
+  } catch (error) {
+    console.error('❌ Failed to start worker status scheduler:', error.message);
+  }
+}
+
 // Error handling middleware - MUST include CORS headers
 app.use((err, req, res, next) => {
   // Set CORS headers even on errors (including CORS errors)

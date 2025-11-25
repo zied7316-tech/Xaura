@@ -109,6 +109,25 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  // GPS tracking status (for hybrid sticky status system)
+  gpsTrackingStatus: {
+    confirmedAtSalon: {
+      type: Boolean,
+      default: false
+    },
+    lastConfirmedAtSalon: {
+      type: Date,
+      default: null
+    },
+    lastKnownLocation: {
+      latitude: { type: Number, default: null },
+      longitude: { type: Number, default: null }
+    },
+    lastLocationUpdate: {
+      type: Date,
+      default: null
+    }
+  },
   // Email Verification
   emailVerified: {
     type: Boolean,

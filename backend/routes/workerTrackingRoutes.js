@@ -4,13 +4,15 @@ const {
   getTrackingSettings,
   updateTrackingSettings,
   reportLocation,
-  getMySalonTrackingSettings
+  getMySalonTrackingSettings,
+  getWorkerGPSAnalytics
 } = require('../controllers/workerTrackingController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Owner routes - configure tracking settings
 router.get('/settings', protect, authorize('Owner'), getTrackingSettings);
 router.put('/settings', protect, authorize('Owner'), updateTrackingSettings);
+router.get('/analytics/:workerId', protect, authorize('Owner'), getWorkerGPSAnalytics);
 
 // Worker routes - check tracking settings and report location/WiFi
 router.get('/my-salon-settings', protect, authorize('Worker'), getMySalonTrackingSettings);
