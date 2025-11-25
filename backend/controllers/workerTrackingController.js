@@ -218,7 +218,12 @@ const reportLocation = async (req, res, next) => {
         }
       }
     } else if (trackingMethod === 'gps') {
-      if (latitude && longitude && salon.workerTracking.gps.enabled) {
+      // Check if GPS coordinates are missing (GPS disabled/denied/unavailable)
+      if (!latitude || !longitude) {
+        // GPS unavailable - set worker to offline/on_break
+        shouldBeAvailable = false;
+        reason = 'GPS unavailable or denied';
+      } else if (salon.workerTracking.gps.enabled) {
         const salonLat = salon.workerTracking.gps.latitude;
         const salonLng = salon.workerTracking.gps.longitude;
         const radius = salon.workerTracking.gps.radius;

@@ -1,0 +1,109 @@
+warning: in the working copy of 'web/src/components/layout/WorkerStatusToggle.jsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/web/src/components/layout/WorkerStatusToggle.jsx b/web/src/components/layout/WorkerStatusToggle.jsx[m
+[1mindex aa8448c..a86e4fb 100644[m
+[1m--- a/web/src/components/layout/WorkerStatusToggle.jsx[m
+[1m+++ b/web/src/components/layout/WorkerStatusToggle.jsx[m
+[36m@@ -10,6 +10,25 @@[m [mconst WorkerStatusToggle = () => {[m
+   const [loading, setLoading] = useState(false)[m
+   const [isTrackingEnabled, setIsTrackingEnabled] = useState(false)[m
+   const locationIntervalRef = useRef(null)[m
+[32m+[m[32m  const gpsWarningLockRef = useRef(false)[m
+[32m+[m[32m  const gpsWarningTimeoutRef = useRef(null)[m
+[32m+[m[32m  const geolocationOptions = {[m
+[32m+[m[32m    enableHighAccuracy: true,[m
+[32m+[m[32m    timeout: 15000,[m
+[32m+[m[32m    maximumAge: 0[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const showGPSWarning = () => {[m
+[32m+[m[32m    if (gpsWarningLockRef.current) {[m
+[32m+[m[32m      return[m
+[32m+[m[32m    }[m
+[32m+[m[32m    gpsWarningLockRef.current = true[m
+[32m+[m[32m    toast.error('GPS tracking is disabled. Please enable location services and approve access so your status stays accurate.')[m
+[32m+[m[32m    gpsWarningTimeoutRef.current = setTimeout(() => {[m
+[32m+[m[32m      gpsWarningLockRef.current = false[m
+[32m+[m[32m      gpsWarningTimeoutRef.current = null[m
+[32m+[m[32m    }, 8000)[m
+[32m+[m[32m  }[m
+ [m
+   useEffect(() => {[m
+     loadStatus()[m
+[36m@@ -37,6 +56,24 @@[m [mconst WorkerStatusToggle = () => {[m
+         console.log('[WORKER STATUS] Starting location reporting - enabled:', trackingEnabled, 'method:', method)[m
+         [m
+         if (trackingEnabled && method === 'gps') {[m
+[32m+[m[32m          // Helper function to report GPS error to backend[m
+[32m+[m[32m          const reportGPSError = async (error) => {[m
+[32m+[m[32m            console.log('[TRACKING] GPS error:', error.message, 'Code:', error.code)[m
+[32m+[m[32m            try {[m
+[32m+[m[32m              // Report null coordinates to indicate GPS unavailable[m
+[32m+[m[32m              await workerTrackingService.reportLocation({[m
+[32m+[m[32m                latitude: null,[m
+[32m+[m[32m                longitude: null,[m
+[32m+[m[32m                gpsUnavailable: true,[m
+[32m+[m[32m                errorCode: error.code // 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT[m
+[32m+[m[32m              })[m
+[32m+[m[32m              showGPSWarning()[m
+[32m+[m[32m              loadStatus() // Reload status after reporting error[m
+[32m+[m[32m            } catch (reportError) {[m
+[32m+[m[32m              console.error('[TRACKING] Error reporting GPS error to backend:', reportError)[m
+[32m+[m[32m            }[m
+[32m+[m[32m          }[m
+[32m+[m[41m          [m
+           // Report immediately on first check[m
+           if (navigator.geolocation) {[m
+             navigator.geolocation.getCurrentPosition([m
+[36m@@ -51,11 +88,16 @@[m [mconst WorkerStatusToggle = () => {[m
+                   console.error('[TRACKING] Error reporting location:', error)[m
+                 }[m
+               },[m
+[31m-              (error) => {[m
+[31m-                console.log('[TRACKING] GPS error:', error.message)[m
+[32m+[m[32m              async (error) => {[m
+[32m+[m[32m                // Report GPS error immediately to backend[m
+[32m+[m[32m                await reportGPSError(error)[m
+               },[m
+[31m-              { timeout: 10000, maximumAge: 60000 }[m
+[32m+[m[32m              geolocationOptions[m
+             )[m
+[32m+[m[32m          } else {[m
+[32m+[m[32m            // Geolocation not supported - report as unavailable[m
+[32m+[m[32m            console.log('[TRACKING] Geolocation not supported by browser')[m
+[32m+[m[32m            await reportGPSError({ code: 2, message: 'Geolocation not supported' })[m
+           }[m
+           [m
+           // Then set up interval for periodic reporting[m
+[36m@@ -73,13 +115,17 @@[m [mconst WorkerStatusToggle = () => {[m
+                     console.error('[TRACKING] Error reporting location:', error)[m
+                   }[m
+                 },[m
+[31m-                (error) => {[m
+[31m-                  console.log('[TRACKING] GPS error:', error.message)[m
+[32m+[m[32m                async (error) => {[m
+[32m+[m[32m                  // Report GPS error to backend so status can be updated[m
+[32m+[m[32m                  await reportGPSError(error)[m
+                 },[m
+[31m-                { timeout: 10000, maximumAge: 60000 }[m
+[32m+[m[32m                geolocationOptions[m
+               )[m
+[32m+[m[32m            } else {[m
+[32m+[m[32m              // Geolocation not supported[m
+[32m+[m[32m              reportGPSError({ code: 2, message: 'Geolocation not supported' })[m
+             }[m
+[31m-          }, 60000) // Report every 60 seconds[m
+[32m+[m[32m          }, 30000) // Report every 30 seconds (reduced from 60 for faster detection)[m
+         }[m
+       } catch (error) {[m
+         console.error('[WORKER STATUS] Error starting location reporting:', error)[m
+[36m@@ -97,6 +143,10 @@[m [mconst WorkerStatusToggle = () => {[m
+         clearInterval(locationIntervalRef.current)[m
+         locationIntervalRef.current = null[m
+       }[m
+[32m+[m[32m      if (gpsWarningTimeoutRef.current) {[m
+[32m+[m[32m        clearTimeout(gpsWarningTimeoutRef.current)[m
+[32m+[m[32m        gpsWarningTimeoutRef.current = null[m
+[32m+[m[32m      }[m
+       window.removeEventListener('focus', handleFocus)[m
+     }[m
+   }, [])[m
