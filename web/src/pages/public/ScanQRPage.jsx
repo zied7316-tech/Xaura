@@ -149,11 +149,27 @@ const ScanQRPage = () => {
     const dayName = dayNames[dayOfWeek]
     const workingDay = salon.workingHours[dayName]
     
-    if (!workingDay || workingDay.isClosed) return []
+    // Check if workingDay exists, is not closed, and has valid open/close times
+    if (!workingDay || workingDay.isClosed || !workingDay.open || !workingDay.close) {
+      return []
+    }
+    
+    // Validate that open and close are strings before splitting
+    const openTime = String(workingDay.open).trim()
+    const closeTime = String(workingDay.close).trim()
+    
+    if (!openTime || !closeTime || !openTime.includes(':') || !closeTime.includes(':')) {
+      return []
+    }
     
     const slots = []
-    const [openHour, openMin] = workingDay.open.split(':').map(Number)
-    const [closeHour, closeMin] = workingDay.close.split(':').map(Number)
+    const [openHour, openMin] = openTime.split(':').map(Number)
+    const [closeHour, closeMin] = closeTime.split(':').map(Number)
+    
+    // Validate parsed hours and minutes are valid numbers
+    if (isNaN(openHour) || isNaN(openMin) || isNaN(closeHour) || isNaN(closeMin)) {
+      return []
+    }
     
     let currentHour = openHour
     let currentMin = openMin
