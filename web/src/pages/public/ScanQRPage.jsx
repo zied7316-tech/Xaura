@@ -95,32 +95,46 @@ const ScanQRPage = () => {
   const handleDateChange = async (date) => {
     setSelectedDate(date)
     setSelectedTime('')
-    setAvailableSlots([])
     
-    if (date && selectedServices.length > 0) {
-      // Calculate total duration
-      const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)
+    if (date) {
+      // Calculate total duration from selected services, or use default 60 minutes
+      const totalDuration = selectedServices.length > 0
+        ? selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)
+        : 60 // Default 60 minutes if no services selected yet
       
       // Generate time slots based on salon working hours
       try {
         const slots = generateTimeSlots(date, totalDuration)
         setAvailableSlots(slots)
+        // Clear selected time if it's no longer in available slots
+        if (selectedTime && !slots.includes(selectedTime)) {
+          setSelectedTime('')
+        }
       } catch (error) {
         console.error('Error generating slots:', error)
+        setAvailableSlots([])
       }
+    } else {
+      setAvailableSlots([])
     }
   }
 
-  // Update available slots when services change
+  // Update available slots when services change or date changes
   useEffect(() => {
-    if (selectedDate && selectedServices.length > 0) {
-      const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)
+    if (selectedDate) {
+      // Calculate total duration from selected services, or use default 60 minutes
+      const totalDuration = selectedServices.length > 0
+        ? selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)
+        : 60 // Default 60 minutes if no services selected yet
+      
       const slots = generateTimeSlots(selectedDate, totalDuration)
       setAvailableSlots(slots)
+      
+      // Clear selected time if it's no longer in available slots
       if (selectedTime && !slots.includes(selectedTime)) {
         setSelectedTime('')
       }
-    } else if (selectedServices.length === 0) {
+    } else {
       setAvailableSlots([])
       setSelectedTime('')
     }
@@ -435,34 +449,66 @@ const ScanQRPage = () => {
               </div>
 
               {/* Time Selection */}
-              {selectedDate && selectedServices.length > 0 && (
+              {selectedDate ? (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Clock className="text-primary-600" size={20} />
+                    Select Time
+                    {selectedServices.length === 0 && (
+                      <span className="text-xs text-gray-500 font-normal ml-2">
+                        (preview - select services for accurate slots)
+                      </span>
+                    )}
+                  </h3>
+                  {availableSlots.length === 0 ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <p className="text-gray-600 text-center text-sm">
+                        {selectedServices.length === 0
+                          ? 'Select services to see accurate time slots based on service duration'
+                          : 'No available time slots for this date. Please select another date.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                        {availableSlots.map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => setSelectedTime(slot)}
+                            disabled={selectedServices.length === 0}
+                            className={`p-3 rounded-lg border-2 transition-all text-sm ${
+                              selectedTime === slot
+                                ? 'border-primary-600 bg-primary-50 text-primary-700 font-semibold'
+                                : selectedServices.length === 0
+                                ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                                : 'border-gray-200 hover:border-primary-300 text-gray-700'
+                            }`}
+                            title={selectedServices.length === 0 ? 'Please select services first' : `Select ${slot}`}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedServices.length === 0 && (
+                        <p className="text-xs text-gray-500 text-center mt-2">
+                          Time slots shown are estimates. Select services for accurate availability.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Clock className="text-primary-600" size={20} />
                     Select Time
                   </h3>
-                  {availableSlots.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4 text-sm">
-                      No available time slots for this date. Please select another date.
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p className="text-gray-500 text-center text-sm">
+                      Please select a date first
                     </p>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                      {availableSlots.map((slot) => (
-                        <button
-                          key={slot}
-                          type="button"
-                          onClick={() => setSelectedTime(slot)}
-                          className={`p-3 rounded-lg border-2 transition-all text-sm ${
-                            selectedTime === slot
-                              ? 'border-primary-600 bg-primary-50 text-primary-700 font-semibold'
-                              : 'border-gray-200 hover:border-primary-300 text-gray-700'
-                          }`}
-                        >
-                          {slot}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
