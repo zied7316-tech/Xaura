@@ -267,17 +267,32 @@ const AppointmentsPage = () => {
                           </>
                         ) : (
                           <>
-                            <h3 className="font-semibold text-gray-900 text-lg">{apt.clientId?.name || 'Client'}</h3>
-                            <p className="text-sm text-gray-600">{apt.clientId?.email || ''}</p>
+                            <h3 className="font-semibold text-gray-900 text-lg">
+                              {apt.isAnonymous ? apt.clientName : (apt.clientId?.name || 'Client')}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {apt.isAnonymous 
+                                ? `📞 ${apt.clientPhone || 'No phone'}` 
+                                : (apt.clientId?.email || '')}
+                            </p>
+                            {apt.isAnonymous && (
+                              <p className="text-xs text-amber-600 font-medium mt-1">
+                                🔗 Anonymous Booking (from booking link)
+                              </p>
+                            )}
                             {isOwner && (
                               <p className="text-sm text-primary-600 font-medium mt-1">
-                                👨‍💼 Worker: {apt.workerId?.name || 'Unknown'}
+                                👨‍💼 Worker: {apt.workerId?.name || 'Not assigned yet'}
                               </p>
                             )}
                           </>
                         )}
                         
-                        <p className="text-sm font-medium text-gray-900 mt-2">{apt.serviceId?.name || 'Service'}</p>
+                        <p className="text-sm font-medium text-gray-900 mt-2">
+                          {apt.services && apt.services.length > 0
+                            ? apt.services.map(s => s.name).join(', ')
+                            : (apt.serviceId?.name || 'Service')}
+                        </p>
                         
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                           <span>📅 {formatDate(apt.dateTime)}</span>
@@ -387,17 +402,32 @@ const AppointmentsPage = () => {
                           </>
                         ) : (
                           <>
-                            <h3 className="font-semibold text-gray-900 text-lg">{apt.clientId?.name || 'Client'}</h3>
-                            <p className="text-sm text-gray-600">{apt.clientId?.email || ''}</p>
+                            <h3 className="font-semibold text-gray-900 text-lg">
+                              {apt.isAnonymous ? apt.clientName : (apt.clientId?.name || 'Client')}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {apt.isAnonymous 
+                                ? `📞 ${apt.clientPhone || 'No phone'}` 
+                                : (apt.clientId?.email || '')}
+                            </p>
+                            {apt.isAnonymous && (
+                              <p className="text-xs text-amber-600 font-medium mt-1">
+                                🔗 Anonymous Booking (from booking link)
+                              </p>
+                            )}
                             {isOwner && (
                               <p className="text-sm text-primary-600 font-medium mt-1">
-                                👨‍💼 Worker: {apt.workerId?.name || 'Unknown'}
+                                👨‍💼 Worker: {apt.workerId?.name || 'Not assigned yet'}
                               </p>
                             )}
                           </>
                         )}
                         
-                        <p className="text-sm font-medium text-gray-900 mt-2">{apt.serviceId?.name || 'Service'}</p>
+                        <p className="text-sm font-medium text-gray-900 mt-2">
+                          {apt.services && apt.services.length > 0
+                            ? apt.services.map(s => s.name).join(', ')
+                            : (apt.serviceId?.name || 'Service')}
+                        </p>
                         
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                           <span>📅 {formatDate(apt.dateTime)}</span>
@@ -470,10 +500,19 @@ const AppointmentsPage = () => {
                         </>
                       ) : (
                         <>
-                          <p className="font-medium text-gray-900">{apt.clientId?.name || 'Client'}</p>
-                          <p className="text-sm text-gray-600">{apt.serviceId?.name || 'Service'}</p>
+                          <p className="font-medium text-gray-900">
+                            {apt.isAnonymous ? apt.clientName : (apt.clientId?.name || 'Client')}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {apt.services && apt.services.length > 0
+                              ? apt.services.map(s => s.name).join(', ')
+                              : (apt.serviceId?.name || 'Service')}
+                          </p>
+                          {apt.isAnonymous && (
+                            <p className="text-xs text-amber-600 font-medium">📞 {apt.clientPhone || 'No phone'}</p>
+                          )}
                           {isOwner && (
-                            <p className="text-xs text-primary-600 font-medium">👨‍💼 {apt.workerId?.name}</p>
+                            <p className="text-xs text-primary-600 font-medium">👨‍💼 {apt.workerId?.name || 'Not assigned'}</p>
                           )}
                         </>
                       )}
@@ -550,10 +589,21 @@ const AppointmentsPage = () => {
       >
         <div className="space-y-4">
           <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">Client: <span className="font-semibold text-gray-900">{selectedAppointment?.clientId?.name}</span></p>
-            <p className="text-sm text-gray-600 mt-1">Service: <span className="font-semibold text-gray-900">{selectedAppointment?.serviceId?.name}</span></p>
+            <p className="text-sm text-gray-600">Client: <span className="font-semibold text-gray-900">
+              {selectedAppointment?.isAnonymous 
+                ? `${selectedAppointment?.clientName} (📞 ${selectedAppointment?.clientPhone})`
+                : selectedAppointment?.clientId?.name}
+            </span></p>
+            {selectedAppointment?.isAnonymous && (
+              <p className="text-xs text-amber-600 font-medium mt-1">🔗 Anonymous Booking (from booking link)</p>
+            )}
+            <p className="text-sm text-gray-600 mt-1">Service: <span className="font-semibold text-gray-900">
+              {selectedAppointment?.services && selectedAppointment.services.length > 0
+                ? selectedAppointment.services.map(s => s.name).join(', ')
+                : selectedAppointment?.serviceId?.name}
+            </span></p>
             <p className="text-sm text-gray-600 mt-1">Date: <span className="font-semibold text-gray-900">{formatDate(selectedAppointment?.dateTime)} at {formatTime(selectedAppointment?.dateTime)}</span></p>
-            <p className="text-sm text-gray-600 mt-2">Current Worker: <span className="font-semibold text-primary-600">{selectedAppointment?.workerId?.name}</span></p>
+            <p className="text-sm text-gray-600 mt-2">Current Worker: <span className="font-semibold text-primary-600">{selectedAppointment?.workerId?.name || 'Not assigned yet'}</span></p>
           </div>
 
           <Select
