@@ -53,6 +53,7 @@ import WorkerFinancePage from './pages/worker/WorkerFinancePage'
 import WorkerAvailabilityPage from './pages/worker/WorkerAvailabilityPage'
 import WorkerAppointmentsPage from './pages/worker/WorkerAppointmentsPage'
 import WorkerWalkInPage from './pages/worker/WorkerWalkInPage'
+import WorkerInventoryPage from './pages/worker/WorkerInventoryPage'
 
 // Client pages
 import ClientDashboard from './pages/client/ClientDashboard'
@@ -154,6 +155,7 @@ function App() {
         <Route path="/worker/availability" element={<ProtectedRoute roles={['Worker']}><WorkerAvailabilityPage /></ProtectedRoute>} />
         <Route path="/worker/appointments" element={<ProtectedRoute roles={['Worker']}><WorkerAppointmentsPage /></ProtectedRoute>} />
         <Route path="/worker/walk-in" element={<ProtectedRoute roles={['Worker']}><WorkerWalkInPage /></ProtectedRoute>} />
+        <Route path="/worker/inventory" element={<ProtectedRoute roles={['Worker']}><WorkerInventoryPage /></ProtectedRoute>} />
 
         {/* Client routes */}
         <Route path="/client/dashboard" element={<ProtectedRoute roles={['Client']}><ClientDashboard /></ProtectedRoute>} />

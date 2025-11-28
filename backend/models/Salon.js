@@ -57,6 +57,12 @@ const salonSchema = new mongoose.Schema({
     default: 'solo',
     required: true
   },
+  // Salon Type (for inventory categorization)
+  salonType: {
+    type: String,
+    enum: ['men', 'women', 'nails', 'unisex'],
+    default: 'unisex'
+  },
   workingHours: {
     monday: { open: String, close: String, isClosed: { type: Boolean, default: false } },
     tuesday: { open: String, close: String, isClosed: { type: Boolean, default: false } },

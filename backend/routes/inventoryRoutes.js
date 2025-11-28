@@ -8,7 +8,10 @@ const {
   deleteProduct,
   restockProduct,
   useProduct,
-  getLowStockProducts
+  getLowStockProducts,
+  getWorkerProducts,
+  workerUseProduct,
+  workerSellProduct
 } = require('../controllers/inventoryController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -25,6 +28,11 @@ router.delete('/:id', protect, authorize('Owner'), deleteProduct);
 // Stock management
 router.put('/:id/restock', protect, authorize('Owner'), restockProduct);
 router.put('/:id/use', protect, authorize('Owner'), useProduct);
+
+// Worker inventory endpoints
+router.get('/worker/products', protect, authorize('Worker'), getWorkerProducts);
+router.put('/worker/:id/use', protect, authorize('Worker'), workerUseProduct);
+router.post('/worker/:id/sell', protect, authorize('Worker'), workerSellProduct);
 
 module.exports = router;
 

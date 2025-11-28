@@ -35,13 +35,19 @@ const productSchema = new mongoose.Schema({
   },
   unit: {
     type: String,
-    enum: ['pieces', 'bottles', 'boxes', 'liters', 'kg', 'other'],
+    enum: ['pieces', 'bottles', 'boxes', 'liters', 'kg', 'grams', 'other'],
     default: 'pieces'
   },
   lowStockThreshold: {
     type: Number,
     default: 10,
     min: 0
+  },
+  // Product Type
+  productType: {
+    type: String,
+    enum: ['for_sale', 'for_use'],
+    default: 'for_use'
   },
   // Pricing
   costPrice: {
@@ -53,6 +59,25 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  // Worker Commission (for products for sale)
+  workerCommission: {
+    type: {
+      type: String,
+      enum: ['percentage', 'fixed'],
+      default: 'percentage'
+    },
+    percentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    },
+    fixedAmount: {
+      type: Number,
+      default: 0,
+      min: 0
+    }
   },
   // Supplier Info
   supplier: {

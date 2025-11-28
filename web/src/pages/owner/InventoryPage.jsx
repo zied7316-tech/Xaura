@@ -34,8 +34,14 @@ const InventoryPage = () => {
     quantity: 0,
     unit: 'pieces',
     lowStockThreshold: 10,
+    productType: 'for_use',
     costPrice: 0,
     sellingPrice: 0,
+    workerCommission: {
+      type: 'percentage',
+      percentage: 0,
+      fixedAmount: 0
+    },
     supplier: {
       name: '',
       contact: '',
@@ -72,8 +78,14 @@ const InventoryPage = () => {
         quantity: product.quantity,
         unit: product.unit,
         lowStockThreshold: product.lowStockThreshold,
+        productType: product.productType || 'for_use',
         costPrice: product.costPrice,
         sellingPrice: product.sellingPrice,
+        workerCommission: product.workerCommission || {
+          type: 'percentage',
+          percentage: 0,
+          fixedAmount: 0
+        },
         supplier: product.supplier || { name: '', contact: '', email: '' },
         notes: product.notes || ''
       })
@@ -87,8 +99,14 @@ const InventoryPage = () => {
         quantity: 0,
         unit: 'pieces',
         lowStockThreshold: 10,
+        productType: 'for_use',
         costPrice: 0,
         sellingPrice: 0,
+        workerCommission: {
+          type: 'percentage',
+          percentage: 0,
+          fixedAmount: 0
+        },
         supplier: { name: '', contact: '', email: '' },
         notes: ''
       })
@@ -163,6 +181,7 @@ const InventoryPage = () => {
     { value: 'boxes', label: 'Boxes' },
     { value: 'liters', label: 'Liters' },
     { value: 'kg', label: 'Kilograms' },
+    { value: 'grams', label: 'Grams' },
     { value: 'other', label: 'Other' }
   ]
 
@@ -314,7 +333,14 @@ const InventoryPage = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant="outline">{product.category}</Badge>
+                        <div>
+                          <Badge variant="outline">{product.category}</Badge>
+                          <div className="mt-1">
+                            <Badge variant={product.productType === 'for_sale' ? 'default' : 'secondary'} className="text-xs">
+                              {product.productType === 'for_sale' ? 'For Sale' : 'For Use'}
+                            </Badge>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -335,7 +361,19 @@ const InventoryPage = () => {
                         <span className="text-gray-900">{formatCurrency(product.costPrice)}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-green-600 font-semibold">{formatCurrency(product.sellingPrice)}</span>
+                        <div>
+                          <span className="text-green-600 font-semibold">{formatCurrency(product.sellingPrice)}</span>
+                          {product.productType === 'for_sale' && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {product.workerCommission?.type === 'percentage' 
+                                ? `${product.workerCommission.percentage || 0}% commission`
+                                : product.workerCommission?.type === 'fixed'
+                                ? `$${product.workerCommission.fixedAmount || 0} per unit`
+                                : 'No commission set'
+                              }
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm">
@@ -431,6 +469,18 @@ const InventoryPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              label="Product Type"
+              value={formData.productType}
+              onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
+              options={[
+                { value: 'for_use', label: 'For Use (Internal)' },
+                { value: 'for_sale', label: 'For Sale' }
+              ]}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Current Quantity"
               type="number"
@@ -467,6 +517,63 @@ const InventoryPage = () => {
               onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })}
             />
           </div>
+
+          {formData.productType === 'for_sale' && (
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-3">Worker Commission Settings</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <Select
+                  label="Commission Type"
+                  value={formData.workerCommission.type}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    workerCommission: {
+                      ...formData.workerCommission,
+                      type: e.target.value
+                    }
+                  })}
+                  options={[
+                    { value: 'percentage', label: 'Percentage' },
+                    { value: 'fixed', label: 'Fixed Price' }
+                  ]}
+                />
+              </div>
+              {formData.workerCommission.type === 'percentage' ? (
+                <Input
+                  label="Commission Percentage (%)"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={formData.workerCommission.percentage}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    workerCommission: {
+                      ...formData.workerCommission,
+                      percentage: parseFloat(e.target.value) || 0
+                    }
+                  })}
+                  placeholder="e.g., 20 for 20%"
+                />
+              ) : (
+                <Input
+                  label="Fixed Commission per Unit"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.workerCommission.fixedAmount}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    workerCommission: {
+                      ...formData.workerCommission,
+                      fixedAmount: parseFloat(e.target.value) || 0
+                    }
+                  })}
+                  placeholder="e.g., 2.00"
+                />
+              )}
+            </div>
+          )}
 
           <div className="border-t pt-4">
             <h3 className="font-semibold mb-3">Supplier Information (Optional)</h3>

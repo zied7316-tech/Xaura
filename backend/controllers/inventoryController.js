@@ -1,5 +1,9 @@
 const Product = require('../models/Product');
+const ProductSale = require('../models/ProductSale');
 const User = require('../models/User');
+const WorkerWallet = require('../models/WorkerWallet');
+const WorkerEarning = require('../models/WorkerEarning');
+const Payment = require('../models/Payment');
 const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
@@ -299,6 +303,298 @@ const getLowStockProducts = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get products available to worker
+ * @route   GET /api/inventory/worker/products
+ * @access  Private (Worker)
+ */
+const getWorkerProducts = async (req, res, next) => {
+  try {
+    const worker = await User.findById(req.user.id);
+    
+    if (!worker || worker.role !== 'Worker') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only workers can access this endpoint'
+      });
+    }
+
+    if (!worker.salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Worker is not assigned to a salon'
+      });
+    }
+
+    // Get all active products for worker's salon
+    const products = await Product.find({ 
+      salonId: worker.salonId, 
+      isActive: true,
+      quantity: { $gt: 0 } // Only show products in stock
+    })
+      .sort({ name: 1 });
+
+    res.json({
+      success: true,
+      data: products
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Worker uses/consumes product (for_use products)
+ * @route   PUT /api/inventory/worker/:id/use
+ * @access  Private (Worker)
+ */
+const workerUseProduct = async (req, res, next) => {
+  try {
+    const { quantity } = req.body;
+
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid quantity is required'
+      });
+    }
+
+    const worker = await User.findById(req.user.id);
+    
+    if (!worker || worker.role !== 'Worker' || !worker.salonId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Worker not authorized'
+      });
+    }
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    if (product.salonId.toString() !== worker.salonId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Product does not belong to your salon'
+      });
+    }
+
+    if (product.productType !== 'for_use') {
+      return res.status(400).json({
+        success: false,
+        message: 'This product is for sale, not for use'
+      });
+    }
+
+    if (product.quantity < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient stock'
+      });
+    }
+
+    // Reduce quantity
+    product.quantity -= quantity;
+    await product.save();
+
+    res.json({
+      success: true,
+      message: `Used ${quantity} ${product.unit} of ${product.name}`,
+      data: product
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Worker sells product (for_sale products) - with commission
+ * @route   POST /api/inventory/worker/:id/sell
+ * @access  Private (Worker)
+ */
+const workerSellProduct = async (req, res, next) => {
+  try {
+    const { quantity, paymentMethod, appointmentId, notes } = req.body;
+
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid quantity is required'
+      });
+    }
+
+    if (!paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment method is required'
+      });
+    }
+
+    const worker = await User.findById(req.user.id);
+    
+    if (!worker || worker.role !== 'Worker' || !worker.salonId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Worker not authorized'
+      });
+    }
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    if (product.salonId.toString() !== worker.salonId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Product does not belong to your salon'
+      });
+    }
+
+    if (product.productType !== 'for_sale') {
+      return res.status(400).json({
+        success: false,
+        message: 'This product is for use, not for sale'
+      });
+    }
+
+    if (product.quantity < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient stock'
+      });
+    }
+
+    if (product.sellingPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product selling price is not set'
+      });
+    }
+
+    // Calculate sale amounts
+    const unitPrice = product.sellingPrice;
+    const totalAmount = unitPrice * quantity;
+
+    // Calculate worker commission
+    let workerCommissionAmount = 0;
+    let commissionType = 'percentage';
+    let commissionValue = 0;
+
+    if (product.workerCommission && product.workerCommission.type) {
+      commissionType = product.workerCommission.type;
+      
+      if (commissionType === 'percentage') {
+        commissionValue = product.workerCommission.percentage || 0;
+        workerCommissionAmount = (totalAmount * commissionValue) / 100;
+      } else if (commissionType === 'fixed') {
+        commissionValue = product.workerCommission.fixedAmount || 0;
+        workerCommissionAmount = commissionValue * quantity;
+      }
+    }
+
+    const salonRevenue = totalAmount - workerCommissionAmount;
+
+    // Reduce product quantity
+    product.quantity -= quantity;
+    await product.save();
+
+    // Create ProductSale record
+    const productSale = await ProductSale.create({
+      productId: product._id,
+      workerId: worker._id,
+      salonId: worker.salonId,
+      quantity,
+      unitPrice,
+      totalAmount,
+      commissionType,
+      commissionValue,
+      workerCommissionAmount,
+      salonRevenue,
+      paymentMethod: paymentMethod || 'cash',
+      saleDate: new Date(),
+      appointmentId: appointmentId || null,
+      notes: notes || ''
+    });
+
+    // Update worker wallet
+    let wallet = await WorkerWallet.findOne({ workerId: worker._id });
+    if (!wallet) {
+      wallet = await WorkerWallet.create({
+        workerId: worker._id,
+        salonId: worker.salonId,
+        balance: workerCommissionAmount,
+        totalEarned: workerCommissionAmount,
+        totalPaid: 0
+      });
+    } else {
+      wallet.balance += workerCommissionAmount;
+      wallet.totalEarned += workerCommissionAmount;
+      await wallet.save();
+    }
+
+    // Create WorkerEarning record
+    await WorkerEarning.create({
+      workerId: worker._id,
+      salonId: worker.salonId,
+      appointmentId: appointmentId || null,
+      serviceId: null, // Product sale, not service
+      servicePrice: totalAmount,
+      originalPrice: null,
+      finalPrice: null,
+      commissionPercentage: commissionType === 'percentage' ? commissionValue : 0,
+      workerEarning: workerCommissionAmount,
+      paymentModelType: 'percentage_commission', // Product sales use commission model
+      isPaid: true, // Product sales are paid immediately
+      serviceDate: new Date()
+    });
+
+    // Create Payment record
+    await Payment.create({
+      salonId: worker.salonId,
+      appointmentId: appointmentId || null,
+      clientId: null, // Product sale may not have a client
+      workerId: worker._id,
+      amount: totalAmount,
+      paymentMethod: paymentMethod || 'cash',
+      status: 'completed',
+      paidAt: new Date(),
+      workerCommission: {
+        percentage: commissionType === 'percentage' ? commissionValue : 0,
+        amount: workerCommissionAmount
+      },
+      salonRevenue: salonRevenue,
+      notes: `Product sale: ${product.name} (${quantity} ${product.unit})`
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Product sold successfully. You earned ${workerCommissionAmount.toFixed(2)} commission.`,
+      data: {
+        sale: productSale,
+        product: product,
+        commission: {
+          type: commissionType,
+          value: commissionValue,
+          amount: workerCommissionAmount
+        },
+        walletBalance: wallet.balance
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProducts,
   getProduct,
@@ -307,5 +603,8 @@ module.exports = {
   deleteProduct,
   restockProduct,
   useProduct,
-  getLowStockProducts
+  getLowStockProducts,
+  getWorkerProducts,
+  workerUseProduct,
+  workerSellProduct
 };
