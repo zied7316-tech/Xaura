@@ -14,6 +14,15 @@ export const inventoryService = {
     return response.data
   },
 
+  // Get product history
+  getProductHistory: async (productId, page = 1, limit = 50) => {
+    const response = await api.get(`/inventory/${productId}/history`, {
+      params: { page, limit }
+    })
+    // API interceptor already unwraps response.data, so response is { success, data, pagination }
+    return response
+  },
+
   // Create new product
   createProduct: async (productData) => {
     const response = await api.post('/inventory', productData)

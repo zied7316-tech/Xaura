@@ -11,7 +11,8 @@ const {
   getLowStockProducts,
   getWorkerProducts,
   workerUseProduct,
-  workerSellProduct
+  workerSellProduct,
+  getProductHistory
 } = require('../controllers/inventoryController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -21,6 +22,7 @@ router.get('/alerts/low-stock', protect, authorize('Owner'), getLowStockProducts
 // CRUD operations
 router.get('/', protect, authorize('Owner'), getProducts);
 router.get('/:id', protect, authorize('Owner'), getProduct);
+router.get('/:id/history', protect, authorize('Owner'), getProductHistory);
 router.post('/', protect, authorize('Owner'), createProduct);
 router.put('/:id', protect, authorize('Owner'), updateProduct);
 router.delete('/:id', protect, authorize('Owner'), deleteProduct);

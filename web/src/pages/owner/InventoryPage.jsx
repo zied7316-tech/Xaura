@@ -9,7 +9,7 @@ import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import { 
   Package, Plus, Edit, Trash2, AlertTriangle, TrendingUp,
-  Search, Filter, RefreshCw, ShoppingCart, DollarSign, Box
+  Search, Filter, RefreshCw, ShoppingCart, DollarSign, Box, History, Clock, User
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -20,8 +20,12 @@ const InventoryPage = () => {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [showRestockModal, setShowRestockModal] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [restockProduct, setRestockProduct] = useState(null)
+  const [historyProduct, setHistoryProduct] = useState(null)
+  const [history, setHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
   const [restockQuantity, setRestockQuantity] = useState('')
@@ -405,6 +409,13 @@ const InventoryPage = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenHistory(product)}
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
+                            title="View History"
+                          >
+                            <History size={18} />
+                          </button>
                           <button
                             onClick={() => handleOpenRestock(product)}
                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg"

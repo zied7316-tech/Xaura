@@ -1,10 +1,23 @@
 const Product = require('../models/Product');
 const ProductSale = require('../models/ProductSale');
+const ProductHistory = require('../models/ProductHistory');
 const User = require('../models/User');
 const WorkerWallet = require('../models/WorkerWallet');
 const WorkerEarning = require('../models/WorkerEarning');
 const Payment = require('../models/Payment');
 const { getOwnerSalon } = require('../utils/getOwnerSalon');
+
+/**
+ * Helper function to log product history
+ */
+const logProductHistory = async (data) => {
+  try {
+    await ProductHistory.create(data);
+  } catch (error) {
+    console.error('Error logging product history:', error);
+    // Don't throw - history logging should not break the main operation
+  }
+};
 
 /**
  * @desc    Get all products for salon
@@ -104,6 +117,20 @@ const createProduct = async (req, res, next) => {
       salonId
     });
 
+    // Log history
+    await logProductHistory({
+      productId: product._id,
+      salonId: salonId,
+      userId: ownerId,
+      userRole: 'Owner',
+      actionType: 'created',
+      quantityBefore: 0,
+      quantityAfter: product.quantity || 0,
+      quantityChange: product.quantity || 0,
+      description: `Product "${product.name}" created`,
+      changes: req.body
+    });
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
@@ -130,14 +157,34 @@ const updateProduct = async (req, res, next) => {
       });
     }
 
+    const quantityBefore = product.quantity;
+    const changes = {};
+
     // Update fields
     Object.keys(req.body).forEach(key => {
-      if (req.body[key] !== undefined) {
+      if (req.body[key] !== undefined && product[key] !== req.body[key]) {
+        changes[key] = { from: product[key], to: req.body[key] };
         product[key] = req.body[key];
       }
     });
 
     await product.save();
+
+    // Log history if there were changes
+    if (Object.keys(changes).length > 0) {
+      await logProductHistory({
+        productId: product._id,
+        salonId: product.salonId,
+        userId: req.user.id,
+        userRole: 'Owner',
+        actionType: 'updated',
+        quantityBefore: quantityBefore,
+        quantityAfter: product.quantity,
+        quantityChange: product.quantity - quantityBefore,
+        description: `Product "${product.name}" updated`,
+        changes: changes
+      });
+    }
 
     res.json({
       success: true,
@@ -166,8 +213,22 @@ const deleteProduct = async (req, res, next) => {
     }
 
     // Soft delete
+    const quantityBefore = product.quantity;
     product.isActive = false;
     await product.save();
+
+    // Log history
+    await logProductHistory({
+      productId: product._id,
+      salonId: product.salonId,
+      userId: req.user.id,
+      userRole: 'Owner',
+      actionType: 'deleted',
+      quantityBefore: quantityBefore,
+      quantityAfter: product.quantity,
+      quantityChange: 0,
+      description: `Product "${product.name}" deleted (soft delete)`
+    });
 
     res.json({
       success: true,
@@ -204,11 +265,25 @@ const restockProduct = async (req, res, next) => {
     }
 
     // Add to existing quantity
+    const quantityBefore = product.quantity;
     product.quantity += quantity;
     product.lastRestockDate = new Date();
     product.lastRestockQuantity = quantity;
 
     await product.save();
+
+    // Log history
+    await logProductHistory({
+      productId: product._id,
+      salonId: product.salonId,
+      userId: req.user.id,
+      userRole: 'Owner',
+      actionType: 'restock',
+      quantityBefore: quantityBefore,
+      quantityAfter: product.quantity,
+      quantityChange: quantity,
+      description: `Restocked ${quantity} ${product.unit} of "${product.name}"`
+    });
 
     res.json({
       success: true,
@@ -253,8 +328,22 @@ const useProduct = async (req, res, next) => {
     }
 
     // Reduce quantity
+    const quantityBefore = product.quantity;
     product.quantity -= quantity;
     await product.save();
+
+    // Log history
+    await logProductHistory({
+      productId: product._id,
+      salonId: product.salonId,
+      userId: req.user.id,
+      userRole: 'Owner',
+      actionType: 'use',
+      quantityBefore: quantityBefore,
+      quantityAfter: product.quantity,
+      quantityChange: -quantity,
+      description: `Used ${quantity} ${product.unit} of "${product.name}"`
+    });
 
     res.json({
       success: true,
@@ -399,8 +488,22 @@ const workerUseProduct = async (req, res, next) => {
     }
 
     // Reduce quantity
+    const quantityBefore = product.quantity;
     product.quantity -= quantity;
     await product.save();
+
+    // Log history
+    await logProductHistory({
+      productId: product._id,
+      salonId: product.salonId,
+      userId: worker._id,
+      userRole: 'Worker',
+      actionType: 'use',
+      quantityBefore: quantityBefore,
+      quantityAfter: product.quantity,
+      quantityChange: -quantity,
+      description: `Worker used ${quantity} ${product.unit} of "${product.name}"`
+    });
 
     res.json({
       success: true,
@@ -505,6 +608,7 @@ const workerSellProduct = async (req, res, next) => {
     const salonRevenue = totalAmount - workerCommissionAmount;
 
     // Reduce product quantity
+    const quantityBefore = product.quantity;
     product.quantity -= quantity;
     await product.save();
 
@@ -523,6 +627,26 @@ const workerSellProduct = async (req, res, next) => {
       paymentMethod: paymentMethod || 'cash',
       saleDate: new Date(),
       appointmentId: appointmentId || null,
+      notes: notes || ''
+    });
+
+    // Log history
+    await logProductHistory({
+      productId: product._id,
+      salonId: worker.salonId,
+      userId: worker._id,
+      userRole: 'Worker',
+      actionType: 'sell',
+      quantityBefore: quantityBefore,
+      quantityAfter: product.quantity,
+      quantityChange: -quantity,
+      unitPrice: unitPrice,
+      totalAmount: totalAmount,
+      commissionAmount: workerCommissionAmount,
+      paymentMethod: paymentMethod || 'cash',
+      productSaleId: productSale._id,
+      appointmentId: appointmentId || null,
+      description: `Worker sold ${quantity} ${product.unit} of "${product.name}" for ${totalAmount.toFixed(2)} (Commission: ${workerCommissionAmount.toFixed(2)})`,
       notes: notes || ''
     });
 
@@ -595,6 +719,69 @@ const workerSellProduct = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get product history
+ * @route   GET /api/inventory/:id/history
+ * @access  Private (Owner)
+ */
+const getProductHistory = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Verify product belongs to owner's salon
+    if (product.salonId.toString() !== salonData.salonId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Product does not belong to your salon'
+      });
+    }
+
+    // Get history with pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const history = await ProductHistory.find({ productId: req.params.id })
+      .populate('userId', 'name email')
+      .populate('appointmentId', 'clientName dateTime')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ProductHistory.countDocuments({ productId: req.params.id });
+
+    res.json({
+      success: true,
+      data: history,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProducts,
   getProduct,
@@ -606,5 +793,6 @@ module.exports = {
   getLowStockProducts,
   getWorkerProducts,
   workerUseProduct,
-  workerSellProduct
+  workerSellProduct,
+  getProductHistory
 };

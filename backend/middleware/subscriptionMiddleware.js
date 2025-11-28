@@ -83,6 +83,13 @@ const checkSubscriptionFeature = (featureName) => {
           return next(); // Has add-on
         }
 
+        // Allow GET requests (read-only) even without feature - users can view but not modify
+        // This provides better UX by showing what they're missing
+        if (req.method === 'GET') {
+          return next();
+        }
+
+        // Block write operations (POST, PUT, DELETE) if feature is not available
         return res.status(403).json({
           success: false,
           message: `This feature requires a higher plan or add-on.`,
