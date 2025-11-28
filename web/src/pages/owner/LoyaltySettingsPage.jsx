@@ -55,7 +55,24 @@ const LoyaltySettingsPage = () => {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const response = await loyaltyService.updateLoyaltyProgram(program)
+      // Ensure tier names are fixed before saving
+      const tierNames = {
+        bronze: 'Bronze',
+        silver: 'Silver',
+        gold: 'Gold',
+        platinum: 'Platinum'
+      }
+      
+      const programToSave = { ...program }
+      if (programToSave.tiers) {
+        Object.keys(programToSave.tiers).forEach(tierKey => {
+          if (tierNames[tierKey]) {
+            programToSave.tiers[tierKey].name = tierNames[tierKey]
+          }
+        })
+      }
+      
+      const response = await loyaltyService.updateLoyaltyProgram(programToSave)
       // API interceptor already unwraps response.data, so response is { success, data, message }
       toast.success(response.message || 'Loyalty program updated successfully!')
       // Reload program to get latest data
@@ -250,20 +267,20 @@ const LoyaltySettingsPage = () => {
               platinum: 'bg-purple-100 border-purple-300 text-purple-900'
             }
 
+            // Fixed tier names mapping
+            const tierNames = {
+              bronze: 'Bronze',
+              silver: 'Silver',
+              gold: 'Gold',
+              platinum: 'Platinum'
+            }
+
             return (
               <div key={tierKey} className={`border-2 rounded-lg p-4 ${colors[tierKey]}`}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input
-                    label="Tier Name"
-                    value={tier.name}
-                    onChange={(e) => setProgram({
-                      ...program,
-                      tiers: {
-                        ...(program.tiers || {}),
-                        [tierKey]: { ...tier, name: e.target.value }
-                      }
-                    })}
-                  />
+                <div className="mb-3">
+                  <h3 className="text-lg font-bold capitalize">{tierNames[tierKey]}</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     label="Minimum Points Required"
                     type="number"
@@ -273,7 +290,7 @@ const LoyaltySettingsPage = () => {
                       ...program,
                       tiers: {
                         ...(program.tiers || {}),
-                        [tierKey]: { ...tier, minPoints: parseInt(e.target.value) || 0 }
+                        [tierKey]: { ...tier, name: tierNames[tierKey], minPoints: parseInt(e.target.value) || 0 }
                       }
                     })}
                   />
@@ -287,7 +304,7 @@ const LoyaltySettingsPage = () => {
                       ...program,
                       tiers: {
                         ...(program.tiers || {}),
-                        [tierKey]: { ...tier, discountPercentage: parseInt(e.target.value) || 0 }
+                        [tierKey]: { ...tier, name: tierNames[tierKey], discountPercentage: parseInt(e.target.value) || 0 }
                       }
                     })}
                   />
