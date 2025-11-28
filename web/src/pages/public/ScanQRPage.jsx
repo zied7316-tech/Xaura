@@ -141,36 +141,49 @@ const ScanQRPage = () => {
   }, [selectedServices, selectedDate])
 
   const generateTimeSlots = (date, duration) => {
-    if (!salon || !salon.workingHours) return []
+    // Default working hours: 9:00 AM to 5:00 PM (17:00)
+    const defaultOpenHour = 9
+    const defaultOpenMin = 0
+    const defaultCloseHour = 17
+    const defaultCloseMin = 0
     
-    const selectedDateObj = new Date(date)
-    const dayOfWeek = selectedDateObj.getDay()
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayName = dayNames[dayOfWeek]
-    const workingDay = salon.workingHours[dayName]
+    let openHour = defaultOpenHour
+    let openMin = defaultOpenMin
+    let closeHour = defaultCloseHour
+    let closeMin = defaultCloseMin
     
-    // Check if workingDay exists, is not closed, and has valid open/close times
-    if (!workingDay || workingDay.isClosed || !workingDay.open || !workingDay.close) {
-      return []
+    // Try to use salon working hours if available and valid
+    if (salon && salon.workingHours) {
+      const selectedDateObj = new Date(date)
+      const dayOfWeek = selectedDateObj.getDay()
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+      const dayName = dayNames[dayOfWeek]
+      const workingDay = salon.workingHours[dayName]
+      
+      // If working day exists and has valid times, use them
+      if (workingDay && workingDay.open && workingDay.close) {
+        const openTime = String(workingDay.open).trim()
+        const closeTime = String(workingDay.close).trim()
+        
+        if (openTime && closeTime && openTime.includes(':') && closeTime.includes(':')) {
+          const parsedOpen = openTime.split(':').map(Number)
+          const parsedClose = closeTime.split(':').map(Number)
+          
+          // Validate parsed hours and minutes are valid numbers
+          if (!isNaN(parsedOpen[0]) && !isNaN(parsedOpen[1]) && 
+              !isNaN(parsedClose[0]) && !isNaN(parsedClose[1])) {
+            openHour = parsedOpen[0]
+            openMin = parsedOpen[1]
+            closeHour = parsedClose[0]
+            closeMin = parsedClose[1]
+          }
+        }
+      }
     }
     
-    // Validate that open and close are strings before splitting
-    const openTime = String(workingDay.open).trim()
-    const closeTime = String(workingDay.close).trim()
-    
-    if (!openTime || !closeTime || !openTime.includes(':') || !closeTime.includes(':')) {
-      return []
-    }
-    
+    // Always generate time slots regardless of working hours
+    // Owner will manage appointments and can assign clients to any worker
     const slots = []
-    const [openHour, openMin] = openTime.split(':').map(Number)
-    const [closeHour, closeMin] = closeTime.split(':').map(Number)
-    
-    // Validate parsed hours and minutes are valid numbers
-    if (isNaN(openHour) || isNaN(openMin) || isNaN(closeHour) || isNaN(closeMin)) {
-      return []
-    }
-    
     let currentHour = openHour
     let currentMin = openMin
     
@@ -480,8 +493,8 @@ const ScanQRPage = () => {
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <p className="text-gray-600 text-center text-sm">
                         {selectedServices.length === 0
-                          ? 'Select services to see accurate time slots based on service duration'
-                          : 'No available time slots for this date. Please select another date.'}
+                          ? 'Select services to see time slots based on service duration'
+                          : 'Loading time slots...'}
                       </p>
                     </div>
                   ) : (
