@@ -4,7 +4,8 @@ export const inventoryService = {
   // Get all products
   getProducts: async () => {
     const response = await api.get('/inventory')
-    return response.data
+    // API interceptor already unwraps response.data, so response is { success, data, stats }
+    return response
   },
 
   // Get single product

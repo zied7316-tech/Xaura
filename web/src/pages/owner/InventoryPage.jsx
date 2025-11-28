@@ -126,9 +126,32 @@ const InventoryPage = () => {
         toast.success('Product added successfully!')
       }
       setShowModal(false)
-      loadProducts()
+      setEditingProduct(null)
+      // Reset form data
+      setFormData({
+        name: '',
+        description: '',
+        category: 'Other',
+        sku: '',
+        quantity: 0,
+        unit: 'pieces',
+        lowStockThreshold: 10,
+        productType: 'for_use',
+        costPrice: 0,
+        sellingPrice: 0,
+        workerCommission: {
+          type: 'percentage',
+          percentage: 0,
+          fixedAmount: 0
+        },
+        supplier: { name: '', contact: '', email: '' },
+        notes: ''
+      })
+      // Reload products
+      await loadProducts()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save product')
+      console.error('Error saving product:', error)
+      toast.error(error.response?.data?.message || error.message || 'Failed to save product')
     }
   }
 
