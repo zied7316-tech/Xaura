@@ -423,7 +423,7 @@ const InventoryPage = () => {
                               {product.workerCommission?.type === 'percentage' 
                                 ? `${product.workerCommission.percentage || 0}% commission`
                                 : product.workerCommission?.type === 'fixed'
-                                ? `$${product.workerCommission.fixedAmount || 0} per unit`
+                                ? `${formatCurrency(product.workerCommission.fixedAmount || 0)} per unit`
                                 : 'No commission set'
                               }
                             </div>

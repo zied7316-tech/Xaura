@@ -8,6 +8,7 @@ import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import toast from 'react-hot-toast'
 import { UserPlus, DollarSign, Calendar } from 'lucide-react'
+import { formatCurrency } from '../../utils/helpers'
 
 const WorkerWalkInPage = () => {
   const navigate = useNavigate()
@@ -166,7 +167,7 @@ const WorkerWalkInPage = () => {
                     { value: '', label: loadingServices ? 'Loading services...' : 'Select service' },
                     ...services.map(service => ({
                       value: service._id,
-                      label: `${service.name} - $${service.price}`
+                      label: `${service.name} - ${formatCurrency(service.price)}`
                     }))
                   ]}
                 />

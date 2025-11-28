@@ -205,13 +205,13 @@ const LoyaltySettingsPage = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Points Per Dollar Spent"
+              label="Points Per TND Spent"
               type="number"
               min="0"
               step="0.1"
               value={safeProgram.pointsPerDollar}
               onChange={(e) => setProgram({ ...program, pointsPerDollar: parseFloat(e.target.value) || 0 })}
-              helperText="e.g., 1 = clients earn 1 point per $1 spent"
+              helperText="e.g., 1 = clients earn 1 point per 1 د.ت spent"
             />
             <Input
               label="Points Expiry (Days)"
@@ -392,7 +392,7 @@ const LoyaltySettingsPage = () => {
                 required
                 value={rewardForm.name}
                 onChange={(e) => setRewardForm({ ...rewardForm, name: e.target.value })}
-                placeholder="e.g., $10 Off Next Visit"
+                placeholder="e.g., 10.000 د.ت Off Next Visit"
               />
               <Textarea
                 label="Description"
@@ -410,13 +410,13 @@ const LoyaltySettingsPage = () => {
                 onChange={(e) => setRewardForm({ ...rewardForm, pointsCost: parseInt(e.target.value) || 0 })}
               />
               <Input
-                label="Discount Amount ($)"
+                label="Discount Amount (د.ت)"
                 type="number"
                 min="0"
                 step="0.01"
                 value={rewardForm.discountAmount}
                 onChange={(e) => setRewardForm({ ...rewardForm, discountAmount: parseFloat(e.target.value) || 0 })}
-                helperText="For dollar-off rewards"
+                helperText="For TND-off rewards"
               />
               <div className="flex gap-3 pt-4">
                 <Button onClick={handleSaveReward} fullWidth>

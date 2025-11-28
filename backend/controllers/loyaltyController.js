@@ -33,7 +33,7 @@ const getLoyaltyProgram = async (req, res, next) => {
           bronze: {
             name: 'Bronze',
             minPoints: 0,
-            benefits: ['Earn 1 point per $1', 'Birthday bonus'],
+            benefits: ['Earn 1 point per 1 د.ت', 'Birthday bonus'],
             discountPercentage: 0
           },
           silver: {
@@ -56,9 +56,9 @@ const getLoyaltyProgram = async (req, res, next) => {
           }
         },
         rewards: [
-          { name: '$5 Off Next Visit', description: 'Get $5 off your next service', pointsCost: 100, discountAmount: 5, isActive: true },
-          { name: '$10 Off Next Visit', description: 'Get $10 off your next service', pointsCost: 200, discountAmount: 10, isActive: true },
-          { name: '$20 Off Next Visit', description: 'Get $20 off your next service', pointsCost: 400, discountAmount: 20, isActive: true },
+          { name: '5.000 د.ت Off Next Visit', description: 'Get 5.000 د.ت off your next service', pointsCost: 100, discountAmount: 5, isActive: true },
+          { name: '10.000 د.ت Off Next Visit', description: 'Get 10.000 د.ت off your next service', pointsCost: 200, discountAmount: 10, isActive: true },
+          { name: '20.000 د.ت Off Next Visit', description: 'Get 20.000 د.ت off your next service', pointsCost: 400, discountAmount: 20, isActive: true },
           { name: 'Free Basic Haircut', description: 'Redeem for one free basic haircut', pointsCost: 500, discountAmount: 30, isActive: true },
         ]
       });
