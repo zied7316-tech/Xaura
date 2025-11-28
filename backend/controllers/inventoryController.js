@@ -14,9 +14,8 @@ const logProductHistory = async (data) => {
   try {
     const mongoose = require('mongoose');
     
-    // Ensure all ObjectIds are properly converted
+    // Build history data object with required fields
     const historyData = {
-      ...data,
       productId: data.productId && mongoose.Types.ObjectId.isValid(data.productId)
         ? new mongoose.Types.ObjectId(data.productId)
         : data.productId,
@@ -26,14 +25,44 @@ const logProductHistory = async (data) => {
       userId: data.userId && mongoose.Types.ObjectId.isValid(data.userId)
         ? new mongoose.Types.ObjectId(data.userId)
         : data.userId,
-      // Handle optional ObjectId fields
-      appointmentId: data.appointmentId && mongoose.Types.ObjectId.isValid(data.appointmentId)
-        ? new mongoose.Types.ObjectId(data.appointmentId)
-        : (data.appointmentId || null),
-      productSaleId: data.productSaleId && mongoose.Types.ObjectId.isValid(data.productSaleId)
-        ? new mongoose.Types.ObjectId(data.productSaleId)
-        : (data.productSaleId || null)
+      userRole: data.userRole,
+      actionType: data.actionType,
+      quantityBefore: data.quantityBefore !== undefined ? data.quantityBefore : 0,
+      quantityAfter: data.quantityAfter !== undefined ? data.quantityAfter : 0,
+      quantityChange: data.quantityChange,
+      description: data.description || ''
     };
+    
+    // Only include optional fields if they are provided and not null/undefined
+    if (data.unitPrice !== undefined && data.unitPrice !== null) {
+      historyData.unitPrice = data.unitPrice;
+    }
+    if (data.totalAmount !== undefined && data.totalAmount !== null) {
+      historyData.totalAmount = data.totalAmount;
+    }
+    if (data.commissionAmount !== undefined && data.commissionAmount !== null) {
+      historyData.commissionAmount = data.commissionAmount;
+    }
+    // Only include paymentMethod if it's provided (for "sell" actions only)
+    if (data.paymentMethod !== undefined && data.paymentMethod !== null) {
+      historyData.paymentMethod = data.paymentMethod;
+    }
+    if (data.productSaleId !== undefined && data.productSaleId !== null) {
+      historyData.productSaleId = mongoose.Types.ObjectId.isValid(data.productSaleId)
+        ? new mongoose.Types.ObjectId(data.productSaleId)
+        : data.productSaleId;
+    }
+    if (data.appointmentId !== undefined && data.appointmentId !== null) {
+      historyData.appointmentId = mongoose.Types.ObjectId.isValid(data.appointmentId)
+        ? new mongoose.Types.ObjectId(data.appointmentId)
+        : data.appointmentId;
+    }
+    if (data.notes !== undefined && data.notes !== null) {
+      historyData.notes = data.notes;
+    }
+    if (data.changes !== undefined && data.changes !== null) {
+      historyData.changes = data.changes;
+    }
     
     const result = await ProductHistory.create(historyData);
     console.log(`✅ History created: ${result.actionType} for product ${result.productId} by ${result.userRole} (${result.userId})`);
