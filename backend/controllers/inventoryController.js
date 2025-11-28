@@ -497,7 +497,7 @@ const workerUseProduct = async (req, res, next) => {
     // Log history
     await logProductHistory({
       productId: product._id,
-      salonId: product.salonId,
+      salonId: worker.salonId, // Use worker.salonId for consistency with sell action
       userId: worker._id,
       userRole: 'Worker',
       actionType: 'use',
@@ -773,7 +773,14 @@ const getProductHistory = async (req, res, next) => {
       ? new mongoose.Types.ObjectId(req.params.id)
       : req.params.id;
 
-    const history = await ProductHistory.find({ productId: productObjectId })
+    // Query history - try both ObjectId and string format to ensure we find all records
+    const historyQuery = { 
+      productId: mongoose.Types.ObjectId.isValid(req.params.id) 
+        ? new mongoose.Types.ObjectId(req.params.id) 
+        : req.params.id 
+    };
+    
+    const history = await ProductHistory.find(historyQuery)
       .populate({
         path: 'userId',
         select: 'name email',
@@ -789,10 +796,11 @@ const getProductHistory = async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
-    const total = await ProductHistory.countDocuments({ productId: productObjectId });
+    const total = await ProductHistory.countDocuments(historyQuery);
     
     // Debug logging
     console.log(`Product history query for productId: ${req.params.id}, found ${history.length} records, total: ${total}`);
+    console.log(`History records actionTypes:`, history.map(h => h.actionType));
 
     res.json({
       success: true,
