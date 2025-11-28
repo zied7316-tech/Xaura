@@ -32,11 +32,21 @@ const LoyaltySettingsPage = () => {
 
   const loadProgram = async () => {
     try {
-      const data = await loyaltyService.getLoyaltyProgram()
-      setProgram(data.data)
+      setLoading(true)
+      const response = await loyaltyService.getLoyaltyProgram()
+      // API interceptor already unwraps response.data, so response is { success, data }
+      console.log('Loyalty program response:', response)
+      if (response && response.data) {
+        setProgram(response.data)
+      } else {
+        console.warn('Unexpected response structure:', response)
+        toast.error('Invalid response from server')
+      }
     } catch (error) {
       console.error('Error loading loyalty program:', error)
-      toast.error('Failed to load loyalty program')
+      console.error('Error details:', error.response || error.message)
+      toast.error(error.message || 'Failed to load loyalty program')
+      setProgram(null)
     } finally {
       setLoading(false)
     }
@@ -45,10 +55,14 @@ const LoyaltySettingsPage = () => {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await loyaltyService.updateLoyaltyProgram(program)
-      toast.success('Loyalty program updated successfully!')
+      const response = await loyaltyService.updateLoyaltyProgram(program)
+      // API interceptor already unwraps response.data, so response is { success, data, message }
+      toast.success(response.message || 'Loyalty program updated successfully!')
+      // Reload program to get latest data
+      await loadProgram()
     } catch (error) {
-      toast.error('Failed to save loyalty program')
+      console.error('Error saving loyalty program:', error)
+      toast.error(error.message || 'Failed to save loyalty program')
     } finally {
       setSaving(false)
     }
@@ -66,6 +80,8 @@ const LoyaltySettingsPage = () => {
       return
     }
 
+    if (!program) return
+
     const newRewards = [...(program.rewards || [])]
     if (editingReward !== null) {
       newRewards[editingReward] = { ...rewardForm, isActive: true }
@@ -80,6 +96,8 @@ const LoyaltySettingsPage = () => {
 
   const handleDeleteReward = (index) => {
     if (!confirm('Delete this reward?')) return
+    if (!program || !program.rewards) return
+    
     const newRewards = program.rewards.filter((_, i) => i !== index)
     setProgram({ ...program, rewards: newRewards })
     toast.success('Reward deleted! Remember to click "Save Settings"')
@@ -93,7 +111,34 @@ const LoyaltySettingsPage = () => {
     )
   }
 
-  if (!program) return null
+  if (!program) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Unable to load loyalty program</p>
+          <Button onClick={loadProgram}>Retry</Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Ensure program has required properties with defaults
+  const safeProgram = {
+    isEnabled: program.isEnabled !== undefined ? program.isEnabled : true,
+    pointsPerDollar: program.pointsPerDollar !== undefined ? program.pointsPerDollar : 1,
+    pointsExpireDays: program.pointsExpireDays !== undefined ? program.pointsExpireDays : 365,
+    bonusPointsFirstVisit: program.bonusPointsFirstVisit !== undefined ? program.bonusPointsFirstVisit : 50,
+    bonusPointsBirthday: program.bonusPointsBirthday !== undefined ? program.bonusPointsBirthday : 100,
+    bonusPointsReferral: program.bonusPointsReferral !== undefined ? program.bonusPointsReferral : 200,
+    tiers: program.tiers || {
+      bronze: { name: 'Bronze', minPoints: 0, discountPercentage: 0, benefits: [] },
+      silver: { name: 'Silver', minPoints: 500, discountPercentage: 5, benefits: [] },
+      gold: { name: 'Gold', minPoints: 1000, discountPercentage: 10, benefits: [] },
+      platinum: { name: 'Platinum', minPoints: 2000, discountPercentage: 15, benefits: [] }
+    },
+    rewards: program.rewards || [],
+    ...program
+  }
 
   return (
     <div className="space-y-6">
@@ -110,21 +155,21 @@ const LoyaltySettingsPage = () => {
       </div>
 
       {/* Program Status */}
-      <Card className={program.isEnabled ? 'bg-green-50 border-green-200' : 'bg-gray-50'}>
+      <Card className={safeProgram.isEnabled ? 'bg-green-50 border-green-200' : 'bg-gray-50'}>
         <CardContent className="p-4">
           <label className="flex items-center justify-between cursor-pointer">
             <div className="flex items-center gap-3">
-              <Award className={program.isEnabled ? 'text-green-600' : 'text-gray-400'} size={32} />
+              <Award className={safeProgram.isEnabled ? 'text-green-600' : 'text-gray-400'} size={32} />
               <div>
                 <p className="font-semibold text-gray-900">Loyalty Program Status</p>
                 <p className="text-sm text-gray-600">
-                  {program.isEnabled ? '🟢 Active - Clients are earning points!' : '⚪ Disabled - No points being awarded'}
+                  {safeProgram.isEnabled ? '🟢 Active - Clients are earning points!' : '⚪ Disabled - No points being awarded'}
                 </p>
               </div>
             </div>
             <input
               type="checkbox"
-              checked={program.isEnabled}
+              checked={safeProgram.isEnabled}
               onChange={(e) => setProgram({ ...program, isEnabled: e.target.checked })}
               className="w-6 h-6 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
@@ -147,7 +192,7 @@ const LoyaltySettingsPage = () => {
               type="number"
               min="0"
               step="0.1"
-              value={program.pointsPerDollar}
+              value={safeProgram.pointsPerDollar}
               onChange={(e) => setProgram({ ...program, pointsPerDollar: parseFloat(e.target.value) || 0 })}
               helperText="e.g., 1 = clients earn 1 point per $1 spent"
             />
@@ -155,7 +200,7 @@ const LoyaltySettingsPage = () => {
               label="Points Expiry (Days)"
               type="number"
               min="0"
-              value={program.pointsExpireDays}
+              value={safeProgram.pointsExpireDays}
               onChange={(e) => setProgram({ ...program, pointsExpireDays: parseInt(e.target.value) || 365 })}
               helperText="0 = never expire"
             />
@@ -166,21 +211,21 @@ const LoyaltySettingsPage = () => {
               label="First Visit Bonus"
               type="number"
               min="0"
-              value={program.bonusPointsFirstVisit}
+              value={safeProgram.bonusPointsFirstVisit}
               onChange={(e) => setProgram({ ...program, bonusPointsFirstVisit: parseInt(e.target.value) || 0 })}
             />
             <Input
               label="Birthday Bonus"
               type="number"
               min="0"
-              value={program.bonusPointsBirthday}
+              value={safeProgram.bonusPointsBirthday}
               onChange={(e) => setProgram({ ...program, bonusPointsBirthday: parseInt(e.target.value) || 0 })}
             />
             <Input
               label="Referral Bonus"
               type="number"
               min="0"
-              value={program.bonusPointsReferral}
+              value={safeProgram.bonusPointsReferral}
               onChange={(e) => setProgram({ ...program, bonusPointsReferral: parseInt(e.target.value) || 0 })}
             />
           </div>
@@ -197,7 +242,7 @@ const LoyaltySettingsPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {['bronze', 'silver', 'gold', 'platinum'].map((tierKey) => {
-            const tier = program.tiers[tierKey]
+            const tier = safeProgram.tiers[tierKey] || { name: tierKey, minPoints: 0, discountPercentage: 0, benefits: [] }
             const colors = {
               bronze: 'bg-orange-100 border-orange-300 text-orange-900',
               silver: 'bg-gray-100 border-gray-300 text-gray-900',
@@ -214,7 +259,7 @@ const LoyaltySettingsPage = () => {
                     onChange={(e) => setProgram({
                       ...program,
                       tiers: {
-                        ...program.tiers,
+                        ...(program.tiers || {}),
                         [tierKey]: { ...tier, name: e.target.value }
                       }
                     })}
@@ -227,7 +272,7 @@ const LoyaltySettingsPage = () => {
                     onChange={(e) => setProgram({
                       ...program,
                       tiers: {
-                        ...program.tiers,
+                        ...(program.tiers || {}),
                         [tierKey]: { ...tier, minPoints: parseInt(e.target.value) || 0 }
                       }
                     })}
@@ -241,7 +286,7 @@ const LoyaltySettingsPage = () => {
                     onChange={(e) => setProgram({
                       ...program,
                       tiers: {
-                        ...program.tiers,
+                        ...(program.tiers || {}),
                         [tierKey]: { ...tier, discountPercentage: parseInt(e.target.value) || 0 }
                       }
                     })}
@@ -268,7 +313,7 @@ const LoyaltySettingsPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {!program.rewards || program.rewards.length === 0 ? (
+          {!safeProgram.rewards || safeProgram.rewards.length === 0 ? (
             <div className="text-center py-8">
               <Gift className="mx-auto text-gray-400 mb-2" size={48} />
               <p className="text-gray-600">No rewards yet</p>
@@ -279,7 +324,7 @@ const LoyaltySettingsPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {program.rewards.map((reward, index) => (
+              {safeProgram.rewards.map((reward, index) => (
                 <div key={index} className="border-2 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-2">
                     <Gift className="text-pink-600" size={24} />
