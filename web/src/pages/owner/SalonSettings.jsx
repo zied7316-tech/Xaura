@@ -11,12 +11,14 @@ import ImageUpload from '../../components/ui/ImageUpload'
 import QRCodeDisplay from '../../components/salon/QRCodeDisplay'
 import toast from 'react-hot-toast'
 import { DAYS_OF_WEEK } from '../../utils/constants'
+import { Clock } from 'lucide-react'
 
 const SalonSettings = () => {
   const { user, salon, refreshSalon } = useAuth() // Get salon from account!
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedLogo, setSelectedLogo] = useState(null)
+  const [workingHours, setWorkingHours] = useState({})
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm()
 
@@ -33,11 +35,49 @@ const SalonSettings = () => {
       setValue('address.zipCode', salon.address?.zipCode || '')
       setValue('address.country', salon.address?.country || '')
       
+      // Load working hours
+      if (salon.workingHours) {
+        setWorkingHours(salon.workingHours)
+      } else {
+        // Initialize with default working hours if none exist
+        const defaultHours = {}
+        DAYS_OF_WEEK.forEach(day => {
+          defaultHours[day] = {
+            open: day === 'sunday' ? '' : '09:00',
+            close: day === 'sunday' ? '' : '17:00',
+            isClosed: day === 'sunday'
+          }
+        })
+        setWorkingHours(defaultHours)
+      }
+      
       // Log salon logo to track it
       console.log('SalonSettings - Salon logo:', salon.logo)
     }
     setLoading(false)
   }, [salon, setValue])
+
+  const handleWorkingHoursChange = (day, field, value) => {
+    setWorkingHours(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [field]: value
+      }
+    }))
+  }
+
+  const handleDayToggle = (day) => {
+    setWorkingHours(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        isClosed: !prev[day]?.isClosed,
+        open: prev[day]?.isClosed ? (prev[day].open || '09:00') : '',
+        close: prev[day]?.isClosed ? (prev[day].close || '17:00') : ''
+      }
+    }))
+  }
 
   const onSubmit = async (data) => {
     setSaving(true)
@@ -59,16 +99,25 @@ const SalonSettings = () => {
           }
         }
         
+        // Include working hours in update data
+        const updateData = {
+          ...data,
+          workingHours: workingHours
+        }
+        
         // Then update salon (this won't touch the logo field)
-        console.log('Updating salon with data:', data)
-        await salonService.updateSalon(salon._id, data)
+        console.log('Updating salon with data:', updateData)
+        await salonService.updateSalon(salon._id, updateData)
         toast.success('Salon updated successfully!')
         
         // Final refresh to ensure everything is up to date
         await refreshSalon()
       } else {
         // Create new salon
-        const newSalon = await salonService.createSalon(data)
+        const newSalon = await salonService.createSalon({
+          ...data,
+          workingHours: workingHours
+        })
         
         // Upload logo if selected
         if (selectedLogo && newSalon._id) {
@@ -311,6 +360,60 @@ const SalonSettings = () => {
                         error={errors.address?.country?.message}
                         {...register('address.country', { required: 'Country is required' })}
                       />
+                    </div>
+                  </div>
+                )}
+
+                {/* Working Hours Section */}
+                {salon && (
+                  <div className="pt-4 border-t">
+                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Clock className="text-primary-600" size={20} />
+                      Working Hours
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Set your salon's operating hours for each day of the week. Uncheck a day to mark it as closed.
+                    </p>
+                    <div className="space-y-3">
+                      {DAYS_OF_WEEK.map((day) => {
+                        const dayData = workingHours[day] || { open: '', close: '', isClosed: day === 'sunday' }
+                        const dayName = day.charAt(0).toUpperCase() + day.slice(1)
+                        
+                        return (
+                          <div key={day} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 min-w-[120px]">
+                              <input
+                                type="checkbox"
+                                checked={!dayData.isClosed}
+                                onChange={() => handleDayToggle(day)}
+                                className="rounded"
+                              />
+                              <label className="text-sm font-medium text-gray-700 min-w-[80px]">
+                                {dayName}
+                              </label>
+                            </div>
+                            {!dayData.isClosed ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <input
+                                  type="time"
+                                  value={dayData.open || ''}
+                                  onChange={(e) => handleWorkingHoursChange(day, 'open', e.target.value)}
+                                  className="input flex-1"
+                                />
+                                <span className="text-gray-500">to</span>
+                                <input
+                                  type="time"
+                                  value={dayData.close || ''}
+                                  onChange={(e) => handleWorkingHoursChange(day, 'close', e.target.value)}
+                                  className="input flex-1"
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-500 italic">Closed</span>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
