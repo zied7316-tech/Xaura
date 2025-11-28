@@ -666,11 +666,11 @@ const workerSellProduct = async (req, res, next) => {
       await wallet.save();
     }
 
-    // Create WorkerEarning record
-    await WorkerEarning.create({
+    // Create WorkerEarning record (only if there's an appointment, or create with null appointmentId for standalone sales)
+    // For product sales without appointments, we still track earnings but appointmentId is optional
+    const workerEarningData = {
       workerId: worker._id,
       salonId: worker.salonId,
-      appointmentId: appointmentId || null,
       serviceId: null, // Product sale, not service
       servicePrice: totalAmount,
       originalPrice: null,
@@ -680,7 +680,14 @@ const workerSellProduct = async (req, res, next) => {
       paymentModelType: 'percentage_commission', // Product sales use commission model
       isPaid: true, // Product sales are paid immediately
       serviceDate: new Date()
-    });
+    };
+    
+    // Only add appointmentId if provided (product sales can be standalone)
+    if (appointmentId) {
+      workerEarningData.appointmentId = appointmentId;
+    }
+    
+    await WorkerEarning.create(workerEarningData);
 
     // Create Payment record
     await Payment.create({
@@ -759,8 +766,17 @@ const getProductHistory = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const history = await ProductHistory.find({ productId: req.params.id })
-      .populate('userId', 'name email')
-      .populate('appointmentId', 'clientName dateTime')
+      .populate({
+        path: 'userId',
+        select: 'name email',
+        model: 'User'
+      })
+      .populate({
+        path: 'appointmentId',
+        select: 'clientName dateTime',
+        model: 'Appointment',
+        options: { strictPopulate: false } // Allow null appointments
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

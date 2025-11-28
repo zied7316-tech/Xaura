@@ -14,7 +14,8 @@ const workerEarningSchema = new mongoose.Schema({
   appointmentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Appointment',
-    required: true
+    required: false, // Optional for product sales that may not be linked to appointments
+    default: null
   },
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,

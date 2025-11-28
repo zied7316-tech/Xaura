@@ -785,15 +785,17 @@ const InventoryPage = () => {
                       </div>
 
                       <div className="mt-2 space-y-1 text-sm">
-                        {item.userId && (
+                        {(item.userId || item.userRole) && (
                           <div className="flex items-center gap-1">
                             <User size={14} />
                             <span className="font-medium">
-                              {item.userId.name || item.userId.email || 'Unknown User'}
+                              {item.userId?.name || item.userId?.email || 'System'}
                             </span>
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              {item.userRole}
-                            </Badge>
+                            {item.userRole && (
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                {item.userRole}
+                              </Badge>
+                            )}
                           </div>
                         )}
 
