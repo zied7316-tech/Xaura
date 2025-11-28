@@ -24,6 +24,8 @@ import WorkersPage from './pages/owner/WorkersPage'
 import FinancesPage from './pages/owner/FinancesPage'
 import CustomersPage from './pages/owner/CustomersPage'
 import InventoryPage from './pages/owner/InventoryPage'
+import ProductsForSalePage from './pages/owner/ProductsForSalePage'
+import ProductsForUsePage from './pages/owner/ProductsForUsePage'
 import OwnerReportsPage from './pages/owner/ReportsPage'
 import WorkerPaymentsPage from './pages/owner/WorkerPaymentsPage'
 import WorkerAnalyticsPage from './pages/owner/WorkerAnalyticsPage'
@@ -54,6 +56,8 @@ import WorkerAvailabilityPage from './pages/worker/WorkerAvailabilityPage'
 import WorkerAppointmentsPage from './pages/worker/WorkerAppointmentsPage'
 import WorkerWalkInPage from './pages/worker/WorkerWalkInPage'
 import WorkerInventoryPage from './pages/worker/WorkerInventoryPage'
+import WorkerProductsForSalePage from './pages/worker/WorkerProductsForSalePage'
+import WorkerProductsForUsePage from './pages/worker/WorkerProductsForUsePage'
 
 // Client pages
 import ClientDashboard from './pages/client/ClientDashboard'
@@ -134,9 +138,11 @@ function App() {
         <Route path="/owner/salon" element={<ProtectedRoute roles={['Owner']}><SalonSettings /></ProtectedRoute>} />
         <Route path="/owner/services" element={<ProtectedRoute roles={['Owner']}><ServicesPage /></ProtectedRoute>} />
         <Route path="/owner/workers" element={<ProtectedRoute roles={['Owner']}><WorkersPage /></ProtectedRoute>} />
-        <Route path="/owner/finances" element={<ProtectedRoute roles={['Owner']}><FinancesPage /></ProtectedRoute>} />
-        <Route path="/owner/customers" element={<ProtectedRoute roles={['Owner']}><CustomersPage /></ProtectedRoute>} />
+            <Route path="/owner/finances" element={<ProtectedRoute roles={['Owner']}><FinancesPage /></ProtectedRoute>} />
+            <Route path="/owner/customers" element={<ProtectedRoute roles={['Owner']}><CustomersPage /></ProtectedRoute>} />
             <Route path="/owner/inventory" element={<ProtectedRoute roles={['Owner']}><InventoryPage /></ProtectedRoute>} />
+            <Route path="/owner/products-for-sale" element={<ProtectedRoute roles={['Owner']}><ProductsForSalePage /></ProtectedRoute>} />
+            <Route path="/owner/products-for-use" element={<ProtectedRoute roles={['Owner']}><ProductsForUsePage /></ProtectedRoute>} />
             <Route path="/owner/reports" element={<ProtectedRoute roles={['Owner']}><OwnerReportsPage /></ProtectedRoute>} />
             <Route path="/owner/worker-payments" element={<ProtectedRoute roles={['Owner']}><WorkerPaymentsPage /></ProtectedRoute>} />
             <Route path="/owner/worker-analytics" element={<ProtectedRoute roles={['Owner']}><WorkerAnalyticsPage /></ProtectedRoute>} />
@@ -156,6 +162,8 @@ function App() {
         <Route path="/worker/appointments" element={<ProtectedRoute roles={['Worker']}><WorkerAppointmentsPage /></ProtectedRoute>} />
         <Route path="/worker/walk-in" element={<ProtectedRoute roles={['Worker']}><WorkerWalkInPage /></ProtectedRoute>} />
         <Route path="/worker/inventory" element={<ProtectedRoute roles={['Worker']}><WorkerInventoryPage /></ProtectedRoute>} />
+        <Route path="/worker/products-for-sale" element={<ProtectedRoute roles={['Worker']}><WorkerProductsForSalePage /></ProtectedRoute>} />
+        <Route path="/worker/products-for-use" element={<ProtectedRoute roles={['Worker']}><WorkerProductsForUsePage /></ProtectedRoute>} />
 
         {/* Client routes */}
         <Route path="/client/dashboard" element={<ProtectedRoute roles={['Client']}><ClientDashboard /></ProtectedRoute>} />

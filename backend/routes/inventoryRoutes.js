@@ -12,12 +12,20 @@ const {
   getWorkerProducts,
   workerUseProduct,
   workerSellProduct,
-  getProductHistory
+  getProductHistory,
+  getProductsForSale,
+  getProductsForUse,
+  getWorkerProductsForSale,
+  getWorkerProductsForUse
 } = require('../controllers/inventoryController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Low stock alerts
 router.get('/alerts/low-stock', protect, authorize('Owner'), getLowStockProducts);
+
+// Separated product type endpoints (must come before generic routes)
+router.get('/for-sale', protect, authorize('Owner'), getProductsForSale);
+router.get('/for-use', protect, authorize('Owner'), getProductsForUse);
 
 // CRUD operations
 router.get('/', protect, authorize('Owner'), getProducts);
@@ -31,8 +39,10 @@ router.delete('/:id', protect, authorize('Owner'), deleteProduct);
 router.put('/:id/restock', protect, authorize('Owner'), restockProduct);
 router.put('/:id/use', protect, authorize('Owner'), useProduct);
 
-// Worker inventory endpoints
-router.get('/worker/products', protect, authorize('Worker'), getWorkerProducts);
+// Worker inventory endpoints - separated by type
+router.get('/worker/products-for-sale', protect, authorize('Worker'), getWorkerProductsForSale);
+router.get('/worker/products-for-use', protect, authorize('Worker'), getWorkerProductsForUse);
+router.get('/worker/products', protect, authorize('Worker'), getWorkerProducts); // Keep for backward compatibility
 router.put('/worker/:id/use', protect, authorize('Worker'), workerUseProduct);
 router.post('/worker/:id/sell', protect, authorize('Worker'), workerSellProduct);
 

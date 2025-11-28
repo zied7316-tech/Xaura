@@ -8,6 +8,20 @@ export const inventoryService = {
     return response
   },
 
+  // Get products for sale only
+  getProductsForSale: async () => {
+    const response = await api.get('/inventory/for-sale')
+    // API interceptor already unwraps response.data, so response is { success, data, stats }
+    return response
+  },
+
+  // Get products for use only
+  getProductsForUse: async () => {
+    const response = await api.get('/inventory/for-use')
+    // API interceptor already unwraps response.data, so response is { success, data, stats }
+    return response
+  },
+
   // Get single product
   getProduct: async (productId) => {
     const response = await api.get(`/inventory/${productId}`)
@@ -62,6 +76,20 @@ export const inventoryService = {
   // Worker inventory methods
   getWorkerProducts: async () => {
     const response = await api.get('/inventory/worker/products')
+    // API interceptor already unwraps response.data, so response is { success, data }
+    return response
+  },
+
+  // Worker products for sale
+  getWorkerProductsForSale: async () => {
+    const response = await api.get('/inventory/worker/products-for-sale')
+    // API interceptor already unwraps response.data, so response is { success, data }
+    return response
+  },
+
+  // Worker products for use
+  getWorkerProductsForUse: async () => {
+    const response = await api.get('/inventory/worker/products-for-use')
     // API interceptor already unwraps response.data, so response is { success, data }
     return response
   },

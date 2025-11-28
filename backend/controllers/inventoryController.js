@@ -64,7 +64,22 @@ const logProductHistory = async (data) => {
       historyData.changes = data.changes;
     }
     
-    const result = await ProductHistory.create(historyData);
+    // Create the document using save() to have more control
+    // This prevents Mongoose from applying default: null for paymentMethod when it's not provided
+    const historyDoc = new ProductHistory(historyData);
+    
+    // If paymentMethod was not provided in the original data, explicitly remove it
+    // to prevent Mongoose from applying the default: null (which fails enum validation)
+    if (!data.hasOwnProperty('paymentMethod') || data.paymentMethod === null || data.paymentMethod === undefined) {
+      // Remove the field completely to prevent default from being applied
+      historyDoc.paymentMethod = undefined;
+      // Mark the field as unset
+      historyDoc.markModified('paymentMethod');
+      // Use direct property deletion
+      delete historyDoc._doc.paymentMethod;
+    }
+    
+    const result = await historyDoc.save();
     console.log(`✅ History created: ${result.actionType} for product ${result.productId} by ${result.userRole} (${result.userId})`);
     return result;
   } catch (error) {
@@ -883,6 +898,190 @@ const getProductHistory = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get products for sale only
+ * @route   GET /api/inventory/for-sale
+ * @access  Private (Owner)
+ */
+const getProductsForSale = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    const salonId = salonData.salonId;
+
+    // Get only products for sale
+    const products = await Product.find({ 
+      salonId, 
+      isActive: true,
+      productType: 'for_sale'
+    })
+      .populate('usedInServices', 'name')
+      .sort({ name: 1 });
+
+    // Calculate statistics for for_sale products
+    const totalProducts = products.length;
+    const lowStockCount = products.filter(p => p.quantity <= p.lowStockThreshold).length;
+    const outOfStockCount = products.filter(p => p.quantity === 0).length;
+    const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.costPrice), 0);
+    const totalSalesValue = products.reduce((sum, p) => sum + (p.quantity * p.sellingPrice), 0);
+
+    res.json({
+      success: true,
+      data: products,
+      stats: {
+        totalProducts,
+        lowStockCount,
+        outOfStockCount,
+        totalValue,
+        totalSalesValue
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get products for use only
+ * @route   GET /api/inventory/for-use
+ * @access  Private (Owner)
+ */
+const getProductsForUse = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+
+    // Get owner's salon (supports multi-salon system)
+    const salonData = await getOwnerSalon(ownerId);
+    if (!salonData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    const salonId = salonData.salonId;
+
+    // Get only products for use
+    const products = await Product.find({ 
+      salonId, 
+      isActive: true,
+      productType: 'for_use'
+    })
+      .populate('usedInServices', 'name')
+      .sort({ name: 1 });
+
+    // Calculate statistics for for_use products
+    const totalProducts = products.length;
+    const lowStockCount = products.filter(p => p.quantity <= p.lowStockThreshold).length;
+    const outOfStockCount = products.filter(p => p.quantity === 0).length;
+    const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.costPrice), 0);
+
+    res.json({
+      success: true,
+      data: products,
+      stats: {
+        totalProducts,
+        lowStockCount,
+        outOfStockCount,
+        totalValue
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get products for sale available to worker
+ * @route   GET /api/inventory/worker/products-for-sale
+ * @access  Private (Worker)
+ */
+const getWorkerProductsForSale = async (req, res, next) => {
+  try {
+    const worker = await User.findById(req.user.id);
+    
+    if (!worker || worker.role !== 'Worker') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only workers can access this endpoint'
+      });
+    }
+
+    if (!worker.salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Worker is not assigned to a salon'
+      });
+    }
+
+    // Get only products for sale for worker's salon
+    const products = await Product.find({ 
+      salonId: worker.salonId, 
+      isActive: true,
+      productType: 'for_sale',
+      quantity: { $gt: 0 } // Only show products in stock
+    })
+      .sort({ name: 1 });
+
+    res.json({
+      success: true,
+      data: products
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get products for use available to worker
+ * @route   GET /api/inventory/worker/products-for-use
+ * @access  Private (Worker)
+ */
+const getWorkerProductsForUse = async (req, res, next) => {
+  try {
+    const worker = await User.findById(req.user.id);
+    
+    if (!worker || worker.role !== 'Worker') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only workers can access this endpoint'
+      });
+    }
+
+    if (!worker.salonId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Worker is not assigned to a salon'
+      });
+    }
+
+    // Get only products for use for worker's salon
+    const products = await Product.find({ 
+      salonId: worker.salonId, 
+      isActive: true,
+      productType: 'for_use',
+      quantity: { $gt: 0 } // Only show products in stock
+    })
+      .sort({ name: 1 });
+
+    res.json({
+      success: true,
+      data: products
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProducts,
   getProduct,
@@ -895,5 +1094,9 @@ module.exports = {
   getWorkerProducts,
   workerUseProduct,
   workerSellProduct,
-  getProductHistory
+  getProductHistory,
+  getProductsForSale,
+  getProductsForUse,
+  getWorkerProductsForSale,
+  getWorkerProductsForUse
 };

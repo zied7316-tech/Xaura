@@ -22,7 +22,9 @@ import {
   MessageSquare,
   MapPin,
   Wifi,
-  QrCode
+  QrCode,
+  ShoppingCart,
+  Wrench
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -56,7 +58,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/appointments', icon: Calendar, label: t('owner.appointments', 'Appointments') },
     { to: '/owner/finances', icon: DollarSign, label: t('owner.finances', 'Finances'), badge: 'NEW' },
     { to: '/owner/customers', icon: Users, label: 'Customers', badge: 'NEW' },
-    { to: '/owner/inventory', icon: Package, label: t('owner.inventory', 'Inventory'), badge: 'NEW' },
+    { to: '/owner/products-for-sale', icon: ShoppingCart, label: 'Products for Sale', badge: 'NEW' },
+    { to: '/owner/products-for-use', icon: Wrench, label: 'Products for Use', badge: 'NEW' },
     { to: '/owner/reports', icon: TrendingUp, label: t('owner.reports', 'Reports'), badge: 'NEW' },
     { to: '/owner/reminders', icon: Bell, label: t('owner.reminders', 'SMS/Email Reminders'), badge: 'NEW' },
     { to: '/owner/loyalty', icon: Store, label: t('owner.loyalty', 'Loyalty & Rewards'), badge: 'NEW' },
@@ -67,7 +70,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/worker/dashboard', icon: LayoutDashboard, label: t('worker.myDashboard', 'My Dashboard') },
     { to: '/worker/availability', icon: Clock, label: t('worker.myAvailability', 'My Availability'), badge: 'NEW' },
     { to: '/worker/appointments', icon: Calendar, label: t('worker.myAppointments', 'My Appointments'), badge: 'NEW' },
-    { to: '/worker/inventory', icon: Package, label: 'Inventory', badge: 'NEW' },
+    { to: '/worker/products-for-sale', icon: ShoppingCart, label: 'Products for Sale', badge: 'NEW' },
+    { to: '/worker/products-for-use', icon: Wrench, label: 'Products for Use', badge: 'NEW' },
     { to: '/messages', icon: MessageSquare, label: t('chat.messages', 'Messages'), badge: 'NEW' },
     { to: '/worker/finances', icon: DollarSign, label: t('worker.myFinances', 'My Finances'), badge: 'NEW' },
   ]
