@@ -1,6 +1,6 @@
 const Subscription = require('../models/Subscription');
 const { getPlanDetails } = require('../config/subscriptionPlans');
-const getOwnerSalon = require('../utils/getOwnerSalon');
+const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
  * Check if subscription has a specific feature
