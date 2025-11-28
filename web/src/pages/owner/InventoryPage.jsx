@@ -169,7 +169,7 @@ const InventoryPage = () => {
   // Filter products
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+                         (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesCategory = filterCategory === 'all' || product.category === filterCategory
     return matchesSearch && matchesCategory
   })

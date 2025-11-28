@@ -67,6 +67,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/worker/dashboard', icon: LayoutDashboard, label: t('worker.myDashboard', 'My Dashboard') },
     { to: '/worker/availability', icon: Clock, label: t('worker.myAvailability', 'My Availability'), badge: 'NEW' },
     { to: '/worker/appointments', icon: Calendar, label: t('worker.myAppointments', 'My Appointments'), badge: 'NEW' },
+    { to: '/worker/inventory', icon: Package, label: 'Inventory', badge: 'NEW' },
     { to: '/messages', icon: MessageSquare, label: t('chat.messages', 'Messages'), badge: 'NEW' },
     { to: '/worker/finances', icon: DollarSign, label: t('worker.myFinances', 'My Finances'), badge: 'NEW' },
   ]
