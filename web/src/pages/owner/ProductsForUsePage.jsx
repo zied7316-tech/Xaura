@@ -149,6 +149,7 @@ const ProductsForUsePage = () => {
   const handleOpenRestock = (product) => {
     setRestockProduct(product)
     setRestockQuantity('')
+    setPurchaseCost('')
     setShowRestockModal(true)
   }
 
@@ -183,9 +184,19 @@ const ProductsForUsePage = () => {
     }
 
     try {
-      await inventoryService.restockProduct(restockProduct._id, parseFloat(restockQuantity))
-      toast.success(`Added ${restockQuantity} ${restockProduct.unit} to stock!`)
+      const restockData = {
+        quantity: parseFloat(restockQuantity)
+      }
+      
+      // If purchase cost is provided, include it
+      if (purchaseCost && parseFloat(purchaseCost) > 0) {
+        restockData.purchaseCost = parseFloat(purchaseCost)
+      }
+      
+      await inventoryService.restockProduct(restockProduct._id, restockData)
+      toast.success(`Added ${restockQuantity} ${restockProduct.unit} to stock!${purchaseCost && parseFloat(purchaseCost) > 0 ? ` (Cost: ${formatCurrency(parseFloat(purchaseCost))})` : ''}`)
       setShowRestockModal(false)
+      setPurchaseCost('')
       loadProducts()
     } catch (error) {
       toast.error('Failed to restock product')
@@ -375,7 +386,10 @@ const ProductsForUsePage = () => {
                         <div className="text-xs text-gray-500">Alert at: {product.lowStockThreshold}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-gray-900">{formatCurrency(product.costPrice)}</span>
+                        <div>
+                          <span className="text-gray-900">{formatCurrency(product.costPrice)}</span>
+                          <span className="text-xs text-gray-500 ml-1">per {product.unit}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-blue-600 font-semibold">
@@ -496,15 +510,29 @@ const ProductsForUsePage = () => {
             />
           </div>
 
-          <Input
-            label="Cost Price (for finance tracking)"
-            type="number"
-            step="0.01"
-            min="0"
-            value={formData.costPrice}
-            onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) || 0 })}
-            placeholder="Enter cost per unit"
-          />
+          <div className="space-y-2">
+            <Input
+              label="Total Cost Price (for the entire quantity)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.costPrice * formData.quantity || 0}
+              onChange={(e) => {
+                const totalCost = parseFloat(e.target.value) || 0;
+                const costPerUnit = formData.quantity > 0 ? totalCost / formData.quantity : 0;
+                setFormData({ ...formData, costPrice: costPerUnit });
+              }}
+              placeholder="e.g., 80 for 100g = 0.8 per gram"
+            />
+            {formData.quantity > 0 && formData.costPrice > 0 && (
+              <p className="text-sm text-gray-600">
+                Cost per {formData.unit}: {formatCurrency(formData.costPrice)}
+              </p>
+            )}
+            <p className="text-xs text-gray-500">
+              Enter the total cost you paid for the entire quantity. System will calculate cost per unit automatically.
+            </p>
+          </div>
 
           <div className="border-t pt-4">
             <h3 className="font-semibold mb-3">Supplier Information (Optional)</h3>
@@ -577,13 +605,33 @@ const ProductsForUsePage = () => {
               label={`Quantity to Add (${restockProduct.unit})`}
               type="number"
               min="1"
-              step="1"
+              step="0.01"
               required
               value={restockQuantity}
               onChange={(e) => setRestockQuantity(e.target.value)}
               placeholder="Enter quantity"
               autoFocus
             />
+            
+            <Input
+              label="Purchase Cost (Optional - Total cost for this quantity)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={purchaseCost}
+              onChange={(e) => setPurchaseCost(e.target.value)}
+              placeholder="e.g., 80 for 100g"
+            />
+            {restockQuantity && purchaseCost && parseFloat(restockQuantity) > 0 && parseFloat(purchaseCost) > 0 && (
+              <div className="bg-blue-50 rounded-lg p-3">
+                <p className="text-sm text-gray-700">
+                  Cost per {restockProduct.unit}: <span className="font-semibold">{formatCurrency(parseFloat(purchaseCost) / parseFloat(restockQuantity))}</span>
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  This will update the product's cost per unit and create an expense record.
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button onClick={handleRestock} fullWidth>

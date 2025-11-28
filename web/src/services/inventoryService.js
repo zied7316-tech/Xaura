@@ -56,8 +56,12 @@ export const inventoryService = {
   },
 
   // Restock product
-  restockProduct: async (productId, quantity) => {
-    const response = await api.put(`/inventory/${productId}/restock`, { quantity })
+  restockProduct: async (productId, restockData) => {
+    // restockData can be a number (backward compatibility) or an object with quantity and purchaseCost
+    const payload = typeof restockData === 'number' 
+      ? { quantity: restockData }
+      : restockData
+    const response = await api.put(`/inventory/${productId}/restock`, payload)
     return response.data
   },
 

@@ -6,8 +6,9 @@ import Input from '../../components/ui/Input'
 import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import { 
-  Wrench, AlertTriangle, Search, RefreshCw, Package
+  Wrench, AlertTriangle, Search, RefreshCw, Package, DollarSign
 } from 'lucide-react'
+import { formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const WorkerProductsForUsePage = () => {
@@ -53,8 +54,10 @@ const WorkerProductsForUsePage = () => {
     }
 
     try {
-      await inventoryService.workerUseProduct(selectedProduct._id, parseFloat(useQuantity))
-      toast.success(`Used ${useQuantity} ${selectedProduct.unit} of ${selectedProduct.name}`)
+      const result = await inventoryService.workerUseProduct(selectedProduct._id, parseFloat(useQuantity))
+      const usageCost = result?.usageCost || (parseFloat(useQuantity) * selectedProduct.costPrice)
+      const costMessage = usageCost > 0 ? ` (Cost: ${formatCurrency(usageCost)})` : ''
+      toast.success(`Used ${useQuantity} ${selectedProduct.unit} of ${selectedProduct.name}${costMessage}`)
       setShowUseModal(false)
       loadProducts()
     } catch (error) {
@@ -147,6 +150,11 @@ const WorkerProductsForUsePage = () => {
                       <span>Low stock</span>
                     </div>
                   )}
+                  {product.costPrice > 0 && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Cost: {formatCurrency(product.costPrice)} per {product.unit}
+                    </div>
+                  )}
                 </div>
 
                 <Button
@@ -192,6 +200,23 @@ const WorkerProductsForUsePage = () => {
               placeholder="Enter quantity"
               autoFocus
             />
+            
+            {useQuantity && parseFloat(useQuantity) > 0 && selectedProduct.costPrice > 0 && (
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Usage Cost:</span>
+                  <span className="font-semibold text-blue-600">
+                    {formatCurrency(parseFloat(useQuantity) * selectedProduct.costPrice)}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {parseFloat(useQuantity)} {selectedProduct.unit} × {formatCurrency(selectedProduct.costPrice)} per {selectedProduct.unit}
+                </p>
+                <p className="text-xs text-gray-500 mt-1 italic">
+                  This cost will be automatically recorded in finance as an expense.
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button onClick={handleUseProduct} fullWidth>

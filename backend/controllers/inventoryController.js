@@ -5,6 +5,7 @@ const User = require('../models/User');
 const WorkerWallet = require('../models/WorkerWallet');
 const WorkerEarning = require('../models/WorkerEarning');
 const Payment = require('../models/Payment');
+const Expense = require('../models/Expense');
 const { getOwnerSalon } = require('../utils/getOwnerSalon');
 
 /**
@@ -322,7 +323,7 @@ const deleteProduct = async (req, res, next) => {
  */
 const restockProduct = async (req, res, next) => {
   try {
-    const { quantity } = req.body;
+    const { quantity, purchaseCost } = req.body;
 
     if (!quantity || quantity <= 0) {
       return res.status(400).json({
@@ -338,6 +339,33 @@ const restockProduct = async (req, res, next) => {
         success: false,
         message: 'Product not found'
       });
+    }
+
+    // If purchaseCost is provided, calculate cost per unit and update product
+    if (purchaseCost !== undefined && purchaseCost !== null && purchaseCost > 0) {
+      const costPerUnit = purchaseCost / quantity;
+      product.costPrice = costPerUnit;
+      
+      // Create expense for the purchase (only for for_use products)
+      if (product.productType === 'for_use') {
+        try {
+          await Expense.create({
+            salonId: product.salonId,
+            category: 'supplies',
+            amount: purchaseCost,
+            currency: 'TND',
+            description: `Purchase: ${quantity} ${product.unit} of "${product.name}"`,
+            vendor: product.supplier?.name || '',
+            paymentMethod: 'cash',
+            date: new Date(),
+            isPaid: true,
+            notes: `Restock: ${quantity} ${product.unit} @ ${costPerUnit.toFixed(3)} per ${product.unit}`
+          });
+        } catch (expenseError) {
+          // Log error but don't fail the restock operation
+          console.error('Error creating expense for restock:', expenseError);
+        }
+      }
     }
 
     // Add to existing quantity
@@ -358,7 +386,9 @@ const restockProduct = async (req, res, next) => {
       quantityBefore: quantityBefore,
       quantityAfter: product.quantity,
       quantityChange: quantity,
-      description: `Restocked ${quantity} ${product.unit} of "${product.name}"`
+      unitPrice: product.costPrice,
+      totalAmount: purchaseCost || (quantity * product.costPrice),
+      description: `Restocked ${quantity} ${product.unit} of "${product.name}"${purchaseCost ? ` (Cost: ${purchaseCost.toFixed(2)} TND)` : ''}`
     });
 
     res.json({
@@ -403,10 +433,37 @@ const useProduct = async (req, res, next) => {
       });
     }
 
+    // Calculate usage cost if costPrice is set
+    let usageCost = 0;
+    if (product.costPrice && product.costPrice > 0) {
+      usageCost = quantity * product.costPrice;
+    }
+
     // Reduce quantity
     const quantityBefore = product.quantity;
     product.quantity -= quantity;
     await product.save();
+
+    // Create expense for product usage (if costPrice is set and product is for_use)
+    if (usageCost > 0 && product.productType === 'for_use') {
+      try {
+        await Expense.create({
+          salonId: product.salonId,
+          category: 'supplies',
+          amount: usageCost,
+          currency: 'TND',
+          description: `Usage: ${quantity} ${product.unit} of "${product.name}"`,
+          vendor: product.supplier?.name || '',
+          paymentMethod: 'other',
+          date: new Date(),
+          isPaid: true,
+          notes: `Product usage by owner: ${quantity} ${product.unit} @ ${product.costPrice.toFixed(3)} per ${product.unit}`
+        });
+      } catch (expenseError) {
+        // Log error but don't fail the use operation
+        console.error('Error creating expense for product usage:', expenseError);
+      }
+    }
 
     // Log history
     await logProductHistory({
@@ -418,13 +475,16 @@ const useProduct = async (req, res, next) => {
       quantityBefore: quantityBefore,
       quantityAfter: product.quantity,
       quantityChange: -quantity,
-      description: `Used ${quantity} ${product.unit} of "${product.name}"`
+      unitPrice: product.costPrice,
+      totalAmount: usageCost,
+      description: `Used ${quantity} ${product.unit} of "${product.name}"${usageCost > 0 ? ` (Cost: ${usageCost.toFixed(2)} TND)` : ''}`
     });
 
     res.json({
       success: true,
-      message: `Used ${quantity} ${product.unit}`,
-      data: product
+      message: `Used ${quantity} ${product.unit}${usageCost > 0 ? ` (Cost: ${usageCost.toFixed(2)} TND)` : ''}`,
+      data: product,
+      usageCost: usageCost
     });
   } catch (error) {
     next(error);
@@ -563,10 +623,37 @@ const workerUseProduct = async (req, res, next) => {
       });
     }
 
+    // Calculate usage cost if costPrice is set
+    let usageCost = 0;
+    if (product.costPrice && product.costPrice > 0) {
+      usageCost = quantity * product.costPrice;
+    }
+
     // Reduce quantity
     const quantityBefore = product.quantity;
     product.quantity -= quantity;
     await product.save();
+
+    // Create expense for product usage (if costPrice is set)
+    if (usageCost > 0) {
+      try {
+        await Expense.create({
+          salonId: worker.salonId,
+          category: 'supplies',
+          amount: usageCost,
+          currency: 'TND',
+          description: `Usage: ${quantity} ${product.unit} of "${product.name}"`,
+          vendor: product.supplier?.name || '',
+          paymentMethod: 'other',
+          date: new Date(),
+          isPaid: true,
+          notes: `Product usage by worker: ${quantity} ${product.unit} @ ${product.costPrice.toFixed(3)} per ${product.unit}`
+        });
+      } catch (expenseError) {
+        // Log error but don't fail the use operation
+        console.error('Error creating expense for product usage:', expenseError);
+      }
+    }
 
     // Log history
     await logProductHistory({
@@ -578,13 +665,16 @@ const workerUseProduct = async (req, res, next) => {
       quantityBefore: quantityBefore,
       quantityAfter: product.quantity,
       quantityChange: -quantity,
-      description: `Worker used ${quantity} ${product.unit} of "${product.name}"`
+      unitPrice: product.costPrice,
+      totalAmount: usageCost,
+      description: `Worker used ${quantity} ${product.unit} of "${product.name}"${usageCost > 0 ? ` (Cost: ${usageCost.toFixed(2)} TND)` : ''}`
     });
 
     res.json({
       success: true,
-      message: `Used ${quantity} ${product.unit} of ${product.name}`,
-      data: product
+      message: `Used ${quantity} ${product.unit} of ${product.name}${usageCost > 0 ? ` (Cost: ${usageCost.toFixed(2)} TND)` : ''}`,
+      data: product,
+      usageCost: usageCost
     });
   } catch (error) {
     next(error);
