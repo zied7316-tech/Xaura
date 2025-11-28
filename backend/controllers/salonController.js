@@ -244,19 +244,12 @@ const updateSalon = async (req, res, next) => {
  */
 const addWorker = async (req, res, next) => {
   try {
-    const { userID, email } = req.body;
+    const { userID } = req.body;
 
     if (!userID) {
       return res.status(400).json({
         success: false,
         message: 'Worker ID is required'
-      });
-    }
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Worker email is required'
       });
     }
 
@@ -268,13 +261,13 @@ const addWorker = async (req, res, next) => {
       });
     }
 
-    // Find the worker user by both userID and email
-    const worker = await User.findOne({ userID, email, role: 'Worker' });
+    // Find the worker user by userID only
+    const worker = await User.findOne({ userID, role: 'Worker' });
 
     if (!worker) {
       return res.status(404).json({
         success: false,
-        message: 'Worker not found. Please verify the Worker ID and email match a registered worker account.'
+        message: 'Worker not found. Please verify the Worker ID matches a registered worker account.'
       });
     }
 

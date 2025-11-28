@@ -22,7 +22,6 @@ const WorkersPage = () => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [workerUserID, setWorkerUserID] = useState('')
-  const [workerEmail, setWorkerEmail] = useState('')
   const [editData, setEditData] = useState(null)
   const [selectedAvatar, setSelectedAvatar] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -49,11 +48,6 @@ const WorkersPage = () => {
       return
     }
 
-    if (!workerEmail) {
-      toast.error('Please enter worker email')
-      return
-    }
-
     // Validate userID format (4 digits)
     if (!/^\d{4}$/.test(workerUserID)) {
       toast.error('Worker ID must be exactly 4 digits')
@@ -66,7 +60,7 @@ const WorkersPage = () => {
       
       // Alternative: If salon exists, use that
       if (salon && salon._id) {
-        await salonService.addWorker(salon._id, workerUserID, workerEmail)
+        await salonService.addWorker(salon._id, workerUserID)
       } else {
         // Fallback: Worker will be added through direct API
         toast.error('Please create a salon first')
@@ -76,7 +70,6 @@ const WorkersPage = () => {
       toast.success('Worker added successfully!')
       setShowAddModal(false)
       setWorkerUserID('')
-      setWorkerEmail('')
       loadWorkers()
     } catch (error) {
       toast.error(error.response?.data?.message || error.message || 'Failed to add worker')
@@ -310,14 +303,13 @@ const WorkersPage = () => {
         onClose={() => {
           setShowAddModal(false)
           setWorkerUserID('')
-          setWorkerEmail('')
         }}
         title="Add Worker to Salon"
       >
         <div className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
             <strong>Note:</strong> The worker must register first with role "Worker", 
-            then you can add them here using their Worker ID and email.
+            then you can add them here using their Worker ID.
           </div>
           
           <Input
@@ -330,14 +322,6 @@ const WorkersPage = () => {
           />
           <p className="text-xs text-gray-500 -mt-2">Enter the 4-digit Worker ID</p>
 
-          <Input
-            label="Worker Email"
-            type="email"
-            placeholder="worker@example.com"
-            value={workerEmail}
-            onChange={(e) => setWorkerEmail(e.target.value)}
-          />
-
           <div className="flex gap-3">
             <Button onClick={handleAddWorker} fullWidth>
               Add Worker
@@ -345,7 +329,6 @@ const WorkersPage = () => {
             <Button variant="outline" onClick={() => {
               setShowAddModal(false)
               setWorkerUserID('')
-              setWorkerEmail('')
             }} fullWidth>
               Cancel
             </Button>
