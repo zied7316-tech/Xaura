@@ -21,8 +21,8 @@ router.get('/alerts/low-stock', protect, authorize('Owner'), getLowStockProducts
 
 // CRUD operations
 router.get('/', protect, authorize('Owner'), getProducts);
+router.get('/:id/history', protect, authorize('Owner'), getProductHistory); // Must come before /:id route
 router.get('/:id', protect, authorize('Owner'), getProduct);
-router.get('/:id/history', protect, authorize('Owner'), getProductHistory);
 router.post('/', protect, authorize('Owner'), createProduct);
 router.put('/:id', protect, authorize('Owner'), updateProduct);
 router.delete('/:id', protect, authorize('Owner'), deleteProduct);

@@ -187,10 +187,18 @@ const InventoryPage = () => {
     try {
       setHistoryLoading(true)
       const response = await inventoryService.getProductHistory(productId)
-      setHistory(response.data || [])
+      // API interceptor already unwraps response.data, so response is { success, data, pagination }
+      console.log('Product history response:', response)
+      if (response && response.data) {
+        setHistory(Array.isArray(response.data) ? response.data : [])
+      } else {
+        console.warn('Unexpected response structure:', response)
+        setHistory([])
+      }
     } catch (error) {
       console.error('Error loading product history:', error)
-      toast.error('Failed to load product history')
+      console.error('Error details:', error.response || error.message)
+      toast.error(error.response?.data?.message || 'Failed to load product history')
       setHistory([])
     } finally {
       setHistoryLoading(false)
