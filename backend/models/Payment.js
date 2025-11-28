@@ -4,7 +4,8 @@ const paymentSchema = new mongoose.Schema({
   appointmentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Appointment',
-    required: [true, 'Appointment is required']
+    required: false, // Optional for product sales that may not be linked to appointments
+    default: null
   },
   salonId: {
     type: mongoose.Schema.Types.ObjectId,

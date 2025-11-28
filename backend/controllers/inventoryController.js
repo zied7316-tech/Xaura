@@ -15,6 +15,8 @@ const logProductHistory = async (data) => {
     await ProductHistory.create(data);
   } catch (error) {
     console.error('Error logging product history:', error);
+    console.error('History data that failed:', JSON.stringify(data, null, 2));
+    console.error('Validation errors:', error.errors || error.message);
     // Don't throw - history logging should not break the main operation
   }
 };
@@ -765,7 +767,13 @@ const getProductHistory = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    const history = await ProductHistory.find({ productId: req.params.id })
+    // Convert productId to ObjectId if it's a string
+    const mongoose = require('mongoose');
+    const productObjectId = mongoose.Types.ObjectId.isValid(req.params.id) 
+      ? new mongoose.Types.ObjectId(req.params.id)
+      : req.params.id;
+
+    const history = await ProductHistory.find({ productId: productObjectId })
       .populate({
         path: 'userId',
         select: 'name email',
@@ -781,7 +789,10 @@ const getProductHistory = async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
-    const total = await ProductHistory.countDocuments({ productId: req.params.id });
+    const total = await ProductHistory.countDocuments({ productId: productObjectId });
+    
+    // Debug logging
+    console.log(`Product history query for productId: ${req.params.id}, found ${history.length} records, total: ${total}`);
 
     res.json({
       success: true,
