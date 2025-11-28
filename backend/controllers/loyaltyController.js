@@ -3,7 +3,8 @@ const LoyaltyTransaction = require('../models/LoyaltyTransaction');
 const CustomerProfile = require('../models/CustomerProfile');
 const User = require('../models/User');
 const Appointment = require('../models/Appointment');
-const { getOwnerSalon } = require('../utils/getOwnerSalon');
+const getOwnerSalonUtils = require('../utils/getOwnerSalon');
+const getOwnerSalon = getOwnerSalonUtils.getOwnerSalon;
 
 /**
  * @desc    Get loyalty program settings
