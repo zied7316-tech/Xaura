@@ -12,12 +12,42 @@ const { getOwnerSalon } = require('../utils/getOwnerSalon');
  */
 const logProductHistory = async (data) => {
   try {
-    await ProductHistory.create(data);
+    const mongoose = require('mongoose');
+    
+    // Ensure all ObjectIds are properly converted
+    const historyData = {
+      ...data,
+      productId: data.productId && mongoose.Types.ObjectId.isValid(data.productId)
+        ? new mongoose.Types.ObjectId(data.productId)
+        : data.productId,
+      salonId: data.salonId && mongoose.Types.ObjectId.isValid(data.salonId)
+        ? new mongoose.Types.ObjectId(data.salonId)
+        : data.salonId,
+      userId: data.userId && mongoose.Types.ObjectId.isValid(data.userId)
+        ? new mongoose.Types.ObjectId(data.userId)
+        : data.userId,
+      // Handle optional ObjectId fields
+      appointmentId: data.appointmentId && mongoose.Types.ObjectId.isValid(data.appointmentId)
+        ? new mongoose.Types.ObjectId(data.appointmentId)
+        : (data.appointmentId || null),
+      productSaleId: data.productSaleId && mongoose.Types.ObjectId.isValid(data.productSaleId)
+        ? new mongoose.Types.ObjectId(data.productSaleId)
+        : (data.productSaleId || null)
+    };
+    
+    const result = await ProductHistory.create(historyData);
+    console.log(`✅ History created: ${result.actionType} for product ${result.productId} by ${result.userRole} (${result.userId})`);
+    return result;
   } catch (error) {
-    console.error('Error logging product history:', error);
+    console.error('❌ Error logging product history:', error);
     console.error('History data that failed:', JSON.stringify(data, null, 2));
-    console.error('Validation errors:', error.errors || error.message);
+    if (error.errors) {
+      console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
+    } else {
+      console.error('Error message:', error.message);
+    }
     // Don't throw - history logging should not break the main operation
+    return null;
   }
 };
 
