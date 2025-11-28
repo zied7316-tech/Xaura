@@ -11,7 +11,7 @@ import {
   Package, Plus, Edit, Trash2, AlertTriangle, TrendingUp,
   Search, Filter, RefreshCw, ShoppingCart, DollarSign, Box, History, Clock, User
 } from 'lucide-react'
-import { formatCurrency } from '../../utils/helpers'
+import { formatCurrency, formatDateTime } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const InventoryPage = () => {
@@ -175,6 +175,26 @@ const InventoryPage = () => {
     setRestockProduct(product)
     setRestockQuantity('')
     setShowRestockModal(true)
+  }
+
+  const handleOpenHistory = async (product) => {
+    setHistoryProduct(product)
+    setShowHistoryModal(true)
+    await loadProductHistory(product._id)
+  }
+
+  const loadProductHistory = async (productId) => {
+    try {
+      setHistoryLoading(true)
+      const response = await inventoryService.getProductHistory(productId)
+      setHistory(response.data || [])
+    } catch (error) {
+      console.error('Error loading product history:', error)
+      toast.error('Failed to load product history')
+      setHistory([])
+    } finally {
+      setHistoryLoading(false)
+    }
   }
 
   const handleRestock = async () => {
@@ -697,6 +717,133 @@ const InventoryPage = () => {
                 Cancel
               </Button>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Product History Modal */}
+      <Modal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        title={`Product History${historyProduct ? ` - ${historyProduct.name}` : ''}`}
+        size="lg"
+      >
+        {historyProduct && (
+          <div className="space-y-4">
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="text-center py-12">
+                <History className="mx-auto text-gray-400 mb-4" size={48} />
+                <p className="text-gray-600">No history available for this product</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {history.map((item, index) => {
+                  const actionColors = {
+                    created: 'bg-green-100 text-green-800 border-green-200',
+                    updated: 'bg-blue-100 text-blue-800 border-blue-200',
+                    deleted: 'bg-red-100 text-red-800 border-red-200',
+                    restock: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                    use: 'bg-orange-100 text-orange-800 border-orange-200',
+                    sell: 'bg-purple-100 text-purple-800 border-purple-200'
+                  }
+
+                  const actionIcons = {
+                    created: '➕',
+                    updated: '✏️',
+                    deleted: '🗑️',
+                    restock: '📦',
+                    use: '🔧',
+                    sell: '💰'
+                  }
+
+                  return (
+                    <div
+                      key={item._id || index}
+                      className={`border rounded-lg p-4 ${actionColors[item.actionType] || 'bg-gray-100 border-gray-200'}`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{actionIcons[item.actionType] || '📝'}</span>
+                          <span className="font-semibold capitalize">{item.actionType}</span>
+                        </div>
+                        <div className="text-sm flex items-center gap-1 text-gray-600">
+                          <Clock size={14} />
+                          {formatDateTime(item.createdAt)}
+                        </div>
+                      </div>
+
+                      <div className="mt-2 space-y-1 text-sm">
+                        {item.userId && (
+                          <div className="flex items-center gap-1">
+                            <User size={14} />
+                            <span className="font-medium">
+                              {item.userId.name || item.userId.email || 'Unknown User'}
+                            </span>
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {item.userRole}
+                            </Badge>
+                          </div>
+                        )}
+
+                        {item.description && (
+                          <p className="text-gray-700 mt-2">{item.description}</p>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-300">
+                          <div>
+                            <span className="text-xs text-gray-600">Quantity Before:</span>
+                            <span className="ml-2 font-semibold">{item.quantityBefore} {historyProduct.unit}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-600">Quantity After:</span>
+                            <span className="ml-2 font-semibold">{item.quantityAfter} {historyProduct.unit}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-600">Change:</span>
+                            <span className={`ml-2 font-semibold ${item.quantityChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {item.quantityChange >= 0 ? '+' : ''}{item.quantityChange} {historyProduct.unit}
+                            </span>
+                          </div>
+                        </div>
+
+                        {item.actionType === 'sell' && (
+                          <div className="mt-3 pt-3 border-t border-gray-300 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600">Total Amount:</span>
+                              <span className="font-semibold text-green-600">{formatCurrency(item.totalAmount)}</span>
+                            </div>
+                            {item.commissionAmount > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-600">Worker Commission:</span>
+                                <span className="font-semibold text-purple-600">{formatCurrency(item.commissionAmount)}</span>
+                              </div>
+                            )}
+                            {item.paymentMethod && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-600">Payment Method:</span>
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {item.paymentMethod}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {item.notes && (
+                          <div className="mt-2 pt-2 border-t border-gray-300">
+                            <p className="text-xs text-gray-600 italic">Notes: {item.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </Modal>
