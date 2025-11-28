@@ -803,11 +803,9 @@ const getProductHistory = async (req, res, next) => {
       ? new mongoose.Types.ObjectId(req.params.id)
       : req.params.id;
 
-    // Query history - try both ObjectId and string format to ensure we find all records
+    // Query history - ensure we use proper ObjectId format
     const historyQuery = { 
-      productId: mongoose.Types.ObjectId.isValid(req.params.id) 
-        ? new mongoose.Types.ObjectId(req.params.id) 
-        : req.params.id 
+      productId: productObjectId
     };
     
     const history = await ProductHistory.find(historyQuery)
@@ -828,9 +826,18 @@ const getProductHistory = async (req, res, next) => {
 
     const total = await ProductHistory.countDocuments(historyQuery);
     
-    // Debug logging
-    console.log(`Product history query for productId: ${req.params.id}, found ${history.length} records, total: ${total}`);
-    console.log(`History records actionTypes:`, history.map(h => h.actionType));
+    // Debug logging - show detailed info about what was found
+    console.log(`📊 Product history query for productId: ${req.params.id}`);
+    console.log(`   Found ${history.length} records (showing), total: ${total}`);
+    console.log(`   Action types found:`, history.map(h => `${h.actionType}(${h._id})`).join(', ') || 'none');
+    if (history.length > 0) {
+      console.log(`   Sample record:`, {
+        actionType: history[0].actionType,
+        userId: history[0].userId?._id || history[0].userId,
+        salonId: history[0].salonId,
+        createdAt: history[0].createdAt
+      });
+    }
 
     res.json({
       success: true,
