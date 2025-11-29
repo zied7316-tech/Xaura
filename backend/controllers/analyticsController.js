@@ -300,9 +300,152 @@ const getProfitLoss = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get anonymous bookings analytics
+ * @route   GET /api/analytics/anonymous-bookings
+ * @access  Private (Owner)
+ */
+const getAnonymousBookingsAnalytics = async (req, res, next) => {
+  try {
+    const { getOwnerSalon } = require('../utils/getOwnerSalon');
+    const salonData = await getOwnerSalon(req.user.id);
+    
+    if (!salonData || !salonData.salonId) {
+      return res.json({
+        success: true,
+        data: {
+          totalBookings: 0,
+          byStatus: {},
+          byWorker: [],
+          totalRevenue: 0,
+          averageBookingValue: 0,
+          conversionRate: 0,
+          recentBookings: []
+        }
+      });
+    }
+
+    const salonId = salonData.salonId;
+
+    // Get all anonymous bookings
+    const anonymousBookings = await Appointment.find({
+      salonId: salonId,
+      isAnonymous: true
+    })
+      .populate('workerId', 'name email')
+      .populate('salonId', 'name')
+      .sort({ createdAt: -1 });
+
+    // Calculate statistics
+    const totalBookings = anonymousBookings.length;
+    
+    // Group by status
+    const byStatus = {
+      Pending: 0,
+      Confirmed: 0,
+      'In Progress': 0,
+      Completed: 0,
+      Cancelled: 0
+    };
+    
+    anonymousBookings.forEach(apt => {
+      if (byStatus.hasOwnProperty(apt.status)) {
+        byStatus[apt.status]++;
+      }
+    });
+
+    // Group by worker
+    const workerMap = new Map();
+    let totalRevenue = 0;
+    let completedCount = 0;
+
+    anonymousBookings.forEach(apt => {
+      const workerId = apt.workerId?._id?.toString() || 'unassigned';
+      const workerName = apt.workerId?.name || 'Not Assigned';
+      
+      if (!workerMap.has(workerId)) {
+        workerMap.set(workerId, {
+          workerId: workerId === 'unassigned' ? null : workerId,
+          workerName,
+          totalBookings: 0,
+          completedBookings: 0,
+          totalRevenue: 0,
+          averageRevenue: 0
+        });
+      }
+      
+      const workerStats = workerMap.get(workerId);
+      workerStats.totalBookings++;
+      
+      if (apt.status === 'Completed') {
+        workerStats.completedBookings++;
+        const revenue = apt.servicePriceAtBooking || 0;
+        workerStats.totalRevenue += revenue;
+        totalRevenue += revenue;
+        completedCount++;
+      }
+    });
+
+    // Calculate averages
+    workerMap.forEach(stats => {
+      if (stats.completedBookings > 0) {
+        stats.averageRevenue = stats.totalRevenue / stats.completedBookings;
+      }
+    });
+
+    const byWorker = Array.from(workerMap.values())
+      .sort((a, b) => b.totalBookings - a.totalBookings);
+
+    const averageBookingValue = completedCount > 0 ? totalRevenue / completedCount : 0;
+    const conversionRate = totalBookings > 0 ? (completedCount / totalBookings) * 100 : 0;
+
+    // Get recent bookings (last 10)
+    const recentBookings = anonymousBookings.slice(0, 10).map(apt => ({
+      _id: apt._id,
+      clientName: apt.clientName,
+      clientPhone: apt.clientPhone,
+      dateTime: apt.dateTime,
+      status: apt.status,
+      servicePriceAtBooking: apt.servicePriceAtBooking,
+      workerName: apt.workerId?.name || 'Not Assigned',
+      createdAt: apt.createdAt
+    }));
+
+    // Monthly trends
+    const monthlyTrends = {};
+    anonymousBookings.forEach(apt => {
+      const month = new Date(apt.createdAt).toISOString().slice(0, 7); // YYYY-MM
+      if (!monthlyTrends[month]) {
+        monthlyTrends[month] = { count: 0, revenue: 0 };
+      }
+      monthlyTrends[month].count++;
+      if (apt.status === 'Completed') {
+        monthlyTrends[month].revenue += apt.servicePriceAtBooking || 0;
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalBookings,
+        byStatus,
+        byWorker,
+        totalRevenue,
+        averageBookingValue,
+        conversionRate: conversionRate.toFixed(2),
+        recentBookings,
+        monthlyTrends
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardAnalytics,
   getRevenueTrends,
-  getProfitLoss
+  getProfitLoss,
+  getAnonymousBookingsAnalytics
 };
 

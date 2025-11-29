@@ -108,7 +108,7 @@ const WorkerStatusToggle = () => {
         if (!hasPermission) {
           return
         }
-
+        
         if (trackingEnabled && method === 'gps') {
           // Helper function to report GPS error to backend
           const reportGPSError = async (error) => {
@@ -162,29 +162,29 @@ const WorkerStatusToggle = () => {
                 return
               }
 
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                  async (position) => {
-                    try {
-                      await workerTrackingService.reportLocation({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                      })
-                      loadStatus()
-                    } catch (error) {
-                      console.error('[TRACKING] Error reporting location:', error)
-                    }
-                  },
-                  async (error) => {
-                    // Report GPS error to backend so status can be updated
-                    await reportGPSError(error)
-                  },
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                  try {
+                    await workerTrackingService.reportLocation({
+                      latitude: position.coords.latitude,
+                      longitude: position.coords.longitude
+                    })
+                    loadStatus()
+                  } catch (error) {
+                    console.error('[TRACKING] Error reporting location:', error)
+                  }
+                },
+                async (error) => {
+                  // Report GPS error to backend so status can be updated
+                  await reportGPSError(error)
+                },
                   geolocationOptions
-                )
-              } else {
-                // Geolocation not supported
-                reportGPSError({ code: 2, message: 'Geolocation not supported' })
-              }
+              )
+            } else {
+              // Geolocation not supported
+              reportGPSError({ code: 2, message: 'Geolocation not supported' })
+            }
             })
           }, 30000) // Report every 30 seconds (reduced from 60 for faster detection)
         }

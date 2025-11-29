@@ -47,6 +47,11 @@ export const financialService = {
     return response.data
   },
 
+  getAnonymousBookingsAnalytics: async () => {
+    const response = await api.get('/analytics/anonymous-bookings')
+    return response.data
+  },
+
   getRevenueTrends: async (period = 'month') => {
     const response = await api.get(`/analytics/revenue-trends?period=${period}`)
     return response.data

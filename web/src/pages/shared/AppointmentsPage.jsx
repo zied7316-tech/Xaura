@@ -247,15 +247,21 @@ const AppointmentsPage = () => {
           <CardContent>
             <div className="space-y-4">
               {pendingRequests.map((apt) => (
-                <div key={apt._id} className="p-4 border-2 border-yellow-200 bg-yellow-50 rounded-lg hover:border-yellow-300 transition-all">
+                <div key={apt._id} className={`p-4 border-2 rounded-lg transition-all ${
+                  apt.isAnonymous 
+                    ? 'border-purple-300 bg-purple-50 hover:border-purple-400 shadow-md' 
+                    : 'border-yellow-200 bg-yellow-50 hover:border-yellow-300'
+                }`}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
                       {/* Worker/Salon Info */}
-                      <div className="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                        apt.isAnonymous ? 'bg-purple-100' : 'bg-yellow-100'
+                      }`}>
                         {isClient ? (
-                          <Store className="text-yellow-600" size={24} />
+                          <Store className={apt.isAnonymous ? "text-purple-600" : "text-yellow-600"} size={24} />
                         ) : (
-                          <User className="text-yellow-600" size={24} />
+                          <User className={apt.isAnonymous ? "text-purple-600" : "text-yellow-600"} size={24} />
                         )}
                       </div>
                       
@@ -382,15 +388,21 @@ const AppointmentsPage = () => {
                   })
                 }
                 return (
-                <div key={apt._id} className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-300 transition-all">
+                <div key={apt._id} className={`p-4 border-2 rounded-lg transition-all ${
+                  apt.isAnonymous 
+                    ? 'border-purple-300 bg-purple-50 hover:border-purple-400 shadow-md' 
+                    : 'border-gray-200 hover:border-primary-300'
+                }`}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
                       {/* Worker/Salon Info */}
-                      <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center">
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                        apt.isAnonymous ? 'bg-purple-100' : 'bg-primary-100'
+                      }`}>
                         {isClient ? (
-                          <Store className="text-primary-600" size={24} />
+                          <Store className={apt.isAnonymous ? "text-purple-600" : "text-primary-600"} size={24} />
                         ) : (
-                          <User className="text-primary-600" size={24} />
+                          <User className={apt.isAnonymous ? "text-purple-600" : "text-primary-600"} size={24} />
                         )}
                       </div>
                       
@@ -490,7 +502,11 @@ const AppointmentsPage = () => {
           <CardContent>
             <div className="space-y-3">
               {pastAppointments.map((apt) => (
-                <div key={apt._id} className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                <div key={apt._id} className={`p-3 border rounded-lg ${
+                  apt.isAnonymous 
+                    ? 'border-purple-300 bg-purple-50' 
+                    : 'border-gray-200 bg-gray-50'
+                }`}>
                   <div className="flex items-center justify-between">
                     <div>
                       {isClient ? (
@@ -509,7 +525,12 @@ const AppointmentsPage = () => {
                               : (apt.serviceId?.name || 'Service')}
                           </p>
                           {apt.isAnonymous && (
-                            <p className="text-xs text-amber-600 font-medium">📞 {apt.clientPhone || 'No phone'}</p>
+                            <div className="mt-1">
+                              <p className="text-xs text-purple-700 font-medium">📞 {apt.clientPhone || 'No phone'}</p>
+                              <div className="mt-1 px-2 py-0.5 bg-purple-100 border border-purple-300 rounded-md inline-block">
+                                <p className="text-xs text-purple-700 font-semibold">🔗 Anonymous Booking</p>
+                              </div>
+                            </div>
                           )}
                           {isOwner && (
                             <p className="text-xs text-primary-600 font-medium">👨‍💼 {apt.workerId?.name || 'Not assigned'}</p>

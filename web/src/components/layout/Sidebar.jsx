@@ -56,6 +56,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/owner/worker-payments', icon: DollarSign, label: 'Worker Payments', badge: 'NEW' },
     { to: '/owner/worker-analytics', icon: TrendingUp, label: 'Worker Analytics', badge: 'NEW' },
     { to: '/appointments', icon: Calendar, label: t('owner.appointments', 'Appointments') },
+    { to: '/owner/anonymous-bookings-analytics', icon: QrCode, label: 'Anonymous Bookings', badge: 'NEW' },
     { to: '/owner/finances', icon: DollarSign, label: t('owner.finances', 'Finances'), badge: 'NEW' },
     { to: '/owner/customers', icon: Users, label: 'Customers', badge: 'NEW' },
     { to: '/owner/products-for-sale', icon: ShoppingCart, label: 'Products for Sale', badge: 'NEW' },

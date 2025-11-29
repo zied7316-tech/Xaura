@@ -35,6 +35,7 @@ import LoyaltySettingsPage from './pages/owner/LoyaltySettingsPage'
 import WorkerTrackingSettingsPage from './pages/owner/WorkerTrackingSettingsPage'
 import MySalonsPage from './pages/owner/MySalonsPage'
 import SubscriptionPage from './pages/owner/SubscriptionPage'
+import AnonymousBookingsAnalyticsPage from './pages/owner/AnonymousBookingsAnalyticsPage'
 
 // Super Admin pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -138,8 +139,8 @@ function App() {
         <Route path="/owner/salon" element={<ProtectedRoute roles={['Owner']}><SalonSettings /></ProtectedRoute>} />
         <Route path="/owner/services" element={<ProtectedRoute roles={['Owner']}><ServicesPage /></ProtectedRoute>} />
         <Route path="/owner/workers" element={<ProtectedRoute roles={['Owner']}><WorkersPage /></ProtectedRoute>} />
-            <Route path="/owner/finances" element={<ProtectedRoute roles={['Owner']}><FinancesPage /></ProtectedRoute>} />
-            <Route path="/owner/customers" element={<ProtectedRoute roles={['Owner']}><CustomersPage /></ProtectedRoute>} />
+        <Route path="/owner/finances" element={<ProtectedRoute roles={['Owner']}><FinancesPage /></ProtectedRoute>} />
+        <Route path="/owner/customers" element={<ProtectedRoute roles={['Owner']}><CustomersPage /></ProtectedRoute>} />
             <Route path="/owner/inventory" element={<ProtectedRoute roles={['Owner']}><InventoryPage /></ProtectedRoute>} />
             <Route path="/owner/products-for-sale" element={<ProtectedRoute roles={['Owner']}><ProductsForSalePage /></ProtectedRoute>} />
             <Route path="/owner/products-for-use" element={<ProtectedRoute roles={['Owner']}><ProductsForUsePage /></ProtectedRoute>} />
@@ -154,6 +155,7 @@ function App() {
               element={<ProtectedRoute roles={['Owner']}><WorkerTrackingSettingsPage /></ProtectedRoute>} 
             />
             <Route path="/owner/subscription" element={<ProtectedRoute roles={['Owner']}><SubscriptionPage /></ProtectedRoute>} />
+            <Route path="/owner/anonymous-bookings-analytics" element={<ProtectedRoute roles={['Owner']}><AnonymousBookingsAnalyticsPage /></ProtectedRoute>} />
             
         {/* Worker routes */}
         <Route path="/worker/dashboard" element={<ProtectedRoute roles={['Worker']}><WorkerDashboard /></ProtectedRoute>} />

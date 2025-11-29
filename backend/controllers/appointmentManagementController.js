@@ -545,7 +545,7 @@ const reassignAppointment = async (req, res, next) => {
 
     await appointment.populate('workerId', 'name email');
     if (appointment.clientId) {
-      await appointment.populate('clientId', 'name email');
+    await appointment.populate('clientId', 'name email');
     }
     await appointment.populate('serviceId', 'name price duration');
 

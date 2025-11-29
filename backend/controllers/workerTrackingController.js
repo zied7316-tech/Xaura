@@ -285,8 +285,8 @@ const reportLocation = async (req, res, next) => {
         } else {
           // No last known location - only change if worker was NOT previously confirmed
           if (!worker.gpsTrackingStatus?.confirmedAtSalon) {
-            shouldBeAvailable = false;
-            reason = 'GPS unavailable or denied';
+        shouldBeAvailable = false;
+        reason = 'GPS unavailable or denied';
           } else {
             // Was confirmed but no recent location - maintain status
             return res.json({
