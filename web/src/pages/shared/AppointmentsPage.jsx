@@ -389,7 +389,7 @@ const AppointmentsPage = () => {
                 }
                 return (
                 <div key={apt._id} className={`p-4 border-2 rounded-lg transition-all ${
-                  apt.isAnonymous 
+                  apt.isAnonymous
                     ? 'border-purple-300 bg-purple-50 hover:border-purple-400 shadow-md' 
                     : 'border-gray-200 hover:border-primary-300'
                 }`}>
