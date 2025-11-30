@@ -23,6 +23,7 @@ const AppointmentsPage = () => {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [bookingTypeFilter, setBookingTypeFilter] = useState('all') // 'all', 'normal', 'anonymous'
   const [workers, setWorkers] = useState([])
   const [showReassignModal, setShowReassignModal] = useState(false)
   const [showReviewModal, setShowReviewModal] = useState(false)
@@ -187,12 +188,20 @@ const AppointmentsPage = () => {
     return <Badge variant={variant}>{label}</Badge>
   }
 
-  // Split appointments into categories
-  const pendingRequests = appointments.filter(apt => apt.status === 'Pending')
-  const confirmedAppointments = appointments.filter(apt => 
+  // Filter by booking type
+  const filteredAppointments = appointments.filter(apt => {
+    if (bookingTypeFilter === 'all') return true
+    if (bookingTypeFilter === 'anonymous') return apt.isAnonymous === true
+    if (bookingTypeFilter === 'normal') return !apt.isAnonymous
+    return true
+  })
+
+  // Split filtered appointments into categories
+  const pendingRequests = filteredAppointments.filter(apt => apt.status === 'Pending')
+  const confirmedAppointments = filteredAppointments.filter(apt => 
     ['Confirmed', 'In Progress'].includes(apt.status)
   )
-  const pastAppointments = appointments.filter(apt => 
+  const pastAppointments = filteredAppointments.filter(apt => 
     ['Completed', 'Cancelled'].includes(apt.status)
   )
 
@@ -210,6 +219,52 @@ const AppointmentsPage = () => {
         <h1 className="text-3xl font-bold text-gray-900">My Appointments</h1>
         <p className="text-gray-600 mt-1">View and manage your appointments</p>
       </div>
+
+      {/* Booking Type Switcher - Only for owners */}
+      {isOwner && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="text-primary-600" size={20} />
+                <span className="font-medium text-gray-700">Filter by:</span>
+              </div>
+              <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setBookingTypeFilter('all')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    bookingTypeFilter === 'all'
+                      ? 'bg-white text-primary-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setBookingTypeFilter('normal')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    bookingTypeFilter === 'normal'
+                      ? 'bg-white text-primary-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Normal
+                </button>
+                <button
+                  onClick={() => setBookingTypeFilter('anonymous')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    bookingTypeFilter === 'anonymous'
+                      ? 'bg-white text-purple-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  🔗 Booking Link
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -586,7 +641,7 @@ const AppointmentsPage = () => {
       )}
 
       {/* Empty State */}
-      {appointments.length === 0 && (
+      {filteredAppointments.length === 0 && (
         <Card className="p-12 text-center">
           <Calendar className="mx-auto text-gray-400 mb-4" size={64} />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No Appointments</h3>
