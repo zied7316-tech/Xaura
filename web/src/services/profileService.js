@@ -4,38 +4,55 @@ export const profileService = {
   // Get current user profile
   getProfile: async () => {
     const response = await api.get('/profile')
-    return response.data.data.user
+    // API interceptor already unwraps response.data, so response is { success, data: { user } }
+    if (response && response.data && response.data.user) {
+      return response.data.user
+    }
+    // Fallback for different response structure
+    if (response && response.user) {
+      return response.user
+    }
+    throw new Error('Unexpected response structure from getProfile endpoint')
   },
 
   // Update profile
   updateProfile: async (profileData) => {
     const response = await api.put('/profile', profileData)
-    return response.data.data.user
+    // API interceptor already unwraps response.data, so response is { success, message, data: { user } }
+    if (response && response.data && response.data.user) {
+      return response.data.user
+    }
+    // Fallback for different response structure
+    if (response && response.user) {
+      return response.user
+    }
+    throw new Error('Unexpected response structure from updateProfile endpoint')
   },
   
   // Regenerate userID
   regenerateUserID: async () => {
     try {
       const response = await api.post('/profile/regenerate-userid')
-      console.log('[PROFILE] Regenerate userID response:', response.data)
+      console.log('[PROFILE] Regenerate userID response:', response)
       
-      // Response structure: { success: true, data: { userID: "...", user: {...} } }
-      if (response.data && response.data.data) {
-        if (response.data.data.user) {
-          return response.data.data.user
+      // API interceptor already unwraps response.data, so response is { success, message, data: { userID, user } }
+      if (response && response.data) {
+        if (response.data.user) {
+          return response.data.user
         }
         // If user is not in data, but we have userID, fetch updated profile
-        if (response.data.data.userID) {
+        if (response.data.userID) {
           const profileResponse = await api.get('/profile')
-          if (profileResponse.data && profileResponse.data.data && profileResponse.data.data.user) {
-            return profileResponse.data.data.user
+          // API interceptor unwraps this too, so profileResponse is { success, data: { user } }
+          if (profileResponse && profileResponse.data && profileResponse.data.user) {
+            return profileResponse.data.user
           }
         }
       }
       
       // Fallback: try alternative response structure
-      if (response.data && response.data.user) {
-        return response.data.user
+      if (response && response.user) {
+        return response.user
       }
       
       throw new Error('Unexpected response structure from regenerate userID endpoint')
