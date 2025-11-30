@@ -19,25 +19,26 @@ const {
   getWorkerProductsForUse
 } = require('../controllers/inventoryController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { checkSubscriptionFeature } = require('../middleware/subscriptionMiddleware');
 
-// Low stock alerts
-router.get('/alerts/low-stock', protect, authorize('Owner'), getLowStockProducts);
+// Low stock alerts - requires basicInventory
+router.get('/alerts/low-stock', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), getLowStockProducts);
 
-// Separated product type endpoints (must come before generic routes)
-router.get('/for-sale', protect, authorize('Owner'), getProductsForSale);
-router.get('/for-use', protect, authorize('Owner'), getProductsForUse);
+// Separated product type endpoints (must come before generic routes) - requires basicInventory
+router.get('/for-sale', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), getProductsForSale);
+router.get('/for-use', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), getProductsForUse);
 
-// CRUD operations
-router.get('/', protect, authorize('Owner'), getProducts);
-router.get('/:id/history', protect, authorize('Owner'), getProductHistory); // Must come before /:id route
-router.get('/:id', protect, authorize('Owner'), getProduct);
-router.post('/', protect, authorize('Owner'), createProduct);
-router.put('/:id', protect, authorize('Owner'), updateProduct);
-router.delete('/:id', protect, authorize('Owner'), deleteProduct);
+// CRUD operations - requires basicInventory
+router.get('/', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), getProducts);
+router.get('/:id/history', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), getProductHistory); // Must come before /:id route
+router.get('/:id', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), getProduct);
+router.post('/', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), createProduct);
+router.put('/:id', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), updateProduct);
+router.delete('/:id', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), deleteProduct);
 
-// Stock management
-router.put('/:id/restock', protect, authorize('Owner'), restockProduct);
-router.put('/:id/use', protect, authorize('Owner'), useProduct);
+// Stock management - requires basicInventory
+router.put('/:id/restock', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), restockProduct);
+router.put('/:id/use', protect, authorize('Owner'), checkSubscriptionFeature('basicInventory'), useProduct);
 
 // Worker inventory endpoints - separated by type
 router.get('/worker/products-for-sale', protect, authorize('Worker'), getWorkerProductsForSale);

@@ -8,6 +8,7 @@ const {
   deleteExpense
 } = require('../controllers/expenseController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { checkSubscriptionFeature } = require('../middleware/subscriptionMiddleware');
 
 const expenseValidation = [
   body('category').isIn(['rent', 'utilities', 'supplies', 'salary', 'marketing', 'maintenance', 'equipment', 'other']).withMessage('Invalid category'),
@@ -15,10 +16,11 @@ const expenseValidation = [
   body('description').notEmpty().withMessage('Description is required')
 ];
 
-router.post('/', protect, authorize('Owner'), expenseValidation, createExpense);
-router.get('/', protect, authorize('Owner'), getExpenses);
-router.put('/:id', protect, authorize('Owner'), updateExpense);
-router.delete('/:id', protect, authorize('Owner'), deleteExpense);
+// Expense routes - require fullFinanceSystem
+router.post('/', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), expenseValidation, createExpense);
+router.get('/', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getExpenses);
+router.put('/:id', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), updateExpense);
+router.delete('/:id', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), deleteExpense);
 
 module.exports = router;
 

@@ -14,21 +14,22 @@ const {
   getEstimatedEarnings
 } = require('../controllers/workerFinanceController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { checkSubscriptionFeature } = require('../middleware/subscriptionMiddleware');
 
-// Worker routes
-router.get('/wallet', protect, authorize('Worker'), getWorkerWallet);
-router.get('/paid-earnings', protect, authorize('Worker'), getPaidEarnings);
-router.get('/unpaid-earnings', protect, authorize('Worker'), getUnpaidEarnings);
-router.put('/mark-paid/:earningId', protect, authorize('Worker'), markEarningAsPaid);
-router.get('/estimated-earnings', protect, authorize('Worker'), getEstimatedEarnings);
-router.get('/payment-history', protect, authorize('Worker'), getPaymentHistory);
+// Worker routes - require workerPayments
+router.get('/wallet', protect, authorize('Worker'), checkSubscriptionFeature('workerPayments'), getWorkerWallet);
+router.get('/paid-earnings', protect, authorize('Worker'), checkSubscriptionFeature('workerPayments'), getPaidEarnings);
+router.get('/unpaid-earnings', protect, authorize('Worker'), checkSubscriptionFeature('workerPayments'), getUnpaidEarnings);
+router.put('/mark-paid/:earningId', protect, authorize('Worker'), checkSubscriptionFeature('workerPayments'), markEarningAsPaid);
+router.get('/estimated-earnings', protect, authorize('Worker'), checkSubscriptionFeature('workerPayments'), getEstimatedEarnings);
+router.get('/payment-history', protect, authorize('Worker'), checkSubscriptionFeature('workerPayments'), getPaymentHistory);
 
-// Owner routes
-router.get('/all-wallets', protect, authorize('Owner'), getAllWorkersWallets);
-router.get('/unpaid-earnings/:workerId', protect, authorize('Owner'), getWorkerUnpaidEarnings);
-router.get('/summary/:workerId', protect, authorize('Owner'), getWorkerFinancialSummary);
-router.post('/generate-invoice', protect, authorize('Owner'), generateInvoice);
-router.post('/record-earning', protect, authorize('Owner'), recordEarning);
+// Owner routes - require fullFinanceSystem
+router.get('/all-wallets', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getAllWorkersWallets);
+router.get('/unpaid-earnings/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getWorkerUnpaidEarnings);
+router.get('/summary/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getWorkerFinancialSummary);
+router.post('/generate-invoice', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), generateInvoice);
+router.post('/record-earning', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), recordEarning);
 
 module.exports = router;
 
