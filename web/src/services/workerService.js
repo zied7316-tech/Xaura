@@ -3,17 +3,28 @@ import api from './api'
 export const workerService = {
   // Get all workers
   getWorkers: async () => {
-    const response = await api.get('/workers')
-    // API interceptor already unwraps response.data, so response is { success, count, data: { workers } }
-    if (response && response.data && response.data.workers) {
-      return response.data.workers
+    try {
+      const response = await api.get('/workers')
+      console.log('WorkerService - Raw response:', response)
+      // API interceptor already unwraps response.data, so response is { success, count, data: { workers } }
+      if (response && response.data && response.data.workers) {
+        return response.data.workers
+      }
+      // Fallback for different response structure
+      if (response && response.workers) {
+        return response.workers
+      }
+      // Check if response.data exists but workers is directly in data
+      if (response && response.data && Array.isArray(response.data)) {
+        return response.data
+      }
+      // Return empty array if no workers found
+      console.warn('WorkerService - No workers found in response:', response)
+      return []
+    } catch (error) {
+      console.error('WorkerService - Error fetching workers:', error)
+      throw error
     }
-    // Fallback for different response structure
-    if (response && response.workers) {
-      return response.workers
-    }
-    // Return empty array if no workers found
-    return []
   },
 
   // Get worker details with performance

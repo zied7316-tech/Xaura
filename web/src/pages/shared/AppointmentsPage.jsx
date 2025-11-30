@@ -47,9 +47,15 @@ const AppointmentsPage = () => {
   const loadWorkers = async () => {
     try {
       const data = await workerService.getWorkers()
-      setWorkers(data)
+      console.log('Loaded workers data:', data)
+      // Ensure data is an array
+      const workersArray = Array.isArray(data) ? data : (data?.workers || data?.data?.workers || [])
+      console.log('Workers array:', workersArray)
+      setWorkers(workersArray)
     } catch (error) {
       console.error('Error loading workers:', error)
+      toast.error(error.message || 'Failed to load workers')
+      setWorkers([])
     }
   }
 
@@ -119,12 +125,27 @@ const AppointmentsPage = () => {
     setSelectedWorker(appointment.workerId?._id || '')
     setShowReassignModal(true)
     
+    // Ensure workers are loaded before checking availability
+    let workersToUse = workers
+    if (workers.length === 0) {
+      console.log('No workers loaded, reloading...')
+      try {
+        const loadedWorkers = await workerService.getWorkers()
+        const workersArray = Array.isArray(loadedWorkers) ? loadedWorkers : (loadedWorkers?.workers || loadedWorkers?.data?.workers || [])
+        setWorkers(workersArray)
+        workersToUse = workersArray
+      } catch (error) {
+        console.error('Error loading workers in modal:', error)
+        toast.error('Failed to load workers. Please try again.')
+      }
+    }
+    
     // Load workers with availability for this appointment time
-    if (appointment && appointment.dateTime && workers.length > 0) {
+    if (appointment && appointment.dateTime && workersToUse.length > 0) {
       setLoadingAvailability(true)
       try {
         const availabilityChecks = await Promise.all(
-          workers.map(async (worker) => {
+          workersToUse.map(async (worker) => {
             try {
               const availability = await workerService.checkWorkerAvailability(
                 worker._id,
@@ -152,7 +173,7 @@ const AppointmentsPage = () => {
       } catch (error) {
         console.error('Error loading worker availability:', error)
         // Fallback to workers without availability info
-        setWorkersWithAvailability(workers.map(w => ({
+        setWorkersWithAvailability(workersToUse.map(w => ({
           ...w,
           availability: true,
           currentStatus: w.currentStatus || 'offline',
@@ -163,7 +184,7 @@ const AppointmentsPage = () => {
       }
     } else {
       // If no appointment time, just use workers as-is
-      setWorkersWithAvailability(workers.map(w => ({
+      setWorkersWithAvailability(workersToUse.map(w => ({
         ...w,
         availability: true,
         currentStatus: w.currentStatus || 'offline',
