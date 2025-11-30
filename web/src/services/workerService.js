@@ -6,44 +6,57 @@ export const workerService = {
     try {
       const response = await api.get('/workers')
       console.log('WorkerService - Raw response:', response)
+      console.log('WorkerService - Response type:', typeof response)
+      console.log('WorkerService - Is array?', Array.isArray(response))
+      console.log('WorkerService - Response keys:', response ? Object.keys(response) : 'null')
       
       // API interceptor returns response.data, so response structure is:
       // { success: true, count: number, data: { workers: [...] } }
       
-      // First check: response.data.workers (most common structure)
-      if (response && response.data && Array.isArray(response.data.workers)) {
-        console.log('WorkerService - Found workers in response.data.workers:', response.data.workers.length)
+      // First check: response.data.workers (most common structure - backend returns this)
+      if (response && response.data && response.data.workers && Array.isArray(response.data.workers)) {
+        console.log('✅ WorkerService - Found workers in response.data.workers:', response.data.workers.length)
+        console.log('WorkerService - Workers:', response.data.workers)
         return response.data.workers
       }
       
       // Second check: response.workers (direct array)
       if (response && Array.isArray(response.workers)) {
-        console.log('WorkerService - Found workers in response.workers:', response.workers.length)
+        console.log('✅ WorkerService - Found workers in response.workers:', response.workers.length)
         return response.workers
       }
       
       // Third check: response.data is directly an array
       if (response && Array.isArray(response.data)) {
-        console.log('WorkerService - Found workers in response.data (array):', response.data.length)
+        console.log('✅ WorkerService - Found workers in response.data (array):', response.data.length)
         return response.data
       }
       
       // Fourth check: response is directly an array
       if (Array.isArray(response)) {
-        console.log('WorkerService - Response is directly an array:', response.length)
+        console.log('✅ WorkerService - Response is directly an array:', response.length)
         return response
       }
       
-      // Return empty array if no workers found
-      console.warn('WorkerService - No workers found in response. Structure:', {
+      // Debug: Log the full structure
+      console.error('❌ WorkerService - No workers found in response. Full structure:', JSON.stringify(response, null, 2))
+      console.warn('WorkerService - Response structure details:', {
         hasResponse: !!response,
         hasData: !!response?.data,
         hasWorkers: !!response?.data?.workers,
-        responseKeys: response ? Object.keys(response) : []
+        dataType: response?.data ? typeof response.data : 'undefined',
+        dataIsArray: response?.data ? Array.isArray(response.data) : false,
+        responseKeys: response ? Object.keys(response) : [],
+        dataKeys: response?.data ? Object.keys(response.data) : []
       })
       return []
     } catch (error) {
-      console.error('WorkerService - Error fetching workers:', error)
+      console.error('❌ WorkerService - Error fetching workers:', error)
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      })
       throw error
     }
   },

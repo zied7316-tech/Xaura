@@ -47,13 +47,27 @@ const AppointmentsPage = () => {
   const loadWorkers = async () => {
     try {
       const data = await workerService.getWorkers()
-      console.log('Loaded workers data:', data)
+      console.log('📋 loadWorkers - Received data:', data)
+      console.log('📋 loadWorkers - Data type:', typeof data)
+      console.log('📋 loadWorkers - Is array?', Array.isArray(data))
+      
       // Ensure data is an array
-      const workersArray = Array.isArray(data) ? data : (data?.workers || data?.data?.workers || [])
-      console.log('Workers array:', workersArray)
+      let workersArray = []
+      if (Array.isArray(data)) {
+        workersArray = data
+      } else if (data?.workers && Array.isArray(data.workers)) {
+        workersArray = data.workers
+      } else if (data?.data?.workers && Array.isArray(data.data.workers)) {
+        workersArray = data.data.workers
+      } else if (data?.data && Array.isArray(data.data)) {
+        workersArray = data.data
+      }
+      
+      console.log('📋 loadWorkers - Final workers array:', workersArray)
+      console.log('📋 loadWorkers - Workers count:', workersArray.length)
       setWorkers(workersArray)
     } catch (error) {
-      console.error('Error loading workers:', error)
+      console.error('❌ Error loading workers:', error)
       toast.error(error.message || 'Failed to load workers')
       setWorkers([])
     }
@@ -802,54 +816,76 @@ const AppointmentsPage = () => {
               <p className="text-sm text-gray-600 mt-2">Checking worker availability...</p>
             </div>
           ) : (
-            <Select
-              label="Select New Worker"
-              value={selectedWorker}
-              onChange={(e) => setSelectedWorker(e.target.value)}
-            >
-              <option value="">-- Choose Worker --</option>
-              {(() => {
-                // Use workersWithAvailability if available, otherwise fall back to workers
-                const workersToDisplay = workersWithAvailability.length > 0 
-                  ? workersWithAvailability 
-                  : (workers.length > 0 ? workers : [])
-                
-                console.log('Rendering dropdown with workers:', workersToDisplay.length, 'workers')
-                
-                if (workersToDisplay.length === 0) {
-                  return (
-                    <option value="" disabled>
-                      No workers available
-                    </option>
-                  )
-                }
-                
-                return workersToDisplay.map((worker) => {
-                  if (!worker || !worker._id) {
-                    console.warn('Invalid worker in list:', worker)
-                    return null
+            <div>
+              <Select
+                label="Select New Worker"
+                value={selectedWorker}
+                onChange={(e) => {
+                  console.log('🔵 Worker selected:', e.target.value)
+                  setSelectedWorker(e.target.value)
+                }}
+              >
+                <option value="">-- Choose Worker --</option>
+                {(() => {
+                  // Use workersWithAvailability if available, otherwise fall back to workers
+                  const workersToDisplay = workersWithAvailability.length > 0 
+                    ? workersWithAvailability 
+                    : (workers.length > 0 ? workers : [])
+                  
+                  console.log('🔍 Rendering dropdown:')
+                  console.log('  - workersWithAvailability.length:', workersWithAvailability.length)
+                  console.log('  - workers.length:', workers.length)
+                  console.log('  - workersToDisplay.length:', workersToDisplay.length)
+                  console.log('  - workersToDisplay:', workersToDisplay)
+                  
+                  if (workersToDisplay.length === 0) {
+                    console.warn('⚠️ No workers to display in dropdown!')
+                    return (
+                      <option value="" disabled>
+                        No workers available
+                      </option>
+                    )
                   }
                   
-                  const isCurrent = worker._id === selectedAppointment?.workerId?._id
-                  // Only disable if availability is explicitly false, not if undefined
-                  const isUnavailable = (worker.availability === false) || (worker.currentStatus === 'offline')
-                  const statusText = worker.currentStatus === 'available' ? '✅ Available' 
-                    : worker.currentStatus === 'on_break' ? '☕ On Break'
-                    : '🔴 Offline'
-                  const conflictText = worker.conflictReason ? ` - ${worker.conflictReason}` : ''
+                  const options = workersToDisplay.map((worker) => {
+                    if (!worker || !worker._id) {
+                      console.warn('⚠️ Invalid worker in list:', worker)
+                      return null
+                    }
+                    
+                    const isCurrent = worker._id === selectedAppointment?.workerId?._id
+                    // Only disable if availability is explicitly false, not if undefined
+                    const isUnavailable = (worker.availability === false) || (worker.currentStatus === 'offline')
+                    const statusText = worker.currentStatus === 'available' ? '✅ Available' 
+                      : worker.currentStatus === 'on_break' ? '☕ On Break'
+                      : '🔴 Offline'
+                    const conflictText = worker.conflictReason ? ` - ${worker.conflictReason}` : ''
+                    
+                    console.log(`  ✅ Adding worker option: ${worker.name} (${worker._id}), current: ${isCurrent}, unavailable: ${isUnavailable}`)
+                    
+                    return (
+                      <option 
+                        key={worker._id} 
+                        value={worker._id}
+                        disabled={isCurrent || isUnavailable}
+                      >
+                        {worker.name || 'Unknown'} {isCurrent ? '(Current)' : ''} {!isCurrent && `- ${statusText}${conflictText}`}
+                      </option>
+                    )
+                  }).filter(Boolean) // Remove any null entries
                   
-                  return (
-                    <option 
-                      key={worker._id} 
-                      value={worker._id}
-                      disabled={isCurrent || isUnavailable}
-                    >
-                      {worker.name || 'Unknown'} {isCurrent ? '(Current)' : ''} {!isCurrent && `- ${statusText}${conflictText}`}
-                    </option>
-                  )
-                }).filter(Boolean) // Remove any null entries
-              })()}
-            </Select>
+                  console.log(`✅ Rendered ${options.length} worker options`)
+                  return options
+                })()}
+              </Select>
+              
+              {/* Debug info */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+                  <p>Debug: workers={workers.length}, workersWithAvailability={workersWithAvailability.length}</p>
+                </div>
+              )}
+            </div>
           )}
           
           {/* Availability Info */}
