@@ -4,7 +4,16 @@ export const workerService = {
   // Get all workers
   getWorkers: async () => {
     const response = await api.get('/workers')
-    return response.data.workers
+    // API interceptor already unwraps response.data, so response is { success, count, data: { workers } }
+    if (response && response.data && response.data.workers) {
+      return response.data.workers
+    }
+    // Fallback for different response structure
+    if (response && response.workers) {
+      return response.workers
+    }
+    // Return empty array if no workers found
+    return []
   },
 
   // Get worker details with performance
@@ -36,6 +45,17 @@ export const workerService = {
   compareWorkers: async () => {
     const response = await api.get('/workers/performance/compare')
     return response.data.comparison
+  },
+
+  // Check worker availability for a specific appointment time
+  checkWorkerAvailability: async (workerId, dateTime, appointmentId = null) => {
+    const params = new URLSearchParams({ dateTime })
+    if (appointmentId) {
+      params.append('appointmentId', appointmentId)
+    }
+    const response = await api.get(`/workers/${workerId}/check-availability?${params.toString()}`)
+    // API interceptor already unwraps response.data, so response is { success, data: {...} }
+    return response.data
   },
 }
 

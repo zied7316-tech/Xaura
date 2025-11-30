@@ -378,12 +378,122 @@ const compareWorkerPerformance = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Check if worker is available for appointment (Owner only)
+ * @route   GET /api/workers/:id/check-availability
+ * @access  Private (Owner)
+ */
+const checkWorkerAvailability = async (req, res, next) => {
+  try {
+    const { dateTime, appointmentId } = req.query; // appointmentId to exclude current appointment when reassigning
+    
+    if (!dateTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date and time are required'
+      });
+    }
+
+    const worker = await User.findById(req.params.id);
+    
+    if (!worker || worker.role !== 'Worker') {
+      return res.status(404).json({
+        success: false,
+        message: 'Worker not found'
+      });
+    }
+
+    // Verify worker belongs to owner's salon
+    const salon = await Salon.findOne({
+      _id: worker.salonId,
+      ownerId: req.user.id
+    });
+
+    if (!salon) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to check this worker'
+      });
+    }
+
+    const appointmentDateTime = new Date(dateTime);
+    const appointmentDate = new Date(appointmentDateTime);
+    appointmentDate.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(appointmentDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Get service duration from appointment if available, otherwise default to 60 minutes
+    let serviceDuration = 60;
+    if (appointmentId) {
+      const appointment = await Appointment.findById(appointmentId);
+      if (appointment) {
+        serviceDuration = appointment.serviceDurationAtBooking || appointment.duration || 60;
+      }
+    }
+
+    // Calculate appointment end time
+    const appointmentEndTime = new Date(appointmentDateTime);
+    appointmentEndTime.setMinutes(appointmentEndTime.getMinutes() + serviceDuration);
+
+    // Check for conflicting appointments (exclude the current appointment if reassigning)
+    const conflictFilter = {
+      workerId: worker._id,
+      dateTime: {
+        $gte: appointmentDate,
+        $lt: endOfDay
+      },
+      status: { $in: ['Pending', 'Confirmed', 'In Progress'] }
+    };
+
+    if (appointmentId) {
+      conflictFilter._id = { $ne: appointmentId };
+    }
+
+    const conflictingAppointments = await Appointment.find(conflictFilter);
+
+    let hasConflict = false;
+    let conflictReason = '';
+
+    for (const apt of conflictingAppointments) {
+      const aptStart = new Date(apt.dateTime);
+      const aptDuration = apt.serviceDurationAtBooking || apt.duration || 60;
+      const aptEnd = new Date(aptStart);
+      aptEnd.setMinutes(aptEnd.getMinutes() + aptDuration);
+
+      // Check for time overlap
+      if (
+        (appointmentDateTime >= aptStart && appointmentDateTime < aptEnd) ||
+        (appointmentEndTime > aptStart && appointmentEndTime <= aptEnd) ||
+        (appointmentDateTime <= aptStart && appointmentEndTime >= aptEnd)
+      ) {
+        hasConflict = true;
+        conflictReason = `Has appointment at ${aptStart.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+        break;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        isAvailable: !hasConflict,
+        currentStatus: worker.currentStatus || 'offline',
+        hasConflict,
+        conflictReason,
+        workerName: worker.name
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getWorkers,
   getWorkerDetails,
   updateWorker,
   removeWorker,
   getWorkerPerformance,
-  compareWorkerPerformance
+  compareWorkerPerformance,
+  checkWorkerAvailability
 };
 

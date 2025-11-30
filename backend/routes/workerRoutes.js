@@ -7,7 +7,8 @@ const {
   updateWorker,
   removeWorker,
   getWorkerPerformance,
-  compareWorkerPerformance
+  compareWorkerPerformance,
+  checkWorkerAvailability
 } = require('../controllers/workerController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -24,6 +25,7 @@ router.get('/', protect, authorize('Owner'), getWorkers);
 router.get('/performance/compare', protect, authorize('Owner'), compareWorkerPerformance);
 router.get('/:id', protect, authorize('Owner'), getWorkerDetails);
 router.get('/:id/performance', protect, authorize('Owner'), getWorkerPerformance);
+router.get('/:id/check-availability', protect, authorize('Owner'), checkWorkerAvailability);
 router.put('/:id', protect, authorize('Owner'), updateWorkerValidation, updateWorker);
 router.delete('/:id', protect, authorize('Owner'), removeWorker);
 

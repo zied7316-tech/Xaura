@@ -31,6 +31,8 @@ const AppointmentsPage = () => {
   const [selectedWorker, setSelectedWorker] = useState('')
   const [processing, setProcessing] = useState(false)
   const [messagingWorker, setMessagingWorker] = useState(null)
+  const [workersWithAvailability, setWorkersWithAvailability] = useState([])
+  const [loadingAvailability, setLoadingAvailability] = useState(false)
 
   useEffect(() => {
     loadAppointments()
@@ -112,10 +114,62 @@ const AppointmentsPage = () => {
     }
   }
 
-  const openReassignModal = (appointment) => {
+  const openReassignModal = async (appointment) => {
     setSelectedAppointment(appointment)
     setSelectedWorker(appointment.workerId?._id || '')
     setShowReassignModal(true)
+    
+    // Load workers with availability for this appointment time
+    if (appointment && appointment.dateTime && workers.length > 0) {
+      setLoadingAvailability(true)
+      try {
+        const availabilityChecks = await Promise.all(
+          workers.map(async (worker) => {
+            try {
+              const availability = await workerService.checkWorkerAvailability(
+                worker._id,
+                appointment.dateTime,
+                appointment._id // Exclude current appointment when checking conflicts
+              )
+              return {
+                ...worker,
+                availability: availability.isAvailable,
+                currentStatus: availability.currentStatus,
+                conflictReason: availability.conflictReason
+              }
+            } catch (error) {
+              console.error(`Error checking availability for worker ${worker._id}:`, error)
+              return {
+                ...worker,
+                availability: true, // Default to available if check fails
+                currentStatus: worker.currentStatus || 'offline',
+                conflictReason: ''
+              }
+            }
+          })
+        )
+        setWorkersWithAvailability(availabilityChecks)
+      } catch (error) {
+        console.error('Error loading worker availability:', error)
+        // Fallback to workers without availability info
+        setWorkersWithAvailability(workers.map(w => ({
+          ...w,
+          availability: true,
+          currentStatus: w.currentStatus || 'offline',
+          conflictReason: ''
+        })))
+      } finally {
+        setLoadingAvailability(false)
+      }
+    } else {
+      // If no appointment time, just use workers as-is
+      setWorkersWithAvailability(workers.map(w => ({
+        ...w,
+        availability: true,
+        currentStatus: w.currentStatus || 'offline',
+        conflictReason: ''
+      })))
+    }
   }
 
   const handleReassignWorker = async () => {
@@ -689,22 +743,69 @@ const AppointmentsPage = () => {
             <p className="text-sm text-gray-600 mt-2">Current Worker: <span className="font-semibold text-primary-600">{selectedAppointment?.workerId?.name || 'Not assigned yet'}</span></p>
           </div>
 
-          <Select
-            label="Select New Worker"
-            value={selectedWorker}
-            onChange={(e) => setSelectedWorker(e.target.value)}
-          >
-            <option value="">-- Choose Worker --</option>
-            {workers.map((worker) => (
-              <option 
-                key={worker._id} 
-                value={worker._id}
-                disabled={worker._id === selectedAppointment?.workerId?._id}
-              >
-                {worker.name} {worker._id === selectedAppointment?.workerId?._id ? '(Current)' : ''}
-              </option>
-            ))}
-          </Select>
+          {loadingAvailability ? (
+            <div className="p-4 text-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+              <p className="text-sm text-gray-600 mt-2">Checking worker availability...</p>
+            </div>
+          ) : (
+            <Select
+              label="Select New Worker"
+              value={selectedWorker}
+              onChange={(e) => setSelectedWorker(e.target.value)}
+            >
+              <option value="">-- Choose Worker --</option>
+              {(workersWithAvailability.length > 0 ? workersWithAvailability : workers).map((worker) => {
+                const isCurrent = worker._id === selectedAppointment?.workerId?._id
+                const isUnavailable = !worker.availability || worker.currentStatus === 'offline'
+                const statusText = worker.currentStatus === 'available' ? '✅ Available' 
+                  : worker.currentStatus === 'on_break' ? '☕ On Break'
+                  : '🔴 Offline'
+                const conflictText = worker.conflictReason ? ` - ${worker.conflictReason}` : ''
+                
+                return (
+                  <option 
+                    key={worker._id} 
+                    value={worker._id}
+                    disabled={isCurrent || isUnavailable}
+                  >
+                    {worker.name} {isCurrent ? '(Current)' : ''} {!isCurrent && `- ${statusText}${conflictText}`}
+                  </option>
+                )
+              })}
+            </Select>
+          )}
+          
+          {/* Availability Info */}
+          {!loadingAvailability && workersWithAvailability.length > 0 && (
+            <div className="space-y-2">
+              {workersWithAvailability.map((worker) => {
+                if (worker._id === selectedAppointment?.workerId?._id) return null
+                
+                const statusColor = worker.currentStatus === 'available' ? 'text-green-600'
+                  : worker.currentStatus === 'on_break' ? 'text-orange-600'
+                  : 'text-red-600'
+                
+                return (
+                  <div key={worker._id} className={`p-2 rounded text-xs ${
+                    !worker.availability ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{worker.name}:</span>
+                      <span className={statusColor}>
+                        {worker.currentStatus === 'available' ? '✅ Available' 
+                          : worker.currentStatus === 'on_break' ? '☕ On Break'
+                          : '🔴 Offline'}
+                      </span>
+                    </div>
+                    {!worker.availability && worker.conflictReason && (
+                      <p className="text-red-600 text-xs mt-1">⚠️ {worker.conflictReason}</p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
             ⚠️ If appointment is confirmed, it will be reset to pending for the new worker to accept.
