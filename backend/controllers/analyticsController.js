@@ -327,6 +327,8 @@ const getAnonymousBookingsAnalytics = async (req, res, next) => {
 
     const salonId = salonData.salonId;
 
+    console.log('📊 Fetching anonymous bookings analytics for salon:', salonId);
+
     // Get all anonymous bookings
     const anonymousBookings = await Appointment.find({
       salonId: salonId,
@@ -335,6 +337,8 @@ const getAnonymousBookingsAnalytics = async (req, res, next) => {
       .populate('workerId', 'name email')
       .populate('salonId', 'name')
       .sort({ createdAt: -1 });
+
+    console.log(`📊 Found ${anonymousBookings.length} anonymous bookings`);
 
     // Calculate statistics
     const totalBookings = anonymousBookings.length;
@@ -424,7 +428,7 @@ const getAnonymousBookingsAnalytics = async (req, res, next) => {
       }
     });
 
-    res.json({
+    const responseData = {
       success: true,
       data: {
         totalBookings,
@@ -436,7 +440,17 @@ const getAnonymousBookingsAnalytics = async (req, res, next) => {
         recentBookings,
         monthlyTrends
       }
+    };
+
+    console.log('📊 Anonymous bookings analytics response:', {
+      totalBookings,
+      byStatus,
+      byWorkerCount: byWorker.length,
+      totalRevenue,
+      recentBookingsCount: recentBookings.length
     });
+
+    res.json(responseData);
   } catch (error) {
     next(error);
   }

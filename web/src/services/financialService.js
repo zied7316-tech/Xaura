@@ -49,7 +49,8 @@ export const financialService = {
 
   getAnonymousBookingsAnalytics: async () => {
     const response = await api.get('/analytics/anonymous-bookings')
-    return response.data
+    // API interceptor already unwraps response.data, so response is { success, data: {...} }
+    return response
   },
 
   getRevenueTrends: async (period = 'month') => {

@@ -22,11 +22,24 @@ const AnonymousBookingsAnalyticsPage = () => {
   const loadAnalytics = async () => {
     setLoading(true)
     try {
-      const data = await financialService.getAnonymousBookingsAnalytics()
-      setAnalytics(data)
+      const response = await financialService.getAnonymousBookingsAnalytics()
+      console.log('Anonymous bookings analytics response:', response)
+      // API interceptor already unwraps response.data, so response is { success, data: {...} }
+      if (response && response.success && response.data) {
+        setAnalytics(response.data)
+      } else if (response && response.data) {
+        // Fallback: if response structure is different
+        setAnalytics(response.data)
+      } else if (response) {
+        // Fallback: if response is already the data object
+        setAnalytics(response)
+      } else {
+        setAnalytics(null)
+      }
     } catch (error) {
       console.error('Error loading analytics:', error)
-      toast.error('Failed to load analytics')
+      toast.error('Failed to load analytics: ' + (error.message || 'Unknown error'))
+      setAnalytics(null)
     } finally {
       setLoading(false)
     }
@@ -40,24 +53,25 @@ const AnonymousBookingsAnalyticsPage = () => {
     )
   }
 
-  if (!analytics || !analytics.data) {
+  if (!analytics) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">No analytics data available</p>
+        <p className="text-sm text-gray-500 mt-2">No anonymous bookings found yet</p>
       </div>
     )
   }
 
   const { 
-    totalBookings, 
-    byStatus, 
-    byWorker, 
-    totalRevenue, 
-    averageBookingValue, 
-    conversionRate,
-    recentBookings,
-    monthlyTrends
-  } = analytics.data
+    totalBookings = 0, 
+    byStatus = {}, 
+    byWorker = [], 
+    totalRevenue = 0, 
+    averageBookingValue = 0, 
+    conversionRate = 0,
+    recentBookings = [],
+    monthlyTrends = {}
+  } = analytics
 
   const getStatusBadge = (status) => {
     const config = {
