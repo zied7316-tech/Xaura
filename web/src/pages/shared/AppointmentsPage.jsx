@@ -817,8 +817,11 @@ const AppointmentsPage = () => {
             </div>
           ) : (
             <div>
-              <Select
-                label="Select New Worker"
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select New Worker
+              </label>
+              <select
+                className="input w-full"
                 value={selectedWorker}
                 onChange={(e) => {
                   console.log('🔵 Worker selected:', e.target.value)
@@ -877,7 +880,7 @@ const AppointmentsPage = () => {
                   console.log(`✅ Rendered ${options.length} worker options`)
                   return options
                 })()}
-              </Select>
+              </select>
               
               {/* Debug info */}
               {process.env.NODE_ENV === 'development' && (
