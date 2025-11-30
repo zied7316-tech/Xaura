@@ -8,8 +8,6 @@ import {
   DollarSign, Users, Package, AlertCircle, Star, CheckCircle, XCircle
 } from 'lucide-react'
 import { formatDate, formatTime } from '../../utils/helpers'
-import { mapNotificationToAnimated } from '../../utils/notificationMapper'
-import AnimatedNotification from './AnimatedNotification'
 import toast from 'react-hot-toast'
 
 const NotificationBell = () => {
@@ -21,7 +19,6 @@ const NotificationBell = () => {
   const [loading, setLoading] = useState(false)
   const [seenNotificationIds, setSeenNotificationIds] = useState(new Set())
   const [processingAppointment, setProcessingAppointment] = useState(null)
-  const [animatedNotifications, setAnimatedNotifications] = useState([])
   const dropdownRef = useRef(null)
   const audioRef = useRef(null)
   const audioUnlockedRef = useRef(false)
@@ -253,14 +250,10 @@ const NotificationBell = () => {
           return id && !seenNotificationIds.has(id) && !n.isRead
         })
         
-        // If there are new unread notifications, play sound ONCE and show animated notifications
+        // If there are new unread notifications, play sound ONCE
         if (newNotifications.length > 0) {
           console.log('🔔 New notifications detected! Playing sound once.')
           playNotificationSound()
-          
-          // Convert new notifications to animated format
-          const animated = newNotifications.map(notif => mapNotificationToAnimated(notif, user))
-          setAnimatedNotifications(prev => [...prev, ...animated].slice(-3)) // Keep max 3
           
           // Update seen notifications to include all current ones
           setSeenNotificationIds(currentNotificationIds)
@@ -422,50 +415,8 @@ const NotificationBell = () => {
     }
   }
 
-  const handleAnimatedNotificationClick = (notification) => {
-    // Find the original notification
-    const originalNotif = notifications.find(n => 
-      (n._id || n.id) === notification.id
-    )
-    
-    if (originalNotif) {
-      // Handle notification click (same as dropdown)
-      handleNotificationClick(originalNotif)
-    }
-  }
-
-  const handleAnimatedNotificationDismiss = (notification) => {
-    // Remove from animated notifications
-    setAnimatedNotifications(prev => prev.filter(n => n.id !== notification.id))
-    
-    // Optionally mark as read
-    const originalNotif = notifications.find(n => 
-      (n._id || n.id) === notification.id
-    )
-    if (originalNotif && !originalNotif.isRead) {
-      handleMarkAsRead(originalNotif._id || originalNotif.id)
-    }
-  }
-
   return (
-    <>
-      {/* Animated Notifications */}
-      {animatedNotifications.length > 0 && (
-        <AnimatedNotification
-          notifications={animatedNotifications}
-          position="top-right"
-          maxNotifications={3}
-          autoDismissTimeout={5000}
-          variant="glass"
-          showAvatars={true}
-          showTimestamps={true}
-          allowDismiss={true}
-          onNotificationClick={handleAnimatedNotificationClick}
-          onNotificationDismiss={handleAnimatedNotificationDismiss}
-        />
-      )}
-
-      <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef}>
         {/* Bell Button */}
       <button
         onClick={async () => {
@@ -678,7 +629,6 @@ const NotificationBell = () => {
         </>
       )}
     </div>
-    </>
   )
 }
 
