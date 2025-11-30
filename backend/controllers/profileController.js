@@ -43,7 +43,7 @@ const updateProfile = async (req, res, next) => {
       });
     }
 
-    const { name, phone, bio, skills, experience, education, certifications } = req.body;
+    const { name, phone, bio, skills, experience, education, certifications, worksAsWorker } = req.body;
     
     // Build update object (only include fields that are provided)
     const updateData = {};
@@ -54,6 +54,10 @@ const updateProfile = async (req, res, next) => {
     if (experience !== undefined) updateData.experience = experience;
     if (education !== undefined) updateData.education = education;
     if (certifications !== undefined) updateData.certifications = Array.isArray(certifications) ? certifications : [];
+    // Only allow owners to set worksAsWorker
+    if (worksAsWorker !== undefined && req.user.role === 'Owner') {
+      updateData.worksAsWorker = worksAsWorker;
+    }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,

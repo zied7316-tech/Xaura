@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema({
     default: 'Client',
     required: true
   },
+  // Owner-specific: Can this owner work as a worker?
+  worksAsWorker: {
+    type: Boolean,
+    default: false  // By default, owners don't work as workers
+  },
   name: {
     type: String,
     required: [true, 'Name is required'],

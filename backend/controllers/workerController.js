@@ -21,15 +21,25 @@ const getWorkers = async (req, res, next) => {
       });
     }
 
+    // Get regular workers
     const workers = await User.find({
       salonId: salon._id,
       role: 'Worker'
     }).select('-password');
 
+    // Get owner if they work as a worker
+    const owner = await User.findById(salon.ownerId).select('-password');
+    const allWorkers = [...workers];
+    
+    // Add owner to list if they work as worker
+    if (owner && owner.worksAsWorker) {
+      allWorkers.push(owner);
+    }
+
     res.json({
       success: true,
-      count: workers.length,
-      data: { workers }
+      count: allWorkers.length,
+      data: { workers: allWorkers }
     });
   } catch (error) {
     next(error);

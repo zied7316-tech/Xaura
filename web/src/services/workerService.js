@@ -6,20 +6,41 @@ export const workerService = {
     try {
       const response = await api.get('/workers')
       console.log('WorkerService - Raw response:', response)
-      // API interceptor already unwraps response.data, so response is { success, count, data: { workers } }
-      if (response && response.data && response.data.workers) {
+      
+      // API interceptor returns response.data, so response structure is:
+      // { success: true, count: number, data: { workers: [...] } }
+      
+      // First check: response.data.workers (most common structure)
+      if (response && response.data && Array.isArray(response.data.workers)) {
+        console.log('WorkerService - Found workers in response.data.workers:', response.data.workers.length)
         return response.data.workers
       }
-      // Fallback for different response structure
-      if (response && response.workers) {
+      
+      // Second check: response.workers (direct array)
+      if (response && Array.isArray(response.workers)) {
+        console.log('WorkerService - Found workers in response.workers:', response.workers.length)
         return response.workers
       }
-      // Check if response.data exists but workers is directly in data
-      if (response && response.data && Array.isArray(response.data)) {
+      
+      // Third check: response.data is directly an array
+      if (response && Array.isArray(response.data)) {
+        console.log('WorkerService - Found workers in response.data (array):', response.data.length)
         return response.data
       }
+      
+      // Fourth check: response is directly an array
+      if (Array.isArray(response)) {
+        console.log('WorkerService - Response is directly an array:', response.length)
+        return response
+      }
+      
       // Return empty array if no workers found
-      console.warn('WorkerService - No workers found in response:', response)
+      console.warn('WorkerService - No workers found in response. Structure:', {
+        hasResponse: !!response,
+        hasData: !!response?.data,
+        hasWorkers: !!response?.data?.workers,
+        responseKeys: response ? Object.keys(response) : []
+      })
       return []
     } catch (error) {
       console.error('WorkerService - Error fetching workers:', error)

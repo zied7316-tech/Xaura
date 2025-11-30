@@ -537,7 +537,10 @@ const getWorkerProducts = async (req, res, next) => {
   try {
     const worker = await User.findById(req.user.id);
     
-    if (!worker || worker.role !== 'Worker') {
+    const isWorker = worker && worker.role === 'Worker';
+    const isWorkingOwner = worker && worker.role === 'Owner' && worker.worksAsWorker;
+    
+    if (!worker || (!isWorker && !isWorkingOwner)) {
       return res.status(403).json({
         success: false,
         message: 'Only workers can access this endpoint'
@@ -586,7 +589,10 @@ const workerUseProduct = async (req, res, next) => {
 
     const worker = await User.findById(req.user.id);
     
-    if (!worker || worker.role !== 'Worker' || !worker.salonId) {
+    const isWorker = worker && worker.role === 'Worker';
+    const isWorkingOwner = worker && worker.role === 'Owner' && worker.worksAsWorker;
+    
+    if (!worker || (!isWorker && !isWorkingOwner) || (isWorker && !worker.salonId)) {
       return res.status(403).json({
         success: false,
         message: 'Worker not authorized'
@@ -706,7 +712,10 @@ const workerSellProduct = async (req, res, next) => {
 
     const worker = await User.findById(req.user.id);
     
-    if (!worker || worker.role !== 'Worker' || !worker.salonId) {
+    const isWorker = worker && worker.role === 'Worker';
+    const isWorkingOwner = worker && worker.role === 'Owner' && worker.worksAsWorker;
+    
+    if (!worker || (!isWorker && !isWorkingOwner) || (isWorker && !worker.salonId)) {
       return res.status(403).json({
         success: false,
         message: 'Worker not authorized'
@@ -1099,7 +1108,10 @@ const getWorkerProductsForSale = async (req, res, next) => {
   try {
     const worker = await User.findById(req.user.id);
     
-    if (!worker || worker.role !== 'Worker') {
+    const isWorker = worker && worker.role === 'Worker';
+    const isWorkingOwner = worker && worker.role === 'Owner' && worker.worksAsWorker;
+    
+    if (!worker || (!isWorker && !isWorkingOwner)) {
       return res.status(403).json({
         success: false,
         message: 'Only workers can access this endpoint'
@@ -1140,7 +1152,10 @@ const getWorkerProductsForUse = async (req, res, next) => {
   try {
     const worker = await User.findById(req.user.id);
     
-    if (!worker || worker.role !== 'Worker') {
+    const isWorker = worker && worker.role === 'Worker';
+    const isWorkingOwner = worker && worker.role === 'Owner' && worker.worksAsWorker;
+    
+    if (!worker || (!isWorker && !isWorkingOwner)) {
       return res.status(403).json({
         success: false,
         message: 'Only workers can access this endpoint'

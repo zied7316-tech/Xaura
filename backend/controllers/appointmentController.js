@@ -92,15 +92,21 @@ const createAppointment = async (req, res, next) => {
 
     // Verify worker exists and is active
     const worker = await User.findById(workerId);
-    if (!worker || worker.role !== 'Worker' || !worker.isActive) {
+    
+    // Check if user is a regular worker or an owner who works as worker
+    const isWorker = worker && worker.role === 'Worker';
+    const isWorkingOwner = worker && worker.role === 'Owner' && worker.worksAsWorker;
+    
+    if (!worker || (!isWorker && !isWorkingOwner) || !worker.isActive) {
       return res.status(404).json({
         success: false,
         message: 'Worker not found or inactive'
       });
     }
 
-    // Check if worker has salonId
-    if (!worker.salonId) {
+    // For regular workers, check salonId
+    // For owners, check if they own the salon (handled below)
+    if (isWorker && !worker.salonId) {
       return res.status(400).json({
         success: false,
         message: 'Worker is not assigned to a salon'
@@ -116,7 +122,6 @@ const createAppointment = async (req, res, next) => {
     }
 
     // Verify all services belong to the same salon and worker belongs to that salon
-    const workerSalonId = worker.salonId.toString();
     const serviceSalonId = firstService.salonId.toString();
     
     // Check all services are from the same salon
@@ -128,16 +133,30 @@ const createAppointment = async (req, res, next) => {
       });
     }
     
-    if (workerSalonId !== serviceSalonId) {
-      console.error('Salon mismatch:', {
-        workerId: worker._id,
-        workerSalonId,
-        serviceSalonId
-      });
-      return res.status(400).json({
-        success: false,
-        message: 'Worker does not belong to the salon offering these services'
-      });
+    // For regular workers, check salonId match
+    // For owners who work as workers, check if they own the salon
+    if (isWorker) {
+      const workerSalonId = worker.salonId.toString();
+      if (workerSalonId !== serviceSalonId) {
+        console.error('Salon mismatch:', {
+          workerId: worker._id,
+          workerSalonId,
+          serviceSalonId
+        });
+        return res.status(400).json({
+          success: false,
+          message: 'Worker does not belong to the salon offering these services'
+        });
+      }
+    } else if (isWorkingOwner) {
+      // For owner, verify they own the salon
+      const salon = await Salon.findById(serviceSalonId).select('ownerId');
+      if (!salon || salon.ownerId.toString() !== worker._id.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Owner does not own the salon offering these services'
+        });
+      }
     }
 
     // Calculate total duration for all services

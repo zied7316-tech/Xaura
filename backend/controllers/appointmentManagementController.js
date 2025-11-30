@@ -275,20 +275,43 @@ const completeAppointment = async (req, res, next) => {
     const worker = appointment.workerId;
     let workerEarning = 0;
     let commissionPercentage = 0;
+    const isOwner = worker.role === 'Owner' && worker.worksAsWorker;
 
-    // Check if worker has payment model configured
-    if (worker.paymentModel && worker.paymentModel.type) {
-      if (worker.paymentModel.type === 'percentage_commission') {
-        commissionPercentage = worker.paymentModel.commissionPercentage || 50;
-        workerEarning = (actualPrice * commissionPercentage) / 100;
-      } else if (worker.paymentModel.type === 'hybrid') {
-        commissionPercentage = worker.paymentModel.commissionPercentage || 30;
-        workerEarning = (actualPrice * commissionPercentage) / 100;
+    // Handle owner vs worker differently
+    if (isOwner) {
+      // Owner working as worker - use their payment model if set, or default to 100%
+      if (worker.paymentModel && worker.paymentModel.type) {
+        if (worker.paymentModel.type === 'percentage_commission') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 100;
+          workerEarning = (actualPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'hybrid') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 100;
+          workerEarning = (actualPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'fixed_salary') {
+          // Fixed salary doesn't apply per appointment, use 100% for owners
+          commissionPercentage = 100;
+          workerEarning = actualPrice;
+        }
+      } else {
+        // Default: Owner gets 100% (they own the business)
+        commissionPercentage = 100;
+        workerEarning = actualPrice;
       }
     } else {
-      // Default: 50% commission if no payment model set
-      commissionPercentage = 50;
-      workerEarning = (actualPrice * 50) / 100;
+      // Regular worker logic
+      if (worker.paymentModel && worker.paymentModel.type) {
+        if (worker.paymentModel.type === 'percentage_commission') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 50;
+          workerEarning = (actualPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'hybrid') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 30;
+          workerEarning = (actualPrice * commissionPercentage) / 100;
+        }
+      } else {
+        // Default: 50% commission if no payment model set
+        commissionPercentage = 50;
+        workerEarning = (actualPrice * 50) / 100;
+      }
     }
 
     // Process based on payment status

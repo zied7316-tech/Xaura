@@ -125,19 +125,51 @@ const AppointmentsPage = () => {
     setSelectedWorker(appointment.workerId?._id || '')
     setShowReassignModal(true)
     
-    // Ensure workers are loaded before checking availability
-    let workersToUse = workers
-    if (workers.length === 0) {
-      console.log('No workers loaded, reloading...')
-      try {
-        const loadedWorkers = await workerService.getWorkers()
-        const workersArray = Array.isArray(loadedWorkers) ? loadedWorkers : (loadedWorkers?.workers || loadedWorkers?.data?.workers || [])
-        setWorkers(workersArray)
-        workersToUse = workersArray
-      } catch (error) {
-        console.error('Error loading workers in modal:', error)
-        toast.error('Failed to load workers. Please try again.')
+    // Always reload workers to ensure we have the latest data (including owner if worksAsWorker)
+    let workersToUse = []
+    try {
+      console.log('Loading workers for reassign modal...')
+      const loadedWorkers = await workerService.getWorkers()
+      console.log('Raw loaded workers:', loadedWorkers)
+      
+      // Handle different response structures
+      if (Array.isArray(loadedWorkers)) {
+        workersToUse = loadedWorkers
+      } else if (loadedWorkers?.data?.workers && Array.isArray(loadedWorkers.data.workers)) {
+        workersToUse = loadedWorkers.data.workers
+      } else if (loadedWorkers?.workers && Array.isArray(loadedWorkers.workers)) {
+        workersToUse = loadedWorkers.workers
+      } else if (loadedWorkers?.data && Array.isArray(loadedWorkers.data)) {
+        workersToUse = loadedWorkers.data
+      } else {
+        console.warn('Unexpected workers response structure:', loadedWorkers)
+        workersToUse = []
       }
+      
+      console.log('Processed workers array:', workersToUse)
+      
+      // Update state immediately so dropdown can render
+      setWorkers(workersToUse)
+      
+      // Also set workersWithAvailability as fallback (will be updated with availability info below)
+      setWorkersWithAvailability(workersToUse.map(w => ({
+        ...w,
+        availability: true,
+        currentStatus: w.currentStatus || 'offline',
+        conflictReason: ''
+      })))
+      
+      if (workersToUse.length === 0) {
+        console.warn('No workers found!')
+        toast.error('No workers available. Please add workers first.')
+        return
+      }
+    } catch (error) {
+      console.error('Error loading workers in modal:', error)
+      toast.error('Failed to load workers. Please try again.')
+      setWorkers([])
+      setWorkersWithAvailability([])
+      return
     }
     
     // Load workers with availability for this appointment time
@@ -776,24 +808,47 @@ const AppointmentsPage = () => {
               onChange={(e) => setSelectedWorker(e.target.value)}
             >
               <option value="">-- Choose Worker --</option>
-              {(workersWithAvailability.length > 0 ? workersWithAvailability : workers).map((worker) => {
-                const isCurrent = worker._id === selectedAppointment?.workerId?._id
-                const isUnavailable = !worker.availability || worker.currentStatus === 'offline'
-                const statusText = worker.currentStatus === 'available' ? '✅ Available' 
-                  : worker.currentStatus === 'on_break' ? '☕ On Break'
-                  : '🔴 Offline'
-                const conflictText = worker.conflictReason ? ` - ${worker.conflictReason}` : ''
+              {(() => {
+                // Use workersWithAvailability if available, otherwise fall back to workers
+                const workersToDisplay = workersWithAvailability.length > 0 
+                  ? workersWithAvailability 
+                  : (workers.length > 0 ? workers : [])
                 
-                return (
-                  <option 
-                    key={worker._id} 
-                    value={worker._id}
-                    disabled={isCurrent || isUnavailable}
-                  >
-                    {worker.name} {isCurrent ? '(Current)' : ''} {!isCurrent && `- ${statusText}${conflictText}`}
-                  </option>
-                )
-              })}
+                console.log('Rendering dropdown with workers:', workersToDisplay.length, 'workers')
+                
+                if (workersToDisplay.length === 0) {
+                  return (
+                    <option value="" disabled>
+                      No workers available
+                    </option>
+                  )
+                }
+                
+                return workersToDisplay.map((worker) => {
+                  if (!worker || !worker._id) {
+                    console.warn('Invalid worker in list:', worker)
+                    return null
+                  }
+                  
+                  const isCurrent = worker._id === selectedAppointment?.workerId?._id
+                  // Only disable if availability is explicitly false, not if undefined
+                  const isUnavailable = (worker.availability === false) || (worker.currentStatus === 'offline')
+                  const statusText = worker.currentStatus === 'available' ? '✅ Available' 
+                    : worker.currentStatus === 'on_break' ? '☕ On Break'
+                    : '🔴 Offline'
+                  const conflictText = worker.conflictReason ? ` - ${worker.conflictReason}` : ''
+                  
+                  return (
+                    <option 
+                      key={worker._id} 
+                      value={worker._id}
+                      disabled={isCurrent || isUnavailable}
+                    >
+                      {worker.name || 'Unknown'} {isCurrent ? '(Current)' : ''} {!isCurrent && `- ${statusText}${conflictText}`}
+                    </option>
+                  )
+                }).filter(Boolean) // Remove any null entries
+              })()}
             </Select>
           )}
           
