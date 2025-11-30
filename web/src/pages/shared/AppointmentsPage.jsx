@@ -213,6 +213,9 @@ const AppointmentsPage = () => {
     )
   }
 
+  // Debug: Log owner status
+  console.log('AppointmentsPage - isOwner:', isOwner, 'user role:', user?.role)
+
   return (
     <div className="space-y-6">
       <div>
@@ -221,7 +224,7 @@ const AppointmentsPage = () => {
       </div>
 
       {/* Booking Type Switcher - Only for owners */}
-      {isOwner && (
+      {isOwner ? (
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -264,6 +267,10 @@ const AppointmentsPage = () => {
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+          Debug: isOwner = {String(isOwner)}, user role = {user?.role || 'undefined'}
+        </div>
       )}
 
       {/* Stats */}
