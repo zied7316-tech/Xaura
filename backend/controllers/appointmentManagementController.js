@@ -534,47 +534,109 @@ const reassignAppointment = async (req, res, next) => {
 
     // Verify new worker exists and belongs to this salon
     const newWorker = await User.findById(newWorkerId);
-    if (!newWorker || newWorker.role !== 'Worker') {
+    const isWorker = newWorker && newWorker.role === 'Worker';
+    const isWorkingOwner = newWorker && newWorker.role === 'Owner' && newWorker.worksAsWorker;
+    
+    if (!newWorker || (!isWorker && !isWorkingOwner)) {
       return res.status(404).json({
         success: false,
         message: 'Worker not found'
       });
     }
 
-    if (newWorker.salonId.toString() !== appointment.salonId._id.toString()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Worker does not belong to this salon'
-      });
+    // For regular workers, check salonId match
+    // For owners, check if they own the salon
+    if (isWorker) {
+      if (newWorker.salonId.toString() !== appointment.salonId._id.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Worker does not belong to this salon'
+        });
+      }
+    } else if (isWorkingOwner) {
+      // For owner, verify they own the salon
+      if (appointment.salonId.ownerId.toString() !== newWorker._id.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Owner does not own this salon'
+        });
+      }
     }
 
-    // Update appointment
-    const oldWorkerId = appointment.workerId;
-    appointment.workerId = newWorkerId;
+    // Store old worker info for notifications
+    const oldWorkerId = appointment.workerId?._id || appointment.workerId;
     
-    // If appointment was confirmed, set back to pending for new worker to accept
-    if (appointment.status === 'Confirmed') {
-      appointment.status = 'Pending';
-      appointment.acceptedAt = null;
-    }
+    // Populate appointment data before updating for notifications
+    await appointment.populate([
+      { path: 'workerId', select: 'name email' },
+      { path: 'clientId', select: 'name email', strictPopulate: false },
+      { path: 'serviceId', select: 'name price duration' }
+    ]);
+    
+    const oldWorkerName = appointment.workerId?.name || 'Previous worker';
+    const clientName = appointment.clientId?.name || appointment.clientName || 'Client';
+    const serviceName = appointment.serviceId?.name || (appointment.services && appointment.services.length > 0 ? appointment.services.map(s => s.name).join(', ') : 'Service');
+    const appointmentDateTime = appointment.dateTime;
+
+    // Update appointment - ALWAYS set to Confirmed when owner reassigns
+    appointment.workerId = newWorkerId;
+    appointment.status = 'Confirmed';  // Always confirm when owner reassigns
+    appointment.acceptedAt = new Date();  // Set acceptance time
     
     // Update notes - handle anonymous bookings (no previous worker)
     if (oldWorkerId) {
-      appointment.notes = (appointment.notes || '') + `\nReassigned from worker ${oldWorkerId} to worker ${newWorkerId} by owner`;
+      appointment.notes = (appointment.notes || '') + `\nReassigned from worker ${oldWorkerId} to worker ${newWorkerId} by owner at ${new Date().toISOString()}`;
     } else {
-      appointment.notes = (appointment.notes || '') + `\nWorker ${newWorkerId} assigned by owner`;
+      appointment.notes = (appointment.notes || '') + `\nWorker ${newWorkerId} assigned by owner at ${new Date().toISOString()}`;
     }
     await appointment.save();
 
+    // Re-populate after save to get updated worker info
     await appointment.populate('workerId', 'name email');
     if (appointment.clientId) {
-    await appointment.populate('clientId', 'name email');
+      await appointment.populate('clientId', 'name email');
     }
     await appointment.populate('serviceId', 'name price duration');
 
+    // Send notification to NEW worker - appointment is confirmed
+    await createNotification({
+      userId: newWorkerId,
+      salonId: appointment.salonId._id,
+      type: 'appointment_confirmed',
+      title: 'Appointment Assigned & Confirmed',
+      message: `You have been assigned a confirmed appointment with ${clientName} for ${serviceName} on ${new Date(appointmentDateTime).toLocaleDateString()} at ${new Date(appointmentDateTime).toLocaleTimeString()}`,
+      relatedAppointment: appointment._id,
+      priority: 'high',
+      data: {
+        clientName: clientName,
+        serviceName: serviceName,
+        dateTime: appointmentDateTime,
+        isReassigned: true,
+        status: 'Confirmed'
+      }
+    });
+
+    // Notify OLD worker if they exist and are different from new worker
+    if (oldWorkerId && oldWorkerId.toString() !== newWorkerId.toString()) {
+      await createNotification({
+        userId: oldWorkerId,
+        salonId: appointment.salonId._id,
+        type: 'appointment_reassigned',
+        title: 'Appointment Reassigned',
+        message: `Your appointment with ${clientName} for ${serviceName} has been reassigned to ${appointment.workerId?.name || 'another worker'}`,
+        relatedAppointment: appointment._id,
+        priority: 'normal',
+        data: {
+          clientName: clientName,
+          serviceName: serviceName,
+          newWorkerName: appointment.workerId?.name || 'Another worker'
+        }
+      });
+    }
+
     res.json({
       success: true,
-      message: 'Appointment reassigned successfully',
+      message: 'Appointment reassigned and confirmed successfully',
       data: appointment
     });
   } catch (error) {
