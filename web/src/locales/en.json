@@ -156,7 +156,40 @@
     "recurringBooking": "Recurring & Groups",
     "points": "Points",
     "redeem": "Redeem",
-    "loyaltyTier": "Loyalty Tier"
+    "loyaltyTier": "Loyalty Tier",
+    "myDashboard": "My Dashboard",
+    "welcome": "Welcome",
+    "vipMember": "VIP MEMBER 💎",
+    "vipPriority": "Priority booking access",
+    "myBarbershops": "My Barbershops",
+    "joinNewSalon": "Join New Salon",
+    "noSalonsYet": "No Salons Yet",
+    "noSalonsDescription": "Join a salon to start booking appointments",
+    "joinViaQR": "Join via QR Code",
+    "appointmentsCount": "appointments",
+    "memberSince": "Member since",
+    "bookAppointmentCTA": "Book Appointment",
+    "viewDetails": "View Details",
+    "shareQRTooltip": "Share QR Code",
+    "myAppointmentsCard": "My Appointments",
+    "myAppointmentsDescription": "View and manage your upcoming appointments",
+    "findMoreSalons": "Find More Salons",
+    "findMoreSalonsDescription": "Discover and explore new salons near you",
+    "shareQRTitle": "Share QR Code",
+    "qrCodeLabel": "QR Code",
+    "bookingLinkLabel": "Booking Link",
+    "copy": "Copy",
+    "shareQRButton": "Share QR Code",
+    "shareHowTo": "How to share:",
+    "shareStep1": "Click \"Share QR Code\" to share via your device",
+    "shareStep2": "Or copy the QR code or link and send it manually",
+    "shareStep3": "Others can scan the QR code to join this salon",
+    "qrCopied": "QR code copied to clipboard!",
+    "qrCopyFailed": "Failed to copy QR code",
+    "bookingLinkCopied": "Booking link copied to clipboard!",
+    "bookingLinkCopyFailed": "Failed to copy link",
+    "shareTitle": "Join salon",
+    "shareText": "Scan this QR code or click the link to join this salon and book appointments!"
   },
   "billing": {
     "invoice": "Invoice",
@@ -207,7 +240,9 @@
     "completed": "Completed",
     "bookNow": "Book Now",
     "reschedule": "Reschedule",
-    "cancelAppointment": "Cancel Appointment"
+    "cancelAppointment": "Cancel Appointment",
+    "title": "My Appointments",
+    "subtitle": "View and manage your appointments"
   }
 }
 

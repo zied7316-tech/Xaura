@@ -3,17 +3,21 @@ import { useNavigate } from 'react-router-dom'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { Calendar, UserPlus } from 'lucide-react'
+import { useLanguage } from '../../context/LanguageContext'
 
 const WorkerDashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { t } = useLanguage()
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Worker Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t('worker.myDashboard', 'Worker Dashboard')}
+        </h1>
         <p className="text-gray-600 mt-1">
-          Welcome, {user?.name}
+          {t('worker.welcome', 'Welcome')}, {user?.name}
           {user?.userID && (
             <span className="ml-2 text-sm font-mono text-primary-600">#{user.userID}</span>
           )}
@@ -28,8 +32,12 @@ const WorkerDashboard = () => {
               <UserPlus className="text-white" size={32} />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Walk-in Client</h3>
-              <p className="text-gray-600">Client came without booking? Add them here</p>
+              <h3 className="text-xl font-bold text-gray-900">
+                {t('worker.walkInClients', 'Walk-in Client')}
+              </h3>
+              <p className="text-gray-600">
+                {t('worker.walkInDescription', 'Client came without booking? Add them here')}
+              </p>
             </div>
           </div>
           <Button
@@ -38,7 +46,7 @@ const WorkerDashboard = () => {
             className="bg-primary-600 hover:bg-primary-700"
           >
             <UserPlus size={20} />
-            Add Walk-in Client
+            {t('worker.addWalkInClient', 'Add Walk-in Client')}
           </Button>
         </div>
       </Card>
@@ -48,27 +56,33 @@ const WorkerDashboard = () => {
           <div className="text-center p-6">
             <Calendar className="mx-auto text-primary-600 mb-4" size={48} />
             <p className="text-2xl font-bold">0</p>
-            <p className="text-gray-600">Today's Appointments</p>
+            <p className="text-gray-600">
+              {t('worker.todaysAppointments', "Today's Appointments")}
+            </p>
           </div>
         </Card>
         <Card>
           <div className="text-center p-6">
             <Calendar className="mx-auto text-blue-600 mb-4" size={48} />
             <p className="text-2xl font-bold">0</p>
-            <p className="text-gray-600">This Week</p>
+            <p className="text-gray-600">
+              {t('worker.thisWeek', 'This Week')}
+            </p>
           </div>
         </Card>
         <Card>
           <div className="text-center p-6">
             <Calendar className="mx-auto text-green-600 mb-4" size={48} />
             <p className="text-2xl font-bold">0</p>
-            <p className="text-gray-600">Completed</p>
+            <p className="text-gray-600">
+              {t('worker.completed', 'Completed')}
+            </p>
           </div>
         </Card>
       </div>
 
       <Card className="p-8 text-center text-gray-500">
-        Your appointments will appear here
+        {t('worker.appointmentsEmpty', 'Your appointments will appear here')}
       </Card>
     </div>
   )

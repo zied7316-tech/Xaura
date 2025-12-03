@@ -9,10 +9,12 @@ import Badge from '../../components/ui/Badge'
 import { Calendar, Store, MapPin, Phone, Plus, Crown, Sparkles, Star, Share2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { QRCodeSVG } from 'qrcode.react'
+import { useLanguage } from '../../context/LanguageContext'
 
 const ClientDashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const [mySalons, setMySalons] = useState([])
   const [loading, setLoading] = useState(true)
   const [hasVIPStatus, setHasVIPStatus] = useState(false)
@@ -52,9 +54,9 @@ const ClientDashboard = () => {
   const handleCopyQRCode = async (qrCode) => {
     try {
       await navigator.clipboard.writeText(qrCode)
-      toast.success('QR code copied to clipboard!')
+      toast.success(t('client.qrCopied', 'QR code copied to clipboard!'))
     } catch (error) {
-      toast.error('Failed to copy QR code')
+      toast.error(t('client.qrCopyFailed', 'Failed to copy QR code'))
     }
   }
 
@@ -71,9 +73,9 @@ const ClientDashboard = () => {
     const bookingLink = getBookingLink(salon)
     try {
       await navigator.clipboard.writeText(bookingLink)
-      toast.success('Booking link copied to clipboard!')
+      toast.success(t('client.bookingLinkCopied', 'Booking link copied to clipboard!'))
     } catch (error) {
-      toast.error('Failed to copy link')
+      toast.error(t('client.bookingLinkCopyFailed', 'Failed to copy link'))
     }
   }
 
@@ -83,8 +85,8 @@ const ClientDashboard = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Join ${salon.salonId.name}`,
-          text: `Scan this QR code or click the link to join ${salon.salonId.name} and book appointments!`,
+          title: t('client.shareTitle', 'Join salon'),
+          text: t('client.shareText', 'Scan this QR code or click the link to join this salon and book appointments!'),
           url: bookingLink,
         })
       } catch (error) {
@@ -100,9 +102,11 @@ const ClientDashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t('client.myDashboard', 'My Dashboard')}
+        </h1>
         <p className="text-gray-600 mt-1">
-          Welcome, {user?.name}
+          {t('client.welcome', 'Welcome')}, {user?.name}
           {user?.userID && (
             <span className="ml-2 text-sm font-mono text-primary-600">#{user.userID}</span>
           )}
@@ -120,10 +124,10 @@ const ClientDashboard = () => {
                 </div>
                 <div className="text-white">
                   <h3 className="text-lg font-bold flex items-center gap-2">
-                    VIP MEMBER 💎
+                    {t('client.vipMember', 'VIP MEMBER 💎')}
                   </h3>
                   <p className="text-yellow-50 text-sm">
-                    Priority booking access
+                    {t('client.vipPriority', 'Priority booking access')}
                   </p>
                 </div>
               </div>
@@ -136,11 +140,13 @@ const ClientDashboard = () => {
       {/* My Barbershops Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">My Barbershops</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {t('client.myBarbershops', 'My Barbershops')}
+          </h2>
           <Link to="/join-salon">
-            <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm">
               <Plus size={18} />
-              Join New Salon
+              {t('client.joinNewSalon', 'Join New Salon')}
             </Button>
           </Link>
         </div>
@@ -152,14 +158,16 @@ const ClientDashboard = () => {
         ) : mySalons.length === 0 ? (
           <Card className="p-12 text-center">
             <Store className="mx-auto text-gray-400 mb-4" size={64} />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Salons Yet</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              {t('client.noSalonsYet', 'No Salons Yet')}
+            </h3>
             <p className="text-gray-600 mb-4">
-              Join a salon to start booking appointments
+              {t('client.noSalonsDescription', 'Join a salon to start booking appointments')}
             </p>
             <Link to="/join-salon">
               <Button>
                 <Plus size={18} />
-                Join via QR Code
+              {t('client.joinViaQR', 'Join via QR Code')}
               </Button>
             </Link>
           </Card>
@@ -236,10 +244,11 @@ const ClientDashboard = () => {
                     {/* Stats */}
                     <div className="flex items-center justify-between text-sm mb-4">
                       <span className="text-gray-600">
-                        {item.totalAppointments || 0} appointments
+                        {item.totalAppointments || 0} {t('client.appointmentsCount', 'appointments')}
                       </span>
                       <span className="text-gray-600">
-                        Member since {new Date(item.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        {t('client.memberSince', 'Member since')}{' '}
+                        {new Date(item.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </span>
                     </div>
 
@@ -249,21 +258,21 @@ const ClientDashboard = () => {
                         className="flex-1"
                       >
                         <Calendar size={16} />
-                        Book Appointment
+                        {t('client.bookAppointmentCTA', 'Book Appointment')}
                       </Button>
                       <Button
                         variant="outline"
                         onClick={() => handleViewSalon(item.salonId._id)}
                         className="flex-1"
                       >
-                        View Details
+                        {t('client.viewDetails', 'View Details')}
                       </Button>
                       {item.salonId.qrCode && (
                         <Button
                           variant="outline"
                           onClick={() => handleShareQR(item)}
                           className="shrink-0"
-                          title="Share QR Code"
+                          title={t('client.shareQRTooltip', 'Share QR Code')}
                         >
                           <Share2 size={16} />
                         </Button>
@@ -282,9 +291,11 @@ const ClientDashboard = () => {
         <Link to="/appointments">
           <Card className="p-6 text-center hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-primary-200">
             <Calendar className="mx-auto text-blue-600 mb-3" size={48} />
-            <h3 className="text-lg font-semibold mb-2">My Appointments</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t('client.myAppointmentsCard', 'My Appointments')}
+            </h3>
             <p className="text-gray-600 text-sm">
-              View and manage your upcoming appointments
+              {t('client.myAppointmentsDescription', 'View and manage your upcoming appointments')}
             </p>
           </Card>
         </Link>
@@ -292,9 +303,11 @@ const ClientDashboard = () => {
         <Link to="/search-salons">
           <Card className="p-6 text-center hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-primary-200">
             <Store className="mx-auto text-purple-600 mb-3" size={48} />
-            <h3 className="text-lg font-semibold mb-2">Find More Salons</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t('client.findMoreSalons', 'Find More Salons')}
+            </h3>
             <p className="text-gray-600 text-sm">
-              Discover and explore new salons near you
+              {t('client.findMoreSalonsDescription', 'Discover and explore new salons near you')}
             </p>
           </Card>
         </Link>
@@ -308,7 +321,9 @@ const ClientDashboard = () => {
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Share QR Code</h3>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {t('client.shareQRTitle', 'Share QR Code')}
+                  </h3>
                   <p className="text-sm text-gray-600">{selectedSalonForQR.salonId.name}</p>
                 </div>
                 <button
@@ -332,7 +347,7 @@ const ClientDashboard = () => {
               {/* QR Code Value */}
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  QR Code
+                  {t('client.qrCodeLabel', 'QR Code')}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -346,7 +361,7 @@ const ClientDashboard = () => {
                     size="sm"
                     onClick={() => handleCopyQRCode(selectedSalonForQR.salonId.qrCode)}
                   >
-                    Copy
+                    {t('client.copy', 'Copy')}
                   </Button>
                 </div>
               </div>
@@ -354,7 +369,7 @@ const ClientDashboard = () => {
               {/* Booking Link */}
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Booking Link
+                  {t('client.bookingLinkLabel', 'Booking Link')}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -368,7 +383,7 @@ const ClientDashboard = () => {
                     size="sm"
                     onClick={() => handleCopyQRUrl(selectedSalonForQR)}
                   >
-                    Copy
+                    {t('client.copy', 'Copy')}
                   </Button>
                 </div>
               </div>
@@ -380,18 +395,18 @@ const ClientDashboard = () => {
                 className="mb-4"
               >
                 <Share2 size={18} />
-                Share QR Code
+                {t('client.shareQRButton', 'Share QR Code')}
               </Button>
 
               {/* Instructions */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm font-medium text-blue-900 mb-2">
-                  How to share:
+                  {t('client.shareHowTo', 'How to share:')}
                 </p>
                 <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                  <li>Click "Share QR Code" to share via your device</li>
-                  <li>Or copy the QR code or link and send it manually</li>
-                  <li>Others can scan the QR code to join this salon</li>
+                  <li>{t('client.shareStep1', 'Click "Share QR Code" to share via your device')}</li>
+                  <li>{t('client.shareStep2', 'Or copy the QR code or link and send it manually')}</li>
+                  <li>{t('client.shareStep3', 'Others can scan the QR code to join this salon')}</li>
                 </ul>
               </div>
             </div>

@@ -16,9 +16,11 @@ import { Calendar, Clock, User, Store, Phone, Mail, Check, X, RefreshCw, Star, M
 import { formatDate, formatTime, formatCurrency } from '../../utils/helpers'
 import { celebrateSuccess } from '../../utils/confetti'
 import toast from 'react-hot-toast'
+import { useLanguage } from '../../context/LanguageContext'
 
 const AppointmentsPage = () => {
   const { user, isClient, isOwner, salon } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -340,8 +342,12 @@ const AppointmentsPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">My Appointments</h1>
-        <p className="text-gray-600 mt-1">View and manage your appointments</p>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t('appointments.title', 'My Appointments')}
+        </h1>
+        <p className="text-gray-600 mt-1">
+          {t('appointments.subtitle', 'View and manage your appointments')}
+        </p>
       </div>
 
       {/* Booking Type Switcher - Only for owners */}

@@ -156,7 +156,40 @@
     "recurringBooking": "Récurrents et groupes",
     "points": "Points",
     "redeem": "Échanger",
-    "loyaltyTier": "Niveau de fidélité"
+    "loyaltyTier": "Niveau de fidélité",
+    "myDashboard": "Mon tableau de bord",
+    "welcome": "Bienvenue",
+    "vipMember": "MEMBRE VIP 💎",
+    "vipPriority": "Accès prioritaire aux rendez-vous",
+    "myBarbershops": "Mes barbershops",
+    "joinNewSalon": "Rejoindre un nouveau salon",
+    "noSalonsYet": "Aucun salon pour le moment",
+    "noSalonsDescription": "Rejoignez un salon pour commencer à réserver des rendez-vous",
+    "joinViaQR": "Rejoindre via QR Code",
+    "appointmentsCount": "rendez-vous",
+    "memberSince": "Membre depuis",
+    "bookAppointmentCTA": "Réserver un rendez-vous",
+    "viewDetails": "Voir les détails",
+    "shareQRTooltip": "Partager le QR Code",
+    "myAppointmentsCard": "Mes rendez-vous",
+    "myAppointmentsDescription": "Consultez et gérez vos prochains rendez-vous",
+    "findMoreSalons": "Trouver d'autres salons",
+    "findMoreSalonsDescription": "Découvrez et explorez de nouveaux salons près de chez vous",
+    "shareQRTitle": "Partager le QR Code",
+    "qrCodeLabel": "Code QR",
+    "bookingLinkLabel": "Lien de réservation",
+    "copy": "Copier",
+    "shareQRButton": "Partager le QR Code",
+    "shareHowTo": "Comment partager :",
+    "shareStep1": "Cliquez sur « Partager le QR Code » pour partager via votre appareil",
+    "shareStep2": "Ou copiez le code QR ou le lien et envoyez-le manuellement",
+    "shareStep3": "Les autres peuvent scanner le code QR pour rejoindre ce salon",
+    "qrCopied": "Code QR copié dans le presse-papiers !",
+    "qrCopyFailed": "Échec de la copie du code QR",
+    "bookingLinkCopied": "Lien de réservation copié dans le presse-papiers !",
+    "bookingLinkCopyFailed": "Échec de la copie du lien",
+    "shareTitle": "Rejoindre le salon",
+    "shareText": "Scannez ce code QR ou cliquez sur le lien pour rejoindre ce salon et réserver des rendez-vous !"
   },
   "billing": {
     "invoice": "Facture",
@@ -207,7 +240,9 @@
     "completed": "Terminés",
     "bookNow": "Réserver maintenant",
     "reschedule": "Reprogrammer",
-    "cancelAppointment": "Annuler le rendez-vous"
+    "cancelAppointment": "Annuler le rendez-vous",
+    "title": "Mes rendez-vous",
+    "subtitle": "Consultez et gérez vos rendez-vous"
   }
 }
 
