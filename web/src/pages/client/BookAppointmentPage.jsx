@@ -95,7 +95,7 @@ const BookAppointmentPage = () => {
 
   useEffect(() => {
     const loadSalon = async () => {
-      if (salonIdParam) {
+    if (salonIdParam) {
         await loadSalonDetails()
       } else if (recurringParam || groupParam) {
         // For recurring/group bookings, load client's joined salon
@@ -151,8 +151,8 @@ const BookAppointmentPage = () => {
       if (numberOfPeople === 1 && (selectedService || selectedServices.length > 0)) {
         loadAvailableSlots()
       } else if (numberOfPeople > 1 && peopleServices.some(p => p.services.length > 0)) {
-        loadAvailableSlots()
-      }
+      loadAvailableSlots()
+    }
     }
   }, [selectedWorker, selectedDate, selectedService, selectedServices, numberOfPeople, peopleServices])
 
@@ -305,7 +305,7 @@ const BookAppointmentPage = () => {
 
         const recurringData = {
           salonId: salonIdParam,
-          workerId: selectedWorker._id,
+        workerId: selectedWorker._id,
           serviceId: primaryService._id, // Primary service for backward compatibility
           services: numberOfPeople === 1 ? servicesToBook.map(service => ({
             serviceId: service._id,
@@ -340,8 +340,8 @@ const BookAppointmentPage = () => {
         // Regular appointment - handle single or multiple people
         if (numberOfPeople === 1) {
           // Single person booking
-          await appointmentService.createAppointment({
-            workerId: selectedWorker._id,
+      await appointmentService.createAppointment({
+        workerId: selectedWorker._id,
             serviceId: servicesToBook[0]._id, // Keep for backward compatibility
             services: servicesToBook.map(service => ({
               serviceId: service._id,
@@ -349,9 +349,9 @@ const BookAppointmentPage = () => {
               price: service.price,
               duration: service.duration
             })),
-            dateTime: appointmentDateTime.toISOString(),
-            notes: ''
-          })
+        dateTime: appointmentDateTime.toISOString(),
+        notes: ''
+      })
 
           toast.success(`🎉 Appointment booked successfully for ${servicesToBook.length} service${servicesToBook.length > 1 ? 's' : ''}!`)
         } else {
@@ -399,9 +399,9 @@ const BookAppointmentPage = () => {
           }
         }
         
-        setTimeout(() => {
-          navigate('/appointments')
-        }, 2000)
+      setTimeout(() => {
+        navigate('/appointments')
+      }, 2000)
       }
     } catch (error) {
       console.error('Error booking:', error)
@@ -547,7 +547,7 @@ const BookAppointmentPage = () => {
 
             {/* Service Selection - Show per person if multiple people */}
             {numberOfPeople === 1 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {salonDetails?.services.map((service) => {
                 const isSelected = selectedServices.some(s => s._id === service._id) || selectedService?._id === service._id
                 return (
@@ -650,7 +650,7 @@ const BookAppointmentPage = () => {
                       <CardTitle className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
                           {personIdx + 1}
-                        </div>
+                      </div>
                         <div>
                           <p className="text-lg font-bold text-purple-900">Person {personIdx + 1}</p>
                           <p className="text-xs text-purple-700 font-normal">Select services for this person</p>
@@ -715,8 +715,8 @@ const BookAppointmentPage = () => {
                                     fallbackType="service"
                                   />
                                 </div>
-                                
-                                <div className="flex-1">
+                    
+                    <div className="flex-1">
                                   <div className="text-center mb-2">
                                     <h3>
                                       <ShinyText
@@ -735,13 +735,13 @@ const BookAppointmentPage = () => {
                                     </h3>
                                   </div>
                                   <div className="text-center">
-                                    <Badge variant="default" size="sm">{service.category}</Badge>
+                      <Badge variant="default" size="sm">{service.category}</Badge>
                                   </div>
                                   <div className="flex items-center justify-center gap-3 mt-2 text-sm text-gray-600">
-                                    <span>⏱️ {formatDuration(service.duration)}</span>
-                                    <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
-                                  </div>
-                                </div>
+                        <span>⏱️ {formatDuration(service.duration)}</span>
+                        <span className="text-green-600 font-semibold">{formatCurrency(service.price)}</span>
+                      </div>
+                    </div>
                               </div>
                             </div>
                           )
@@ -772,10 +772,10 @@ const BookAppointmentPage = () => {
                                 <div className="flex items-center gap-3">
                                   <span className="text-xs text-gray-500">⏱️ {service ? formatDuration(service.duration) : 'N/A'}</span>
                                   <span className="text-green-600 font-bold">{service ? formatCurrency(service.price) : 'N/A'}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                  </div>
+                </div>
+              ))}
+            </div>
                           <div className="mt-3 pt-3 border-t-2 border-green-300 flex items-center justify-between bg-white p-3 rounded-lg">
                             <span className="text-sm font-semibold text-gray-700">Total:</span>
                             <div className="flex items-center gap-4">
@@ -969,7 +969,7 @@ const BookAppointmentPage = () => {
                         Multi-Service
                       </Badge>
                     )}
-                  </div>
+              </div>
                   <div className="space-y-3">
                     {(selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : [])).filter(s => s).map((service, idx) => (
                       <div key={service?._id || idx} className="bg-white p-3 rounded-lg border border-primary-200 shadow-sm">
@@ -1103,7 +1103,7 @@ const BookAppointmentPage = () => {
                         <div className="flex items-center gap-3">
                           <SafeImage
                             src={worker.avatar ? uploadService.getImageUrl(worker.avatar) : null}
-                            alt={worker.name}
+                              alt={worker.name}
                             className="w-16 h-16 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-primary-400 transition-all"
                             onClick={(e) => {
                               e.stopPropagation()
@@ -1164,10 +1164,10 @@ const BookAppointmentPage = () => {
               <div className="p-4 bg-gray-50 rounded-lg flex items-center gap-3">
                 <SafeImage
                   src={selectedWorker.avatar ? uploadService.getImageUrl(selectedWorker.avatar) : null}
-                  alt={selectedWorker.name}
-                  className="w-12 h-12 rounded-full object-cover"
+                    alt={selectedWorker.name}
+                    className="w-12 h-12 rounded-full object-cover"
                   fallbackType="worker"
-                />
+                  />
                 <div>
                   <p className="text-sm text-gray-600">Your Worker:</p>
                   <p className="font-semibold text-gray-900">{selectedWorker.name}</p>

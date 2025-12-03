@@ -7,7 +7,7 @@ import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import App from './App'
 import './index.css'
-import './forceSWCleanup'
+// Service worker cleanup removed to enable Firebase push notifications
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +18,19 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// Register service worker for push notifications
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then((registration) => {
+        console.log('Service Worker registered for push notifications:', registration)
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error)
+      })
+  })
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

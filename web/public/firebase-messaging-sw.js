@@ -5,14 +5,14 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js')
 
 // Firebase configuration
-// These values will be replaced at build time or set via environment variables
+// Firebase project: xaura-b3973
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_AUTH_DOMAIN',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_STORAGE_BUCKET',
-  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-  appId: 'YOUR_APP_ID'
+  apiKey: 'AIzaSyCdiQeRh7RvlFODh1eGSYx6aNx8joNlpLE',
+  authDomain: 'xaura-b3973.firebaseapp.com',
+  projectId: 'xaura-b3973',
+  storageBucket: 'xaura-b3973.firebasestorage.app',
+  messagingSenderId: '385082739786',
+  appId: '1:385082739786:web:14d976abfdeb317defaab3'
 }
 
 // Initialize Firebase

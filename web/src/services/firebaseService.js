@@ -49,10 +49,57 @@ export const getFCMToken = async () => {
       return null
     }
 
-    // Service workers are disabled - push notifications will not work
-    // This is intentional to prevent service worker interference with API calls
-    console.warn('Service workers are disabled - Firebase push notifications will not work')
-    return null
+    // Check if service worker is supported
+    if (!('serviceWorker' in navigator)) {
+      console.warn('Service workers not supported in this browser')
+      return null
+    }
+
+    // Wait for service worker to be ready
+    let registration
+    try {
+      registration = await navigator.serviceWorker.ready
+      if (!registration) {
+        // Try to register if not already registered
+        registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          scope: '/'
+        })
+        console.log('Service Worker registered for FCM:', registration)
+      }
+    } catch (error) {
+      console.error('Service Worker registration failed:', error)
+      return null
+    }
+
+    // Get VAPID key from environment
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
+    if (!vapidKey) {
+      console.warn('VAPID key not configured. Please add VITE_FIREBASE_VAPID_KEY to your .env file.')
+      console.warn('Push notifications will not work without a VAPID key.')
+      return null
+    }
+
+    // Get FCM token
+    try {
+      const token = await getToken(messaging, {
+        vapidKey: vapidKey,
+        serviceWorkerRegistration: registration
+      })
+
+      if (token) {
+        console.log('FCM Token obtained successfully:', token.substring(0, 20) + '...')
+        return token
+      } else {
+        console.warn('No FCM token available. User may need to grant notification permission.')
+        return null
+      }
+    } catch (error) {
+      console.error('Error getting FCM token:', error)
+      if (error.code === 'messaging/permission-blocked') {
+        console.warn('Notification permission is blocked. User needs to enable it in browser settings.')
+      }
+      return null
+    }
   } catch (error) {
     console.error('Error getting FCM token:', error)
     return null
