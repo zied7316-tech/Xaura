@@ -9,9 +9,11 @@ import Button from '../../components/ui/Button'
 import { Store, Calendar, Users, Scissors, TrendingUp, DollarSign, AlertCircle, Package, TrendingDown, CreditCard, Clock, CheckCircle, Crown, Zap } from 'lucide-react'
 import { formatDate, formatTime, formatCurrency } from '../../utils/helpers'
 import { StatusBadge } from '../../components/ui/Badge'
+import { useLanguage } from '../../context/LanguageContext'
 
 const OwnerDashboard = () => {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [analytics, setAnalytics] = useState(null)
   const [appointments, setAppointments] = useState([])
   const [subscription, setSubscription] = useState(null)
@@ -58,9 +60,11 @@ const OwnerDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Business Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {t('owner.businessDashboard', 'Business Dashboard')}
+          </h1>
           <p className="text-gray-600 mt-1">
-            Welcome back, {user?.name}
+            {t('owner.welcomeBack', 'Welcome back')}, {user?.name}
             {user?.userID && (
               <span className="ml-2 text-sm font-mono text-primary-600">#{user.userID}</span>
             )}
@@ -69,7 +73,7 @@ const OwnerDashboard = () => {
         <Link to="/owner/salon">
           <Button>
             <Store size={20} />
-            Manage Salon
+            {t('owner.manageSalon', 'Manage Salon')}
           </Button>
         </Link>
       </div>
@@ -104,26 +108,28 @@ const OwnerDashboard = () => {
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">
                     {subscription.status === 'trial' 
-                      ? 'Free Trial Active' 
+                      ? t('owner.freeTrialActive', 'Free Trial Active') 
                       : subscription.plan 
-                        ? `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan`
-                        : 'No Active Plan'}
+                        ? `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} ${t('owner.plan', 'Plan')}`
+                        : t('owner.noActivePlan', 'No Active Plan')}
                   </h3>
                   {subscription.status === 'trial' ? (
                     <p className="text-sm text-gray-600 mt-1">
-                      {subscription.trialDaysRemaining || 0} days remaining
+                      {subscription.trialDaysRemaining || 0} {t('owner.daysRemaining', 'days remaining')}
                       {subscription.needsConfirmation && (
-                        <span className="ml-2 text-yellow-600 font-semibold">• Confirmation needed</span>
+                        <span className="ml-2 text-yellow-600 font-semibold">• {t('owner.confirmationNeeded', 'Confirmation needed')}</span>
                       )}
                     </p>
                   ) : subscription.plan ? (
                     <p className="text-sm text-gray-600 mt-1">
                       {subscription.billingInterval === 'year' 
-                        ? `Annual billing • ${formatCurrency(subscription.price || 0)}/year`
-                        : `Monthly billing • ${formatCurrency(subscription.monthlyFee || subscription.price || 0)}/month`}
+                        ? `${t('owner.annualBilling', 'Annual billing')} • ${formatCurrency(subscription.price || 0)}/year`
+                        : `${t('owner.monthlyBilling', 'Monthly billing')} • ${formatCurrency(subscription.monthlyFee || subscription.price || 0)}/month`}
                     </p>
                   ) : (
-                    <p className="text-sm text-red-600 mt-1">Please choose a plan to continue</p>
+                    <p className="text-sm text-red-600 mt-1">
+                      {t('owner.choosePlanToContinue', 'Please choose a plan to continue')}
+                    </p>
                   )}
                 </div>
               </div>
@@ -132,7 +138,7 @@ const OwnerDashboard = () => {
                 <Link to="/owner/subscription">
                   <Button variant="primary">
                     <CreditCard size={18} className="mr-2" />
-                    Manage Plan
+                    {t('owner.managePlan', 'Manage Plan')}
                   </Button>
                 </Link>
               </div>
@@ -147,7 +153,9 @@ const OwnerDashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Revenue Today</p>
+              <p className="text-sm text-gray-600">
+                {t('owner.revenueToday', 'Revenue Today')}
+              </p>
               <p className="text-2xl font-bold text-green-600 mt-1">
                 {formatCurrency(analytics?.revenue?.today || 0)}
               </p>
@@ -162,7 +170,9 @@ const OwnerDashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Revenue This Month</p>
+              <p className="text-sm text-gray-600">
+                {t('owner.revenueThisMonth', 'Revenue This Month')}
+              </p>
               <p className="text-2xl font-bold text-primary-600 mt-1">
                 {formatCurrency(analytics?.revenue?.thisMonth || 0)}
               </p>
@@ -177,7 +187,9 @@ const OwnerDashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Appointments Today</p>
+              <p className="text-sm text-gray-600">
+                {t('owner.appointmentsToday', 'Appointments Today')}
+              </p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {analytics?.appointments?.today || 0}
               </p>
@@ -192,7 +204,9 @@ const OwnerDashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Customers</p>
+              <p className="text-sm text-gray-600">
+                {t('owner.totalCustomers', 'Total Customers')}
+              </p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {analytics?.customers?.total || 0}
               </p>
@@ -213,7 +227,9 @@ const OwnerDashboard = () => {
                 <DollarSign className="text-green-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
+                <p className="text-sm text-gray-600">
+                  {t('owner.totalRevenue', 'Total Revenue')}
+                </p>
                 <p className="text-xl font-bold text-gray-900">
                   {formatCurrency(analytics?.revenue?.total || 0)}
                 </p>
@@ -229,7 +245,9 @@ const OwnerDashboard = () => {
                 <Calendar className="text-blue-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Appointments</p>
+                <p className="text-sm text-gray-600">
+                  {t('owner.totalAppointments', 'Total Appointments')}
+                </p>
                 <p className="text-xl font-bold text-gray-900">
                   {analytics?.appointments?.total || 0}
                 </p>
@@ -245,7 +263,9 @@ const OwnerDashboard = () => {
                 <AlertCircle className="text-yellow-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Pending</p>
+                <p className="text-sm text-gray-600">
+                  {t('owner.pending', 'Pending')}
+                </p>
                 <p className="text-xl font-bold text-gray-900">
                   {analytics?.appointments?.pending || 0}
                 </p>
@@ -258,67 +278,85 @@ const OwnerDashboard = () => {
       {/* Quick Actions - ENHANCED with Business Features */}
       <Card>
         <CardHeader>
-          <CardTitle>Business Management</CardTitle>
+          <CardTitle>{t('owner.businessManagement', 'Business Management')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
             <Link to="/owner/salon">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <Store className="text-primary-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Salon Settings</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.salonSettings', 'Salon Settings')}
+                </span>
               </button>
             </Link>
             <Link to="/owner/services">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <Scissors className="text-blue-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Services</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.services', 'Services')}
+                </span>
               </button>
             </Link>
             <Link to="/owner/workers">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <Users className="text-purple-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Workers</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.workers', 'Workers')}
+                </span>
               </button>
             </Link>
             <Link to="/owner/finances">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <DollarSign className="text-green-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Finances</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.finances', 'Finances')}
+                </span>
                 <span className="text-xs text-green-600 font-bold">NEW</span>
               </button>
             </Link>
             <Link to="/owner/customers">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <Users className="text-orange-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Customers</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.customers', 'Customers')}
+                </span>
                 <span className="text-xs text-orange-600 font-bold">NEW</span>
               </button>
             </Link>
             <Link to="/owner/inventory">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <Package className="text-indigo-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Inventory</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.inventory', 'Inventory')}
+                </span>
                 <span className="text-xs text-indigo-600 font-bold">NEW</span>
               </button>
             </Link>
             <Link to="/owner/reports">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <TrendingUp className="text-pink-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Reports</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.reports', 'Reports')}
+                </span>
                 <span className="text-xs text-pink-600 font-bold">NEW</span>
               </button>
             </Link>
             <Link to="/owner/subscription">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <CreditCard className="text-indigo-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Subscription</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.subscription', 'Subscription')}
+                </span>
                 <span className="text-xs text-indigo-600 font-bold">NEW</span>
               </button>
             </Link>
             <Link to="/appointments">
               <button className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors w-full">
                 <Calendar className="text-teal-600 mb-2" size={28} />
-                <span className="text-sm font-medium text-center">Appointments</span>
+                <span className="text-sm font-medium text-center">
+                  {t('owner.appointments', 'Appointments')}
+                </span>
               </button>
             </Link>
           </div>
@@ -329,16 +367,18 @@ const OwnerDashboard = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Recent Appointments</CardTitle>
+            <CardTitle>{t('owner.recentAppointments', 'Recent Appointments')}</CardTitle>
             <Link to="/appointments">
-              <Button variant="ghost" size="sm">View All</Button>
+              <Button variant="ghost" size="sm">
+                {t('common.viewAll', 'View All')}
+              </Button>
             </Link>
           </div>
         </CardHeader>
         <CardContent>
           {appointments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No appointments yet
+              {t('owner.noAppointmentsYet', 'No appointments yet')}
             </div>
           ) : (
             <div className="space-y-4">

@@ -35,10 +35,10 @@ class _FinancesScreenState extends State<FinancesScreen> {
       ]);
       
       setState(() {
-        _revenue = revenue;
-        _profitLoss = profitLoss;
-        _payments = payments;
-        _expenses = expenses;
+        _revenue = revenue as Map<String, dynamic>?;
+        _profitLoss = profitLoss as Map<String, dynamic>?;
+        _payments = payments as List<dynamic>;
+        _expenses = expenses as List<dynamic>;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

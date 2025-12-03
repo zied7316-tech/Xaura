@@ -32,7 +32,7 @@ class SalonOwnershipService {
 
   Future<bool> setPrimarySalon(String id) async {
     try {
-      final response = await _api.put('/my-salons/$id/set-primary');
+      final response = await _api.put('/my-salons/$id/set-primary', {});
       return response['success'] == true;
     } catch (e) {
       return false;

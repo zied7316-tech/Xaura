@@ -38,11 +38,11 @@ class _WorkerFinanceScreenState extends State<WorkerFinanceScreen> {
       ]);
       
       setState(() {
-        _wallet = wallet;
-        _paidEarnings = paid;
-        _unpaidEarnings = unpaid;
-        _estimatedEarnings = estimated;
-        _paymentHistory = history;
+        _wallet = wallet as Map<String, dynamic>?;
+        _paidEarnings = paid as List<dynamic>;
+        _unpaidEarnings = unpaid as List<dynamic>;
+        _estimatedEarnings = estimated as Map<String, dynamic>?;
+        _paymentHistory = history as List<dynamic>;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

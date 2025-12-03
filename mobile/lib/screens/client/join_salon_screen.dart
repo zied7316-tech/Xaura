@@ -133,7 +133,7 @@ class _JoinSalonScreenState extends State<JoinSalonScreen> {
             ),
             const SizedBox(height: 32),
             
-            if (!_salonInfo && !_joined) ...[
+            if (_salonInfo == null && !_joined) ...[
               // Entry Method Selection
               Row(
                 children: [
