@@ -61,6 +61,14 @@ export const workerFinanceService = {
     return response.data.data
   },
 
+  getWorkerPaidEarnings: async (workerId) => {
+    const response = await axios.get(
+      `${API_URL}/worker-finance/paid-earnings/${workerId}`,
+      getAuthHeader()
+    )
+    return response.data.data
+  },
+
   getWorkerFinancialSummary: async (workerId) => {
     const response = await axios.get(
       `${API_URL}/worker-finance/summary/${workerId}`,

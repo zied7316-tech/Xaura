@@ -8,6 +8,7 @@ const {
   getPaymentHistory,
   getAllWorkersWallets,
   getWorkerUnpaidEarnings,
+  getWorkerPaidEarnings,
   generateInvoice,
   recordEarning,
   getWorkerFinancialSummary,
@@ -27,6 +28,7 @@ router.get('/payment-history', protect, authorize('Worker'), checkSubscriptionFe
 // Owner routes - require fullFinanceSystem
 router.get('/all-wallets', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getAllWorkersWallets);
 router.get('/unpaid-earnings/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getWorkerUnpaidEarnings);
+router.get('/paid-earnings/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getWorkerPaidEarnings);
 router.get('/summary/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getWorkerFinancialSummary);
 router.post('/generate-invoice', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), generateInvoice);
 router.post('/record-earning', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), recordEarning);

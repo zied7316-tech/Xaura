@@ -22,7 +22,7 @@ const WorkerPaymentsPage = () => {
   const [wallets, setWallets] = useState([])
   const [selectedWorker, setSelectedWorker] = useState(null)
   const [workerSummary, setWorkerSummary] = useState(null)
-  const [unpaidEarnings, setUnpaidEarnings] = useState([])
+  const [paidEarnings, setPaidEarnings] = useState([])
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -54,11 +54,11 @@ const WorkerPaymentsPage = () => {
     try {
       const [summary, earnings] = await Promise.all([
         workerFinanceService.getWorkerFinancialSummary(workerId),
-        workerFinanceService.getWorkerUnpaidEarnings(workerId)
+        workerFinanceService.getWorkerPaidEarnings(workerId)
       ])
       
       setWorkerSummary(summary)
-      setUnpaidEarnings(earnings.earnings)
+      setPaidEarnings(earnings.earnings)
     } catch (error) {
       console.error('Error loading worker details:', error)
       toast.error('Failed to load worker details')
@@ -342,10 +342,10 @@ const WorkerPaymentsPage = () => {
               />
             </div>
 
-            {/* Unpaid Earnings Preview */}
-            {unpaidEarnings.length > 0 && (
+            {/* Paid Earnings Preview (that can be invoiced) */}
+            {paidEarnings.length > 0 && (
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Earnings to be Paid</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Paid Earnings Ready to Invoice</h3>
                 <div className="max-h-64 overflow-y-auto border rounded-lg">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 sticky top-0">
@@ -356,7 +356,7 @@ const WorkerPaymentsPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {unpaidEarnings.map((earning) => (
+                      {paidEarnings.map((earning) => (
                         <tr key={earning._id} className="border-t">
                           <td className="py-2 px-3">{formatDate(earning.serviceDate)}</td>
                           <td className="py-2 px-3">{earning.serviceId?.name || 'Service'}</td>
@@ -376,7 +376,7 @@ const WorkerPaymentsPage = () => {
               <Button
                 onClick={handleGenerateInvoice}
                 loading={generating}
-                disabled={unpaidEarnings.length === 0}
+                disabled={!selectedWorker || selectedWorker.balance === 0}
                 fullWidth
               >
                 <FileText size={18} />

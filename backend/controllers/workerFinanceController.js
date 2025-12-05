@@ -193,6 +193,50 @@ const getWorkerUnpaidEarnings = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get worker paid earnings that haven't been invoiced yet (Owner only)
+ * @route   GET /api/worker-finance/paid-earnings/:workerId
+ * @access  Private (Owner)
+ */
+const getWorkerPaidEarnings = async (req, res, next) => {
+  try {
+    const { workerId } = req.params;
+    
+    // Verify owner owns the salon
+    const salon = await Salon.findOne({ ownerId: req.user.id });
+    if (!salon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    // Get paid earnings that haven't been invoiced yet (can be invoiced)
+    const earnings = await WorkerEarning.find({
+      workerId,
+      salonId: salon._id,
+      isPaid: true,  // Client has paid
+      invoiceId: null  // Not yet invoiced
+    })
+    .populate('appointmentId', 'dateTime status paymentStatus')
+    .populate('serviceId', 'name')
+    .sort({ serviceDate: -1 });
+
+    const totalPaid = earnings.reduce((sum, earning) => sum + earning.workerEarning, 0);
+
+    res.json({
+      success: true,
+      data: {
+        earnings,
+        totalPaid,
+        count: earnings.length
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Generate invoice and process payout (Owner only)
  * @route   POST /api/worker-finance/generate-invoice
  * @access  Private (Owner)
@@ -658,6 +702,7 @@ module.exports = {
   getPaymentHistory,
   getAllWorkersWallets,
   getWorkerUnpaidEarnings,
+  getWorkerPaidEarnings,
   generateInvoice,
   recordEarning,
   getWorkerFinancialSummary,
