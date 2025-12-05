@@ -79,47 +79,56 @@ class NotificationService {
    */
   async sendWhatsApp(userId, phoneNumber, message, metadata = {}) {
     try {
+      // Validate phone number
+      if (!phoneNumber) {
+        console.error('[NotificationService] sendWhatsApp: Phone number is missing');
+        return {
+          success: false,
+          error: 'Phone number is required'
+        };
+      }
+
+      // Log attempt
+      console.log('[NotificationService] Sending WhatsApp to:', phoneNumber);
+      console.log('[NotificationService] Message preview:', message.substring(0, 50) + '...');
+
       // Send WhatsApp via Twilio
       const result = await this.whatsappService.sendWhatsApp(phoneNumber, message);
 
-      // Create notification record
-      const notification = await Notification.create({
-        userId,
-        type: 'WhatsApp',
-        message,
-        recipient: phoneNumber,
-        status: result.success ? 'sent' : 'failed',
-        metadata,
-        sentAt: result.success ? new Date() : null,
-        errorMessage: result.error || null
-      });
-
+      // Log result
       if (result.success) {
-        return {
-          success: true,
-          notificationId: notification._id,
+        console.log('[NotificationService] ✅ WhatsApp sent successfully:', {
+          phoneNumber,
           messageSid: result.messageSid,
-          message: result.mock 
-            ? 'WhatsApp message sent successfully (test mode)' 
-            : 'WhatsApp message sent successfully'
-        };
+          status: result.status
+        });
       } else {
-        return {
-          success: false,
-          notificationId: notification._id,
+        console.error('[NotificationService] ❌ WhatsApp send failed:', {
+          phoneNumber,
           error: result.error
-        };
+        });
       }
+
+      // Note: We don't create Notification records for WhatsApp messages
+      // The Notification model is for in-app notifications only
+      // WhatsApp messages are tracked via Twilio logs
+
+      return {
+        success: result.success,
+        messageSid: result.messageSid,
+        status: result.status,
+        message: result.mock 
+          ? 'WhatsApp message sent successfully (test mode)' 
+          : result.success 
+            ? 'WhatsApp message sent successfully' 
+            : 'Failed to send WhatsApp message',
+        error: result.error || null
+      };
     } catch (error) {
-      // Log failed notification
-      await Notification.create({
-        userId,
-        type: 'WhatsApp',
-        message,
-        recipient: phoneNumber,
-        status: 'failed',
-        metadata,
-        errorMessage: error.message
+      console.error('[NotificationService] Exception sending WhatsApp:', {
+        phoneNumber,
+        error: error.message,
+        stack: error.stack
       });
 
       return {
@@ -134,33 +143,68 @@ class NotificationService {
    * @param {Object} appointment - Appointment object with populated fields
    */
   async sendAppointmentConfirmation(appointment) {
-    const dateStr = new Date(appointment.dateTime).toLocaleString();
-    const clientPhone = appointment.clientId.phone;
-    const workerPhone = appointment.workerId.phone;
-    const salonName = appointment.salonId.name;
-    const serviceName = appointment.serviceId.name;
-
-    // Send WhatsApp to client
-    const clientMessage = `Your appointment at ${salonName} has been booked!\nService: ${serviceName}\nDate: ${dateStr}\nWorker: ${appointment.workerId.name}`;
     try {
-      await this.sendWhatsApp(appointment.clientId._id, clientPhone, clientMessage, {
-        appointmentId: appointment._id,
-        salonId: appointment.salonId._id
-      });
-    } catch (error) {
-      console.error('[NotificationService] Failed to send WhatsApp to client:', error);
-      // Continue to try sending to worker even if client message fails
-    }
+      // Validate appointment has required fields
+      if (!appointment || !appointment.clientId || !appointment.workerId || !appointment.salonId || !appointment.serviceId) {
+        console.error('[NotificationService] sendAppointmentConfirmation: Appointment missing required fields');
+        return;
+      }
 
-    // Send WhatsApp to worker
-    const workerMessage = `New appointment scheduled!\nClient: ${appointment.clientId.name}\nService: ${serviceName}\nDate: ${dateStr}`;
-    try {
-      await this.sendWhatsApp(appointment.workerId._id, workerPhone, workerMessage, {
-        appointmentId: appointment._id,
-        salonId: appointment.salonId._id
-      });
+      const dateStr = new Date(appointment.dateTime).toLocaleString();
+      const clientPhone = appointment.clientId.phone;
+      const workerPhone = appointment.workerId.phone;
+      const salonName = appointment.salonId.name;
+      const serviceName = appointment.serviceId.name;
+
+      // Validate phone numbers exist
+      if (!clientPhone) {
+        console.error('[NotificationService] Client phone number missing for appointment:', appointment._id);
+      }
+      if (!workerPhone) {
+        console.error('[NotificationService] Worker phone number missing for appointment:', appointment._id);
+      }
+
+      // Send WhatsApp to client
+      if (clientPhone) {
+        const clientMessage = `Your appointment at ${salonName} has been booked!\nService: ${serviceName}\nDate: ${dateStr}\nWorker: ${appointment.workerId.name}`;
+        const clientResult = await this.sendWhatsApp(
+          appointment.clientId._id || appointment.clientId,
+          clientPhone,
+          clientMessage,
+          {
+            appointmentId: appointment._id,
+            salonId: appointment.salonId._id || appointment.salonId
+          }
+        );
+        
+        if (!clientResult.success) {
+          console.error('[NotificationService] Failed to send WhatsApp to client:', clientResult.error);
+        }
+      } else {
+        console.warn('[NotificationService] Skipping client WhatsApp - no phone number');
+      }
+
+      // Send WhatsApp to worker
+      if (workerPhone) {
+        const workerMessage = `New appointment scheduled!\nClient: ${appointment.clientId.name}\nService: ${serviceName}\nDate: ${dateStr}`;
+        const workerResult = await this.sendWhatsApp(
+          appointment.workerId._id || appointment.workerId,
+          workerPhone,
+          workerMessage,
+          {
+            appointmentId: appointment._id,
+            salonId: appointment.salonId._id || appointment.salonId
+          }
+        );
+        
+        if (!workerResult.success) {
+          console.error('[NotificationService] Failed to send WhatsApp to worker:', workerResult.error);
+        }
+      } else {
+        console.warn('[NotificationService] Skipping worker WhatsApp - no phone number');
+      }
     } catch (error) {
-      console.error('[NotificationService] Failed to send WhatsApp to worker:', error);
+      console.error('[NotificationService] Exception in sendAppointmentConfirmation:', error);
       // Don't throw - allow appointment creation to succeed even if notifications fail
     }
   }
@@ -170,37 +214,58 @@ class NotificationService {
    * @param {Object} appointment - Appointment object with populated fields
    */
   async sendAppointmentStatusUpdate(appointment) {
-    const dateStr = new Date(appointment.dateTime).toLocaleString();
-    const clientPhone = appointment.clientId.phone;
-    const salonName = appointment.salonId.name;
-    const serviceName = appointment.serviceId.name;
-
-    let message = '';
-    
-    switch (appointment.status) {
-      case 'Confirmed':
-      case 'confirmed':
-        message = `Your appointment at ${salonName} has been confirmed!\nService: ${serviceName}\nDate: ${dateStr}`;
-        break;
-      case 'Cancelled':
-      case 'cancelled':
-        message = `Your appointment at ${salonName} has been cancelled.\nService: ${serviceName}\nDate: ${dateStr}`;
-        break;
-      case 'Completed':
-      case 'completed':
-        message = `Thank you for visiting ${salonName}! We hope you enjoyed your ${serviceName}. See you next time!`;
-        break;
-      default:
-        message = `Your appointment status has been updated to: ${appointment.status}`;
-    }
-
     try {
-      await this.sendWhatsApp(appointment.clientId._id, clientPhone, message, {
-        appointmentId: appointment._id,
-        salonId: appointment.salonId._id
-      });
+      // Validate appointment has required fields
+      if (!appointment || !appointment.clientId || !appointment.salonId || !appointment.serviceId) {
+        console.error('[NotificationService] sendAppointmentStatusUpdate: Appointment missing required fields');
+        return;
+      }
+
+      const dateStr = new Date(appointment.dateTime).toLocaleString();
+      const clientPhone = appointment.clientId.phone;
+      const salonName = appointment.salonId.name;
+      const serviceName = appointment.serviceId.name;
+
+      // Validate phone number exists
+      if (!clientPhone) {
+        console.error('[NotificationService] Client phone number missing for status update:', appointment._id);
+        return;
+      }
+
+      let message = '';
+      
+      switch (appointment.status) {
+        case 'Confirmed':
+        case 'confirmed':
+          message = `Your appointment at ${salonName} has been confirmed!\nService: ${serviceName}\nDate: ${dateStr}`;
+          break;
+        case 'Cancelled':
+        case 'cancelled':
+          message = `Your appointment at ${salonName} has been cancelled.\nService: ${serviceName}\nDate: ${dateStr}`;
+          break;
+        case 'Completed':
+        case 'completed':
+          message = `Thank you for visiting ${salonName}! We hope you enjoyed your ${serviceName}. See you next time!`;
+          break;
+        default:
+          message = `Your appointment status has been updated to: ${appointment.status}`;
+      }
+
+      const result = await this.sendWhatsApp(
+        appointment.clientId._id || appointment.clientId,
+        clientPhone,
+        message,
+        {
+          appointmentId: appointment._id,
+          salonId: appointment.salonId._id || appointment.salonId
+        }
+      );
+
+      if (!result.success) {
+        console.error('[NotificationService] Failed to send WhatsApp status update:', result.error);
+      }
     } catch (error) {
-      console.error('[NotificationService] Failed to send WhatsApp status update:', error);
+      console.error('[NotificationService] Exception in sendAppointmentStatusUpdate:', error);
       // Don't throw - allow appointment status update to succeed even if notification fails
     }
   }
