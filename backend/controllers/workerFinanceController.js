@@ -566,17 +566,19 @@ const recordEarning = async (req, res, next) => {
       });
 
       // Update wallet balance
+      // totalEarned = full service price (before commission)
+      // balance = commission amount (what worker will receive)
       let wallet = await WorkerWallet.findOne({ workerId });
       if (!wallet) {
         wallet = await WorkerWallet.create({
           workerId,
           salonId: worker.salonId,
-          balance: workerEarning,
-          totalEarned: workerEarning
+          balance: workerEarning, // Commission amount (what worker gets)
+          totalEarned: servicePrice // Full service price (before commission)
         });
       } else {
-        wallet.balance += workerEarning;
-        wallet.totalEarned += workerEarning;
+        wallet.balance += workerEarning; // Add commission to balance
+        wallet.totalEarned += servicePrice; // Add full service price to total earned
         await wallet.save();
       }
 
@@ -737,18 +739,20 @@ const markEarningAsPaid = async (req, res, next) => {
     await earning.save();
 
     // Update worker wallet
+    // totalEarned = full service price (before commission)
+    // balance = commission amount (what worker will receive)
     let wallet = await WorkerWallet.findOne({ workerId: req.user.id });
     if (!wallet) {
       wallet = await WorkerWallet.create({
         workerId: req.user.id,
         salonId: earning.salonId,
-        balance: earning.workerEarning,
-        totalEarned: earning.workerEarning,
+        balance: earning.workerEarning, // Commission amount (what worker gets)
+        totalEarned: earning.servicePrice, // Full service price (before commission)
         totalPaid: 0
       });
     } else {
-      wallet.balance += earning.workerEarning;
-      wallet.totalEarned += earning.workerEarning;
+      wallet.balance += earning.workerEarning; // Add commission to balance
+      wallet.totalEarned += earning.servicePrice; // Add full service price to total earned
       await wallet.save();
     }
 
@@ -883,6 +887,7 @@ const recalculateWalletBalance = async (req, res, next) => {
     const actualBalance = actualBalanceResult[0]?.total || 0;
 
     // Calculate total earned and total paid
+    // totalEarned = sum of servicePrice (full service prices, before commission)
     const totalEarnedResult = await WorkerEarning.aggregate([
       {
         $match: {
@@ -893,7 +898,7 @@ const recalculateWalletBalance = async (req, res, next) => {
       {
         $group: {
           _id: null,
-          total: { $sum: '$workerEarning' }
+          total: { $sum: '$servicePrice' } // Sum of full service prices
         }
       }
     ]);

@@ -335,18 +335,20 @@ const completeAppointment = async (req, res, next) => {
       });
 
       // Update wallet balance immediately
+      // totalEarned = full service price (before commission)
+      // balance = commission amount (what worker will receive)
       let wallet = await WorkerWallet.findOne({ workerId: worker._id });
       if (!wallet) {
         wallet = await WorkerWallet.create({
           workerId: worker._id,
           salonId: appointment.salonId,
-          balance: workerEarning,
-          totalEarned: workerEarning,
+          balance: workerEarning, // Commission amount (what worker gets)
+          totalEarned: actualPrice, // Full service price (before commission)
           totalPaid: 0
         });
       } else {
-        wallet.balance += workerEarning;
-        wallet.totalEarned += workerEarning;
+        wallet.balance += workerEarning; // Add commission to balance
+        wallet.totalEarned += actualPrice; // Add full service price to total earned
         await wallet.save();
       }
 
@@ -883,14 +885,14 @@ const createWalkInAppointment = async (req, res, next) => {
             await WorkerWallet.create({
               workerId,
               salonId: salonId,
-              balance: workerEarning,
-              totalEarned: workerEarning,
+              balance: workerEarning, // Commission amount (what worker gets)
+              totalEarned: numericPrice, // Full service price (before commission)
               totalPaid: 0
             });
             console.log('[WALK-IN] ✅ Worker wallet created in background');
           } else {
-            wallet.balance += workerEarning;
-            wallet.totalEarned += workerEarning;
+            wallet.balance += workerEarning; // Add commission to balance
+            wallet.totalEarned += numericPrice; // Add full service price to total earned
             await wallet.save();
             console.log('[WALK-IN] ✅ Worker wallet updated in background');
           }

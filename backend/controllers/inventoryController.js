@@ -826,18 +826,20 @@ const workerSellProduct = async (req, res, next) => {
     });
 
     // Update worker wallet
+    // totalEarned = full sale price (before commission)
+    // balance = commission amount (what worker will receive)
     let wallet = await WorkerWallet.findOne({ workerId: worker._id });
     if (!wallet) {
       wallet = await WorkerWallet.create({
         workerId: worker._id,
         salonId: worker.salonId,
-        balance: workerCommissionAmount,
-        totalEarned: workerCommissionAmount,
+        balance: workerCommissionAmount, // Commission amount (what worker gets)
+        totalEarned: totalAmount, // Full sale price (before commission)
         totalPaid: 0
       });
     } else {
-      wallet.balance += workerCommissionAmount;
-      wallet.totalEarned += workerCommissionAmount;
+      wallet.balance += workerCommissionAmount; // Add commission to balance
+      wallet.totalEarned += totalAmount; // Add full sale price to total earned
       await wallet.save();
     }
 
