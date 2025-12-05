@@ -391,14 +391,43 @@ const generateInvoice = async (req, res, next) => {
         availableToInvoice
       });
 
+      // Recalculate actual balance from earnings to check for sync issues
+      const actualAvailableBalance = await WorkerEarning.aggregate([
+        {
+          $match: {
+            workerId: workerIdStr,
+            salonId: salon._id,
+            isPaid: true,
+            invoiceId: null
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$workerEarning' }
+          }
+        }
+      ]);
+
+      const actualBalance = actualAvailableBalance[0]?.total || 0;
+
+      // Get wallet balance for comparison
+      const wallet = await WorkerWallet.findOne({ workerId: workerIdStr });
+      const walletBalance = wallet?.balance || 0;
+
       return res.status(400).json({
         success: false,
-        message: 'No paid earnings available to invoice for this period. Worker must collect payments from clients first.',
+        message: availableToInvoice === 0 
+          ? 'All paid earnings have already been invoiced. The displayed balance may be out of sync. Please recalculate the balance or wait for new paid earnings.'
+          : 'No paid earnings available to invoice for this period. Worker must collect payments from clients first.',
         details: {
           totalPaidEarnings,
           alreadyInvoiced,
           unpaidEarnings,
           availableToInvoice,
+          walletBalance,
+          actualAvailableBalance: actualBalance,
+          balanceOutOfSync: walletBalance !== actualBalance,
           periodStart: periodStart || 'all',
           periodEnd: periodEnd || 'all'
         }
@@ -815,6 +844,120 @@ const getEstimatedEarnings = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Recalculate worker wallet balance from actual earnings (Owner only)
+ * @route   POST /api/worker-finance/recalculate-balance/:workerId
+ * @access  Private (Owner)
+ */
+const recalculateWalletBalance = async (req, res, next) => {
+  try {
+    const { workerId } = req.params;
+
+    // Verify owner
+    const salon = await Salon.findOne({ ownerId: req.user.id });
+    if (!salon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    // Calculate actual balance from earnings (paid but not invoiced)
+    const actualBalanceResult = await WorkerEarning.aggregate([
+      {
+        $match: {
+          workerId,
+          salonId: salon._id,
+          isPaid: true,
+          invoiceId: null
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$workerEarning' }
+        }
+      }
+    ]);
+
+    const actualBalance = actualBalanceResult[0]?.total || 0;
+
+    // Calculate total earned and total paid
+    const totalEarnedResult = await WorkerEarning.aggregate([
+      {
+        $match: {
+          workerId,
+          salonId: salon._id
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$workerEarning' }
+        }
+      }
+    ]);
+
+    const totalEarned = totalEarnedResult[0]?.total || 0;
+
+    const totalPaidResult = await WorkerInvoice.aggregate([
+      {
+        $match: {
+          workerId,
+          salonId: salon._id,
+          status: 'paid'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$totalAmount' }
+        }
+      }
+    ]);
+
+    const totalPaid = totalPaidResult[0]?.total || 0;
+
+    // Update or create wallet
+    let wallet = await WorkerWallet.findOne({ workerId });
+    if (!wallet) {
+      wallet = await WorkerWallet.create({
+        workerId,
+        salonId: salon._id,
+        balance: actualBalance,
+        totalEarned,
+        totalPaid
+      });
+    } else {
+      const oldBalance = wallet.balance;
+      wallet.balance = actualBalance;
+      wallet.totalEarned = totalEarned;
+      wallet.totalPaid = totalPaid;
+      await wallet.save();
+
+      res.json({
+        success: true,
+        message: 'Wallet balance recalculated successfully',
+        data: {
+          wallet,
+          oldBalance,
+          newBalance: actualBalance,
+          difference: actualBalance - oldBalance
+        }
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Wallet created and balance calculated',
+      data: { wallet }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getWorkerWallet,
   getUnpaidEarnings,
@@ -827,6 +970,7 @@ module.exports = {
   generateInvoice,
   recordEarning,
   getWorkerFinancialSummary,
-  getEstimatedEarnings
+  getEstimatedEarnings,
+  recalculateWalletBalance
 };
 

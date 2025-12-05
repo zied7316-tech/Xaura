@@ -12,7 +12,8 @@ const {
   generateInvoice,
   recordEarning,
   getWorkerFinancialSummary,
-  getEstimatedEarnings
+  getEstimatedEarnings,
+  recalculateWalletBalance
 } = require('../controllers/workerFinanceController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { checkSubscriptionFeature } = require('../middleware/subscriptionMiddleware');
@@ -32,6 +33,7 @@ router.get('/paid-earnings/:workerId', protect, authorize('Owner'), checkSubscri
 router.get('/summary/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getWorkerFinancialSummary);
 router.post('/generate-invoice', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), generateInvoice);
 router.post('/record-earning', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), recordEarning);
+router.post('/recalculate-balance/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), recalculateWalletBalance);
 
 module.exports = router;
 

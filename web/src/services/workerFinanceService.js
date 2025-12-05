@@ -95,6 +95,15 @@ export const workerFinanceService = {
       getAuthHeader()
     )
     return response.data.data
+  },
+
+  recalculateBalance: async (workerId) => {
+    const response = await axios.post(
+      `${API_URL}/worker-finance/recalculate-balance/${workerId}`,
+      {},
+      getAuthHeader()
+    )
+    return response.data.data
   }
 }
 
