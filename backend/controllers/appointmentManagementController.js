@@ -90,6 +90,16 @@ const acceptAppointment = async (req, res, next) => {
       }
     });
 
+    // Send WhatsApp confirmation to client
+    try {
+      const notificationService = require('../services/notificationService');
+      // Appointment is already populated with clientId, workerId, serviceId, salonId
+      await notificationService.sendAppointmentStatusUpdate(appointment);
+    } catch (error) {
+      console.error('[AppointmentManagementController] Failed to send WhatsApp confirmation:', error);
+      // Don't fail appointment acceptance if WhatsApp fails - just log the error
+    }
+
     res.json({
       success: true,
       message: isOwner ? 'Appointment accepted by owner' : 'Appointment accepted',
@@ -157,6 +167,22 @@ const rejectAppointment = async (req, res, next) => {
     appointment.rejectedAt = new Date(); // Track when rejected
     appointment.notes = reason || (isOwner ? 'Cancelled by salon owner' : 'Rejected by worker');
     await appointment.save();
+
+    // Send WhatsApp notification to client
+    try {
+      const populatedAppointment = await Appointment.findById(appointment._id)
+        .populate('clientId', 'name email phone')
+        .populate('serviceId', 'name')
+        .populate('salonId', 'name');
+      
+      if (populatedAppointment && populatedAppointment.clientId && populatedAppointment.clientId.phone) {
+        const notificationService = require('../services/notificationService');
+        await notificationService.sendAppointmentStatusUpdate(populatedAppointment);
+      }
+    } catch (error) {
+      console.error('[AppointmentManagementController] Failed to send WhatsApp rejection:', error);
+      // Don't fail appointment rejection if WhatsApp fails
+    }
 
     res.json({
       success: true,
@@ -410,6 +436,22 @@ const completeAppointment = async (req, res, next) => {
       relatedAppointment: appointment._id,
       priority: 'normal'
     });
+
+    // Send WhatsApp notification to client
+    try {
+      const populatedAppointment = await Appointment.findById(appointment._id)
+        .populate('clientId', 'name email phone')
+        .populate('serviceId', 'name')
+        .populate('salonId', 'name');
+      
+      if (populatedAppointment && populatedAppointment.clientId && populatedAppointment.clientId.phone) {
+        const notificationService = require('../services/notificationService');
+        await notificationService.sendAppointmentStatusUpdate(populatedAppointment);
+      }
+    } catch (error) {
+      console.error('[AppointmentManagementController] Failed to send WhatsApp completion:', error);
+      // Don't fail appointment completion if WhatsApp fails
+    }
 
     // Notify owner if payment received
     if (salon && salon.ownerId && paymentStatus === 'paid') {

@@ -424,9 +424,9 @@ const CustomersPage = () => {
                             }>
                               {appointment.status}
                             </Badge>
-                            <span className="font-medium">{appointment.serviceId?.name}</span>
+                            <span className="font-medium">{appointment.serviceId?.name || 'Service'}</span>
                             <span className="text-gray-500">•</span>
-                            <span className="text-gray-600">with {appointment.workerId?.name}</span>
+                            <span className="text-gray-600">with {appointment.workerId?.name || 'N/A'}</span>
                           </div>
                           <div className="text-sm text-gray-500 mt-1">
                             {formatDate(appointment.dateTime)} at {formatTime(appointment.dateTime)}

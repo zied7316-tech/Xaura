@@ -40,24 +40,27 @@ const getCustomers = async (req, res, next) => {
     const formattedCustomers = await Promise.all(customers.map(async (customer) => {
       const customerObj = customer.toObject();
       
-      // Get actual appointment count
-      const appointmentCount = await Appointment.countDocuments({
+      // Get actual appointment count - only count completed appointments (consistent with details view)
+      const completedAppointments = await Appointment.find({
         clientId: customer.userId._id,
-        salonId: salon._id
+        salonId: salon._id,
+        status: { $in: ['Completed', 'completed'] }
       });
+      const appointmentCount = completedAppointments.length;
       
-      // Get actual total spent from payments
+      // Get actual total spent from payments (use completed status, case-insensitive)
       const payments = await Payment.find({
         clientId: customer.userId._id,
         salonId: salon._id,
-        status: 'completed'
+        status: { $in: ['completed', 'Completed'] }
       });
-      const actualTotalSpent = payments.reduce((sum, p) => sum + p.amount, 0);
+      const actualTotalSpent = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
       
-      // Get last visit from appointments
+      // Get last visit from completed appointments only
       const lastAppointment = await Appointment.findOne({
         clientId: customer.userId._id,
-        salonId: salon._id
+        salonId: salon._id,
+        status: { $in: ['Completed', 'completed'] }
       }).sort({ dateTime: -1 });
       
       const lastVisit = lastAppointment?.dateTime || customerObj.lastVisit || null;
@@ -70,9 +73,9 @@ const getCustomers = async (req, res, next) => {
         avatar: customerObj.userId.avatar,
         birthday: customerObj.userId.birthday || customerObj.birthday || null,
         stats: {
-          totalVisits: appointmentCount || customerObj.totalVisits || 0,
-          totalSpent: actualTotalSpent || customerObj.totalSpent || 0,
-          averageSpent: appointmentCount > 0 ? (actualTotalSpent / appointmentCount) : (customerObj.averageSpending || 0),
+          totalVisits: appointmentCount, // Use calculated count (completed appointments only)
+          totalSpent: actualTotalSpent, // Use calculated total from payments
+          averageSpent: appointmentCount > 0 ? (actualTotalSpent / appointmentCount) : 0,
           lastVisit: lastVisit
         }
       };
@@ -129,11 +132,11 @@ const getCustomerDetails = async (req, res, next) => {
       .populate('workerId', 'name')
       .sort({ dateTime: -1 });
 
-    // Get payment history
+    // Get payment history (use completed status, case-insensitive)
     const payments = await Payment.find({
       clientId: customer.userId._id,
       salonId: customer.salonId,
-      status: 'completed'
+      status: { $in: ['completed', 'Completed'] }
     }).sort({ paidAt: -1 });
 
     // Calculate total spent from payments
@@ -162,8 +165,15 @@ const getCustomerDetails = async (req, res, next) => {
           _id: apt._id,
           dateTime: apt.dateTime,
           status: apt.status,
-          serviceId: apt.serviceId,
-          workerId: apt.workerId,
+          serviceId: apt.serviceId ? {
+            _id: apt.serviceId._id,
+            name: apt.serviceId.name || 'Service',
+            price: apt.serviceId.price || 0
+          } : null,
+          workerId: apt.workerId ? {
+            _id: apt.workerId._id,
+            name: apt.workerId.name || 'N/A'
+          } : null,
           servicePriceAtBooking: apt.servicePriceAtBooking || apt.serviceId?.price || 0
         })),
         payments: payments.map(p => ({
@@ -173,12 +183,21 @@ const getCustomerDetails = async (req, res, next) => {
           paymentMethod: p.paymentMethod,
           status: p.status
         })),
-        stats: {
-          totalVisits: customer.totalVisits || appointments.filter(a => a.status === 'Completed' || a.status === 'completed').length,
-          totalSpent: totalSpent || customer.totalSpent || 0,
-          averageSpent: customer.averageSpending || (customer.totalVisits > 0 ? (totalSpent / customer.totalVisits) : 0),
-          lastVisit: customer.lastVisit || (appointments.length > 0 ? appointments[0].dateTime : null)
-        }
+        // Calculate stats from actual data (consistent with list view)
+        stats: (() => {
+          const completedAppts = appointments.filter(a => a.status === 'Completed' || a.status === 'completed');
+          const calculatedTotalVisits = completedAppts.length;
+          const calculatedTotalSpent = totalSpent;
+          const calculatedAverageSpent = calculatedTotalVisits > 0 ? (calculatedTotalSpent / calculatedTotalVisits) : 0;
+          const calculatedLastVisit = completedAppts.length > 0 ? completedAppts[0].dateTime : null;
+          
+          return {
+            totalVisits: calculatedTotalVisits,
+            totalSpent: calculatedTotalSpent,
+            averageSpent: calculatedAverageSpent,
+            lastVisit: calculatedLastVisit
+          };
+        })()
       }
     });
   } catch (error) {

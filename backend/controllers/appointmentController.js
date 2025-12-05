@@ -305,6 +305,16 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
+    // Send WhatsApp confirmation to client and worker
+    try {
+      const notificationService = require('../services/notificationService');
+      // Appointment is already populated with clientId, workerId, serviceId, salonId
+      await notificationService.sendAppointmentConfirmation(appointment);
+    } catch (error) {
+      console.error('[AppointmentController] Failed to send WhatsApp confirmation:', error);
+      // Don't fail appointment creation if WhatsApp fails - just log the error
+    }
+
     res.status(201).json({
       success: true,
       message: 'Appointment created successfully',
@@ -490,6 +500,17 @@ const updateAppointmentStatus = async (req, res, next) => {
       { path: 'serviceId', select: 'name duration price category' },
       { path: 'salonId', select: 'name address phone' }
     ]);
+
+    // Send WhatsApp notification to client if status changed to confirmed, cancelled, or completed
+    if (['confirmed', 'cancelled', 'completed'].includes(status.toLowerCase()) && appointment.clientId && appointment.clientId.phone) {
+      try {
+        const notificationService = require('../services/notificationService');
+        await notificationService.sendAppointmentStatusUpdate(appointment);
+      } catch (error) {
+        console.error('[AppointmentController] Failed to send WhatsApp status update:', error);
+        // Don't fail status update if WhatsApp fails
+      }
+    }
 
     // Log history for status changes
     const { logUserHistory } = require('../utils/userHistoryLogger');

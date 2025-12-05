@@ -1,10 +1,19 @@
 const Notification = require('../models/Notification');
+const WhatsAppService = require('./whatsappService');
 
 /**
- * Mock SMS Service
- * In production, integrate with Twilio or similar
+ * Notification Service
+ * Handles SMS and WhatsApp notifications via Twilio
  */
 class NotificationService {
+  constructor() {
+    // Initialize WhatsApp service with Twilio credentials
+    this.whatsappService = new WhatsAppService(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+      process.env.TWILIO_WHATSAPP_NUMBER // Format: 'whatsapp:+14155238886'
+    );
+  }
   /**
    * Send SMS notification (MOCK implementation)
    * @param {String} userId - User ID to send notification to
@@ -62,7 +71,7 @@ class NotificationService {
   }
 
   /**
-   * Send WhatsApp notification (MOCK implementation)
+   * Send WhatsApp notification using Twilio
    * @param {String} userId - User ID to send notification to
    * @param {String} phoneNumber - Recipient phone number (with country code)
    * @param {String} message - Message content
@@ -70,33 +79,37 @@ class NotificationService {
    */
   async sendWhatsApp(userId, phoneNumber, message, metadata = {}) {
     try {
+      // Send WhatsApp via Twilio
+      const result = await this.whatsappService.sendWhatsApp(phoneNumber, message);
+
       // Create notification record
       const notification = await Notification.create({
         userId,
         type: 'WhatsApp',
         message,
         recipient: phoneNumber,
-        status: 'sent', // Mock: immediately mark as sent
+        status: result.success ? 'sent' : 'failed',
         metadata,
-        sentAt: new Date()
+        sentAt: result.success ? new Date() : null,
+        errorMessage: result.error || null
       });
 
-      // TODO: In production, integrate with WhatsApp Business API
-      // const axios = require('axios');
-      // await axios.post('https://api.whatsapp.com/send', {
-      //   apiKey: process.env.WHATSAPP_API_KEY,
-      //   phone: phoneNumber,
-      //   message: message
-      // });
-
-      console.log(`[MOCK WhatsApp] To: ${phoneNumber}`);
-      console.log(`[MOCK WhatsApp] Message: ${message}`);
-
-      return {
-        success: true,
-        notificationId: notification._id,
-        message: 'WhatsApp message sent successfully (mock)'
-      };
+      if (result.success) {
+        return {
+          success: true,
+          notificationId: notification._id,
+          messageSid: result.messageSid,
+          message: result.mock 
+            ? 'WhatsApp message sent successfully (test mode)' 
+            : 'WhatsApp message sent successfully'
+        };
+      } else {
+        return {
+          success: false,
+          notificationId: notification._id,
+          error: result.error
+        };
+      }
     } catch (error) {
       // Log failed notification
       await Notification.create({
@@ -117,7 +130,7 @@ class NotificationService {
   }
 
   /**
-   * Send appointment confirmation notification
+   * Send appointment confirmation notification via WhatsApp
    * @param {Object} appointment - Appointment object with populated fields
    */
   async sendAppointmentConfirmation(appointment) {
@@ -127,23 +140,33 @@ class NotificationService {
     const salonName = appointment.salonId.name;
     const serviceName = appointment.serviceId.name;
 
-    // Send to client
+    // Send WhatsApp to client
     const clientMessage = `Your appointment at ${salonName} has been booked!\nService: ${serviceName}\nDate: ${dateStr}\nWorker: ${appointment.workerId.name}`;
-    await this.sendSMS(appointment.clientId._id, clientPhone, clientMessage, {
-      appointmentId: appointment._id,
-      salonId: appointment.salonId._id
-    });
+    try {
+      await this.sendWhatsApp(appointment.clientId._id, clientPhone, clientMessage, {
+        appointmentId: appointment._id,
+        salonId: appointment.salonId._id
+      });
+    } catch (error) {
+      console.error('[NotificationService] Failed to send WhatsApp to client:', error);
+      // Continue to try sending to worker even if client message fails
+    }
 
-    // Send to worker
+    // Send WhatsApp to worker
     const workerMessage = `New appointment scheduled!\nClient: ${appointment.clientId.name}\nService: ${serviceName}\nDate: ${dateStr}`;
-    await this.sendSMS(appointment.workerId._id, workerPhone, workerMessage, {
-      appointmentId: appointment._id,
-      salonId: appointment.salonId._id
-    });
+    try {
+      await this.sendWhatsApp(appointment.workerId._id, workerPhone, workerMessage, {
+        appointmentId: appointment._id,
+        salonId: appointment.salonId._id
+      });
+    } catch (error) {
+      console.error('[NotificationService] Failed to send WhatsApp to worker:', error);
+      // Don't throw - allow appointment creation to succeed even if notifications fail
+    }
   }
 
   /**
-   * Send appointment status update notification
+   * Send appointment status update notification via WhatsApp
    * @param {Object} appointment - Appointment object with populated fields
    */
   async sendAppointmentStatusUpdate(appointment) {
@@ -155,12 +178,15 @@ class NotificationService {
     let message = '';
     
     switch (appointment.status) {
+      case 'Confirmed':
       case 'confirmed':
         message = `Your appointment at ${salonName} has been confirmed!\nService: ${serviceName}\nDate: ${dateStr}`;
         break;
+      case 'Cancelled':
       case 'cancelled':
         message = `Your appointment at ${salonName} has been cancelled.\nService: ${serviceName}\nDate: ${dateStr}`;
         break;
+      case 'Completed':
       case 'completed':
         message = `Thank you for visiting ${salonName}! We hope you enjoyed your ${serviceName}. See you next time!`;
         break;
@@ -168,10 +194,15 @@ class NotificationService {
         message = `Your appointment status has been updated to: ${appointment.status}`;
     }
 
-    await this.sendSMS(appointment.clientId._id, clientPhone, message, {
-      appointmentId: appointment._id,
-      salonId: appointment.salonId._id
-    });
+    try {
+      await this.sendWhatsApp(appointment.clientId._id, clientPhone, message, {
+        appointmentId: appointment._id,
+        salonId: appointment.salonId._id
+      });
+    } catch (error) {
+      console.error('[NotificationService] Failed to send WhatsApp status update:', error);
+      // Don't throw - allow appointment status update to succeed even if notification fails
+    }
   }
 
   /**
