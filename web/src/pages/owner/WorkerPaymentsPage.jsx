@@ -110,6 +110,72 @@ const WorkerPaymentsPage = () => {
     }
   }
 
+  // Quick pay for today
+  const handlePayToday = async (wallet) => {
+    if (!wallet || wallet.balance === 0) {
+      toast.error('No balance available')
+      return
+    }
+
+    setGenerating(true)
+    try {
+      const today = new Date()
+      const startDate = new Date(today)
+      startDate.setHours(0, 0, 0, 0)
+      
+      const endDate = new Date(today)
+      endDate.setHours(23, 59, 59, 999)
+      
+      await workerFinanceService.generateInvoice({
+        workerId: wallet.workerId._id,
+        periodStart: startDate.toISOString().split('T')[0],
+        periodEnd: endDate.toISOString().split('T')[0],
+        paymentMethod: 'cash',
+        notes: `Quick payment for today's work`
+      })
+      
+      toast.success('Invoice generated for today!')
+      loadWallets()
+    } catch (error) {
+      console.error('Error generating invoice:', error)
+      toast.error(error.response?.data?.message || 'Failed to generate invoice')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // Quick pay for all available balance
+  const handlePayAllBalance = async (wallet) => {
+    if (!wallet || wallet.balance === 0) {
+      toast.error('No balance available')
+      return
+    }
+
+    if (!confirm(`Pay all balance (${formatCurrency(wallet.balance)}) to ${wallet.workerId.name}?`)) {
+      return
+    }
+
+    setGenerating(true)
+    try {
+      // Don't set period - get ALL paid earnings that haven't been invoiced
+      await workerFinanceService.generateInvoice({
+        workerId: wallet.workerId._id,
+        periodStart: null, // No start date = from beginning
+        periodEnd: null,   // No end date = to now
+        paymentMethod: 'cash',
+        notes: `Full balance payment`
+      })
+      
+      toast.success('Full balance invoice generated!')
+      loadWallets()
+    } catch (error) {
+      console.error('Error generating invoice:', error)
+      toast.error(error.response?.data?.message || 'Failed to generate invoice')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -234,17 +300,38 @@ const WorkerPaymentsPage = () => {
                         {wallet.lastPayoutDate ? formatDate(wallet.lastPayoutDate) : 'Never'}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <Button
-                          variant={wallet.balance > 0 ? 'primary' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            handleSelectWorker(wallet)
-                            setShowInvoiceModal(true)
-                          }}
-                          disabled={wallet.balance === 0}
-                        >
-                          {wallet.balance > 0 ? 'Generate Invoice' : 'No Balance'}
-                        </Button>
+                        <div className="flex gap-2 justify-center">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handlePayToday(wallet)}
+                            disabled={wallet.balance === 0 || generating}
+                            title="Pay for today's work"
+                          >
+                            💰 Pay Today
+                          </Button>
+                          <Button
+                            variant="success"
+                            size="sm"
+                            onClick={() => handlePayAllBalance(wallet)}
+                            disabled={wallet.balance === 0 || generating}
+                            title="Pay all available balance"
+                          >
+                            💵 Pay All
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              handleSelectWorker(wallet)
+                              setShowInvoiceModal(true)
+                            }}
+                            disabled={wallet.balance === 0}
+                            title="Custom period"
+                          >
+                            📅 Custom
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

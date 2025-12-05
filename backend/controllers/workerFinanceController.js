@@ -279,13 +279,19 @@ const generateInvoice = async (req, res, next) => {
       invoiceId: null  // Not yet invoiced
     };
 
+    // Only add date filter if dates are provided (null dates = Pay All Balance)
     if (periodStart) {
-      filter.serviceDate = { $gte: new Date(periodStart) };
+      const start = new Date(periodStart);
+      start.setHours(0, 0, 0, 0); // Start of day
+      filter.serviceDate = { $gte: start };
     }
     if (periodEnd) {
+      const end = new Date(periodEnd);
+      end.setHours(23, 59, 59, 999); // End of day - include full day
       if (!filter.serviceDate) filter.serviceDate = {};
-      filter.serviceDate.$lte = new Date(periodEnd);
+      filter.serviceDate.$lte = end;
     }
+    // If both are null, get ALL paid earnings (for Pay All Balance feature)
 
     const earnings = await WorkerEarning.find(filter)
       .populate('appointmentId', 'dateTime')
@@ -304,13 +310,27 @@ const generateInvoice = async (req, res, next) => {
     // Generate invoice number
     const invoiceNumber = await WorkerInvoice.generateInvoiceNumber();
 
+    // Calculate period dates - use provided dates or derive from earnings
+    let invoicePeriodStart, invoicePeriodEnd;
+    if (periodStart && periodEnd) {
+      invoicePeriodStart = new Date(periodStart);
+      invoicePeriodEnd = new Date(periodEnd);
+    } else {
+      // For "Pay All Balance" - use actual earnings date range
+      const sortedEarnings = [...earnings].sort((a, b) => 
+        new Date(a.serviceDate) - new Date(b.serviceDate)
+      );
+      invoicePeriodStart = sortedEarnings[0]?.serviceDate || new Date();
+      invoicePeriodEnd = sortedEarnings[sortedEarnings.length - 1]?.serviceDate || new Date();
+    }
+
     // Create invoice
     const invoice = await WorkerInvoice.create({
       invoiceNumber,
       workerId,
       salonId: salon._id,
-      periodStart: periodStart || earnings[earnings.length - 1].serviceDate,
-      periodEnd: periodEnd || earnings[0].serviceDate,
+      periodStart: invoicePeriodStart,
+      periodEnd: invoicePeriodEnd,
       totalAmount,
       appointmentsCount: earnings.length,
       breakdown: earnings.map(e => ({
