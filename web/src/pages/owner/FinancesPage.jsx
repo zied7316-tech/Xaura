@@ -77,10 +77,15 @@ const FinancesPage = () => {
 
   useEffect(() => {
     fetchDashboardData()
-  }, [dateRange])
+  }, [dateRange, customStartDate, customEndDate])
 
   const handleDateRangeChange = (range) => {
     setDateRange(range)
+    // Reset custom dates when switching to non-custom range
+    if (range !== 'custom') {
+      setCustomStartDate('')
+      setCustomEndDate('')
+    }
   }
 
   const handleCustomDateApply = () => {

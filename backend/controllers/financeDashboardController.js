@@ -72,22 +72,29 @@ const getFinanceDashboard = async (req, res, next) => {
     }).sort({ date: -1 });
 
     // 4. Calculate summary cards
+    // IMPORTANT: Match main dashboard calculation - use salonRevenue for "Revenue"
+    // Total Revenue = sum of all payment amounts (total received from clients)
     const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
-    const totalWorkerEarnings = workerEarnings.reduce((sum, e) => sum + e.workerEarning, 0);
+    // Worker Earnings = sum of commissions from payments
+    const totalWorkerEarnings = payments.reduce((sum, p) => sum + (p.workerCommission?.amount || 0), 0);
+    // Salon Revenue = sum of salonRevenue from payments (after commissions) - this matches main dashboard
     const totalSalonRevenue = payments.reduce((sum, p) => sum + p.salonRevenue, 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = totalSalonRevenue - totalExpenses;
 
-    // 5. Worker breakdown - group earnings by worker
+    // 5. Worker breakdown - group by payments (not earnings) to match date range
+    // This ensures worker breakdown reflects payments made in the selected period
     const workerBreakdownMap = new Map();
     
-    workerEarnings.forEach(earning => {
-      const workerId = earning.workerId._id.toString();
+    payments.forEach(payment => {
+      const workerId = payment.workerId?._id?.toString();
+      if (!workerId) return;
+      
       if (!workerBreakdownMap.has(workerId)) {
         workerBreakdownMap.set(workerId, {
-          workerId: earning.workerId._id,
-          workerName: earning.workerId.name,
-          workerEmail: earning.workerId.email,
+          workerId: payment.workerId._id,
+          workerName: payment.workerId.name,
+          workerEmail: payment.workerId.email,
           totalEarnings: 0,
           servicesCount: 0,
           earnings: []
@@ -95,15 +102,17 @@ const getFinanceDashboard = async (req, res, next) => {
       }
       
       const workerData = workerBreakdownMap.get(workerId);
-      workerData.totalEarnings += earning.workerEarning;
+      const commissionAmount = payment.workerCommission?.amount || 0;
+      workerData.totalEarnings += commissionAmount;
       workerData.servicesCount += 1;
       workerData.earnings.push({
-        serviceName: earning.serviceId?.name || 'Service',
-        serviceDate: earning.serviceDate,
-        servicePrice: earning.servicePrice,
-        workerEarning: earning.workerEarning,
-        commissionPercentage: earning.commissionPercentage,
-        isPaid: earning.isPaid
+        serviceName: payment.appointmentId?.serviceId?.name || 'Service',
+        serviceDate: payment.paidAt,
+        servicePrice: payment.amount,
+        workerEarning: commissionAmount,
+        commissionPercentage: payment.workerCommission?.percentage || 0,
+        isPaid: true, // Payments are always paid
+        paymentMethod: payment.paymentMethod
       });
     });
 
