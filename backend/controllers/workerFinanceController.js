@@ -245,6 +245,23 @@ const generateInvoice = async (req, res, next) => {
   try {
     const { workerId, periodStart, periodEnd, paymentMethod, notes } = req.body;
 
+    // Debug logging
+    console.log('Generate Invoice Request:', {
+      workerId,
+      periodStart,
+      periodEnd,
+      paymentMethod,
+      hasWorkerId: !!workerId
+    });
+
+    // Validate required fields
+    if (!workerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Worker ID is required'
+      });
+    }
+
     // SECURITY: Explicitly verify user is Owner (defense in depth)
     if (req.user.role !== 'Owner') {
       return res.status(403).json({
@@ -279,28 +296,94 @@ const generateInvoice = async (req, res, next) => {
       invoiceId: null  // Not yet invoiced
     };
 
-    // Only add date filter if dates are provided (null dates = Pay All Balance)
-    if (periodStart) {
-      const start = new Date(periodStart);
-      start.setHours(0, 0, 0, 0); // Start of day
-      filter.serviceDate = { $gte: start };
+    // Only add date filter if dates are provided (null/empty/undefined = Pay All Balance)
+    // Handle both null values and string "null" from frontend
+    if (periodStart && periodStart !== 'null' && periodStart !== '' && periodStart !== null) {
+      try {
+        const start = new Date(periodStart);
+        if (isNaN(start.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid period start date format'
+          });
+        }
+        start.setHours(0, 0, 0, 0); // Start of day
+        filter.serviceDate = { $gte: start };
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid period start date: ' + error.message
+        });
+      }
     }
-    if (periodEnd) {
-      const end = new Date(periodEnd);
-      end.setHours(23, 59, 59, 999); // End of day - include full day
-      if (!filter.serviceDate) filter.serviceDate = {};
-      filter.serviceDate.$lte = end;
+    if (periodEnd && periodEnd !== 'null' && periodEnd !== '' && periodEnd !== null) {
+      try {
+        const end = new Date(periodEnd);
+        if (isNaN(end.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid period end date format'
+          });
+        }
+        end.setHours(23, 59, 59, 999); // End of day - include full day
+        if (!filter.serviceDate) filter.serviceDate = {};
+        filter.serviceDate.$lte = end;
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid period end date: ' + error.message
+        });
+      }
     }
-    // If both are null, get ALL paid earnings (for Pay All Balance feature)
+    // If both are null/empty, get ALL paid earnings (for Pay All Balance feature)
 
     const earnings = await WorkerEarning.find(filter)
       .populate('appointmentId', 'dateTime')
       .populate('serviceId', 'name');
 
     if (earnings.length === 0) {
+      // Provide more details about why no earnings were found
+      const totalPaidEarnings = await WorkerEarning.countDocuments({
+        workerId,
+        salonId: salon._id,
+        isPaid: true
+      });
+      const alreadyInvoiced = await WorkerEarning.countDocuments({
+        workerId,
+        salonId: salon._id,
+        isPaid: true,
+        invoiceId: { $ne: null }
+      });
+      const unpaidEarnings = await WorkerEarning.countDocuments({
+        workerId,
+        salonId: salon._id,
+        isPaid: false
+      });
+      const availableToInvoice = await WorkerEarning.countDocuments({
+        workerId,
+        salonId: salon._id,
+        isPaid: true,
+        invoiceId: null
+      });
+
+      console.log('Earnings breakdown:', {
+        totalPaidEarnings,
+        alreadyInvoiced,
+        unpaidEarnings,
+        availableToInvoice
+      });
+
       return res.status(400).json({
         success: false,
-        message: 'No paid earnings available to invoice for this period. Worker must collect payments from clients first.'
+        message: 'No paid earnings available to invoice for this period. Worker must collect payments from clients first.',
+        details: {
+          totalPaidEarnings,
+          alreadyInvoiced,
+          unpaidEarnings,
+          availableToInvoice,
+          periodStart: periodStart || 'all',
+          periodEnd: periodEnd || 'all'
+        }
       });
     }
 

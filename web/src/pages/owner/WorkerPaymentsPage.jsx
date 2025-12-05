@@ -138,7 +138,16 @@ const WorkerPaymentsPage = () => {
       loadWallets()
     } catch (error) {
       console.error('Error generating invoice:', error)
-      toast.error(error.response?.data?.message || 'Failed to generate invoice')
+      const errorMessage = error.response?.data?.message || 'Failed to generate invoice'
+      const errorDetails = error.response?.data?.details
+      
+      if (errorDetails) {
+        toast.error(`${errorMessage}\nAvailable: ${errorDetails.availableToInvoice || 0}, Already invoiced: ${errorDetails.alreadyInvoiced || 0}`, {
+          duration: 5000
+        })
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setGenerating(false)
     }
@@ -158,10 +167,10 @@ const WorkerPaymentsPage = () => {
     setGenerating(true)
     try {
       // Don't set period - get ALL paid earnings that haven't been invoiced
+      // Omit periodStart and periodEnd instead of sending null
       await workerFinanceService.generateInvoice({
         workerId: wallet.workerId._id,
-        periodStart: null, // No start date = from beginning
-        periodEnd: null,   // No end date = to now
+        // periodStart and periodEnd omitted = Pay All Balance
         paymentMethod: 'cash',
         notes: `Full balance payment`
       })
@@ -170,7 +179,16 @@ const WorkerPaymentsPage = () => {
       loadWallets()
     } catch (error) {
       console.error('Error generating invoice:', error)
-      toast.error(error.response?.data?.message || 'Failed to generate invoice')
+      const errorMessage = error.response?.data?.message || 'Failed to generate invoice'
+      const errorDetails = error.response?.data?.details
+      
+      if (errorDetails) {
+        toast.error(`${errorMessage}\nAvailable: ${errorDetails.availableToInvoice || 0}, Already invoiced: ${errorDetails.alreadyInvoiced || 0}`, {
+          duration: 5000
+        })
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setGenerating(false)
     }
