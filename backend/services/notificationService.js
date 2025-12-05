@@ -7,12 +7,31 @@ const WhatsAppService = require('./whatsappService');
  */
 class NotificationService {
   constructor() {
+    // Log initialization
+    console.log('[NotificationService] Initializing...');
+    
+    // Check if Twilio credentials are present
+    const hasAccountSid = !!process.env.TWILIO_ACCOUNT_SID;
+    const hasAuthToken = !!process.env.TWILIO_AUTH_TOKEN;
+    const hasWhatsAppNumber = !!process.env.TWILIO_WHATSAPP_NUMBER;
+    
+    console.log('[NotificationService] Twilio Configuration Check:');
+    console.log(`  TWILIO_ACCOUNT_SID: ${hasAccountSid ? '✅ Set' : '❌ NOT SET'}`);
+    console.log(`  TWILIO_AUTH_TOKEN: ${hasAuthToken ? '✅ Set' : '❌ NOT SET'}`);
+    console.log(`  TWILIO_WHATSAPP_NUMBER: ${hasWhatsAppNumber ? '✅ Set' : '❌ NOT SET'}`);
+    
+    if (hasWhatsAppNumber) {
+      console.log(`  WhatsApp Number: ${process.env.TWILIO_WHATSAPP_NUMBER.substring(0, 25)}...`);
+    }
+    
     // Initialize WhatsApp service with Twilio credentials
     this.whatsappService = new WhatsAppService(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN,
       process.env.TWILIO_WHATSAPP_NUMBER // Format: 'whatsapp:+14155238886'
     );
+    
+    console.log('[NotificationService] ✅ Initialized');
   }
   /**
    * Send SMS notification (MOCK implementation)

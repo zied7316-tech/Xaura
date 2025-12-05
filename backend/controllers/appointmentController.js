@@ -307,11 +307,26 @@ const createAppointment = async (req, res, next) => {
 
     // Send WhatsApp confirmation to client and worker
     try {
+      console.log('[AppointmentController] Attempting to send WhatsApp confirmation...');
       const notificationService = require('../services/notificationService');
       // Appointment is already populated with clientId, workerId, serviceId, salonId
+      console.log('[AppointmentController] Appointment data for WhatsApp:', {
+        appointmentId: appointment._id,
+        clientId: appointment.clientId._id || appointment.clientId,
+        clientPhone: appointment.clientId.phone,
+        workerId: appointment.workerId._id || appointment.workerId,
+        workerPhone: appointment.workerId.phone,
+        salonId: appointment.salonId._id || appointment.salonId,
+        serviceId: appointment.serviceId._id || appointment.serviceId
+      });
       await notificationService.sendAppointmentConfirmation(appointment);
+      console.log('[AppointmentController] ✅ WhatsApp confirmation attempt completed');
     } catch (error) {
-      console.error('[AppointmentController] Failed to send WhatsApp confirmation:', error);
+      console.error('[AppointmentController] ❌ Failed to send WhatsApp confirmation:', error);
+      console.error('[AppointmentController] Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
       // Don't fail appointment creation if WhatsApp fails - just log the error
     }
 
