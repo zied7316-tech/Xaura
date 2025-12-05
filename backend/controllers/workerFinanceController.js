@@ -251,14 +251,32 @@ const generateInvoice = async (req, res, next) => {
       periodStart,
       periodEnd,
       paymentMethod,
-      hasWorkerId: !!workerId
+      hasWorkerId: !!workerId,
+      workerIdType: typeof workerId,
+      fullBody: req.body
     });
 
     // Validate required fields
     if (!workerId) {
+      console.error('Missing workerId in request body');
       return res.status(400).json({
         success: false,
-        message: 'Worker ID is required'
+        message: 'Worker ID is required',
+        received: {
+          workerId,
+          body: req.body
+        }
+      });
+    }
+
+    // Ensure workerId is a string (MongoDB ObjectId)
+    const workerIdStr = String(workerId).trim();
+    if (!workerIdStr || workerIdStr === 'undefined' || workerIdStr === 'null') {
+      console.error('Invalid workerId format:', workerId);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid worker ID format',
+        received: workerId
       });
     }
 
@@ -280,7 +298,7 @@ const generateInvoice = async (req, res, next) => {
     }
 
     // SECURITY: Prevent workers from generating invoices for themselves
-    if (workerId && workerId.toString() === req.user.id.toString()) {
+    if (workerIdStr && workerIdStr.toString() === req.user.id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Workers cannot generate invoices for themselves. Only salon owners can generate invoices.'
@@ -290,7 +308,7 @@ const generateInvoice = async (req, res, next) => {
     // Get PAID earnings (where client already paid) that haven't been invoiced yet
     // Note: isPaid: true means client paid, but invoiceId is null (not yet invoiced)
     const filter = {
-      workerId,
+      workerId: workerIdStr,
       salonId: salon._id,
       isPaid: true,  // CHANGED: Only earnings where client already paid
       invoiceId: null  // Not yet invoiced
@@ -344,23 +362,23 @@ const generateInvoice = async (req, res, next) => {
     if (earnings.length === 0) {
       // Provide more details about why no earnings were found
       const totalPaidEarnings = await WorkerEarning.countDocuments({
-        workerId,
+        workerId: workerIdStr,
         salonId: salon._id,
         isPaid: true
       });
       const alreadyInvoiced = await WorkerEarning.countDocuments({
-        workerId,
+        workerId: workerIdStr,
         salonId: salon._id,
         isPaid: true,
         invoiceId: { $ne: null }
       });
       const unpaidEarnings = await WorkerEarning.countDocuments({
-        workerId,
+        workerId: workerIdStr,
         salonId: salon._id,
         isPaid: false
       });
       const availableToInvoice = await WorkerEarning.countDocuments({
-        workerId,
+        workerId: workerIdStr,
         salonId: salon._id,
         isPaid: true,
         invoiceId: null
@@ -410,7 +428,7 @@ const generateInvoice = async (req, res, next) => {
     // Create invoice
     const invoice = await WorkerInvoice.create({
       invoiceNumber,
-      workerId,
+      workerId: workerIdStr,
       salonId: salon._id,
       periodStart: invoicePeriodStart,
       periodEnd: invoicePeriodEnd,
@@ -440,10 +458,10 @@ const generateInvoice = async (req, res, next) => {
     );
 
     // Update wallet
-    let wallet = await WorkerWallet.findOne({ workerId });
+    let wallet = await WorkerWallet.findOne({ workerId: workerIdStr });
     if (!wallet) {
       wallet = await WorkerWallet.create({
-        workerId,
+        workerId: workerIdStr,
         salonId: salon._id,
         balance: 0,
         totalEarned: totalAmount,

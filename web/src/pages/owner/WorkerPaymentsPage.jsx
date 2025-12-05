@@ -104,7 +104,21 @@ const WorkerPaymentsPage = () => {
       loadWallets()
     } catch (error) {
       console.error('Error generating invoice:', error)
-      toast.error(error.response?.data?.message || 'Failed to generate invoice')
+      console.error('Full error response:', error.response?.data)
+      console.error('Request data sent:', {
+        workerId: selectedWorker.workerId._id,
+        ...invoiceData
+      })
+      const errorMessage = error.response?.data?.message || 'Failed to generate invoice'
+      const errorDetails = error.response?.data?.details
+      
+      if (errorDetails) {
+        toast.error(`${errorMessage}\nAvailable: ${errorDetails.availableToInvoice || 0}, Already invoiced: ${errorDetails.alreadyInvoiced || 0}`, {
+          duration: 5000
+        })
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setGenerating(false)
     }
@@ -138,6 +152,14 @@ const WorkerPaymentsPage = () => {
       loadWallets()
     } catch (error) {
       console.error('Error generating invoice:', error)
+      console.error('Full error response:', error.response?.data)
+      console.error('Request data sent:', {
+        workerId: wallet.workerId._id,
+        periodStart: startDate.toISOString().split('T')[0],
+        periodEnd: endDate.toISOString().split('T')[0],
+        paymentMethod: 'cash',
+        notes: `Quick payment for today's work`
+      })
       const errorMessage = error.response?.data?.message || 'Failed to generate invoice'
       const errorDetails = error.response?.data?.details
       
@@ -179,6 +201,13 @@ const WorkerPaymentsPage = () => {
       loadWallets()
     } catch (error) {
       console.error('Error generating invoice:', error)
+      console.error('Full error response:', error.response?.data)
+      console.error('Request data sent:', {
+        workerId: wallet.workerId._id,
+        // periodStart and periodEnd omitted = Pay All Balance
+        paymentMethod: 'cash',
+        notes: `Full balance payment`
+      })
       const errorMessage = error.response?.data?.message || 'Failed to generate invoice'
       const errorDetails = error.response?.data?.details
       
