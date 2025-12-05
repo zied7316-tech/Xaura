@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { workerFinanceService } from '../../services/workerFinanceService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -11,6 +13,12 @@ import { formatCurrency, formatDate } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const WorkerPaymentsPage = () => {
+  // SECURITY: Defense in depth - verify user is Owner before rendering
+  const { user, isOwner } = useAuth()
+  
+  if (!user || !isOwner || user.role !== 'Owner') {
+    return <Navigate to="/worker/dashboard" replace />
+  }
   const [wallets, setWallets] = useState([])
   const [selectedWorker, setSelectedWorker] = useState(null)
   const [workerSummary, setWorkerSummary] = useState(null)

@@ -20,16 +20,21 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   // Normalize role for comparison (handle both 'SuperAdmin' and 'super-admin')
   const normalizedRole = user.role === 'super-admin' ? 'SuperAdmin' : user.role
   
-  if (roles.length > 0 && !roles.includes(user.role) && !roles.includes(normalizedRole)) {
-    // Redirect to appropriate dashboard based on user role
-    const dashboards = {
-      SuperAdmin: '/super-admin/dashboard',
-      'super-admin': '/super-admin/dashboard',
-      Owner: '/owner/dashboard',
-      Worker: '/worker/dashboard',
-      Client: '/client/dashboard',
+  // SECURITY: If roles are specified, verify user has one of the required roles
+  if (roles.length > 0) {
+    const hasRequiredRole = roles.includes(user.role) || roles.includes(normalizedRole)
+    
+    if (!hasRequiredRole) {
+      // Redirect to appropriate dashboard based on user role
+      const dashboards = {
+        SuperAdmin: '/super-admin/dashboard',
+        'super-admin': '/super-admin/dashboard',
+        Owner: '/owner/dashboard',
+        Worker: '/worker/dashboard',
+        Client: '/client/dashboard',
+      }
+      return <Navigate to={dashboards[user.role] || dashboards[normalizedRole] || '/'} replace />
     }
-    return <Navigate to={dashboards[user.role] || '/'} replace />
   }
 
   return children
