@@ -201,12 +201,28 @@ const generateInvoice = async (req, res, next) => {
   try {
     const { workerId, periodStart, periodEnd, paymentMethod, notes } = req.body;
 
-    // Verify owner
+    // SECURITY: Explicitly verify user is Owner (defense in depth)
+    if (req.user.role !== 'Owner') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only salon owners can generate invoices for workers'
+      });
+    }
+
+    // Verify owner owns a salon
     const salon = await Salon.findOne({ ownerId: req.user.id });
     if (!salon) {
       return res.status(404).json({
         success: false,
         message: 'Salon not found'
+      });
+    }
+
+    // SECURITY: Prevent workers from generating invoices for themselves
+    if (workerId && workerId.toString() === req.user.id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Workers cannot generate invoices for themselves. Only salon owners can generate invoices.'
       });
     }
 

@@ -47,7 +47,7 @@ export const workerFinanceService = {
     return response.data.data
   },
 
-  // Owner endpoints
+  // Owner endpoints - These require Owner role and will be rejected by backend if called by workers
   getAllWorkersWallets: async () => {
     const response = await axios.get(`${API_URL}/worker-finance/all-wallets`, getAuthHeader())
     return response.data.data
@@ -69,6 +69,8 @@ export const workerFinanceService = {
     return response.data.data
   },
 
+  // SECURITY: Owner-only function - Workers cannot generate invoices
+  // Backend enforces this with authorize('Owner') middleware and explicit role checks
   generateInvoice: async (data) => {
     const response = await axios.post(
       `${API_URL}/worker-finance/generate-invoice`,
