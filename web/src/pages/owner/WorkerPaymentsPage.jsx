@@ -241,26 +241,6 @@ const WorkerPaymentsPage = () => {
     }
   }
 
-  // Recalculate wallet balance
-  const handleRecalculateBalance = async (wallet) => {
-    if (!wallet) return
-
-    if (!confirm(`Recalculate balance for ${wallet.workerId.name}? This will sync the balance with actual earnings.`)) {
-      return
-    }
-
-    setGenerating(true)
-    try {
-      const result = await workerFinanceService.recalculateBalance(wallet.workerId._id)
-      toast.success(`Balance recalculated! New balance: ${formatCurrency(result.wallet.balance)}`)
-      loadWallets()
-    } catch (error) {
-      console.error('Error recalculating balance:', error)
-      toast.error(error.response?.data?.message || 'Failed to recalculate balance')
-    } finally {
-      setGenerating(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -386,7 +366,7 @@ const WorkerPaymentsPage = () => {
                         {wallet.lastPayoutDate ? formatDate(wallet.lastPayoutDate) : 'Never'}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <div className="flex gap-2 justify-center flex-wrap">
+                        <div className="flex gap-2 justify-center">
                           <Button
                             variant="primary"
                             size="sm"
@@ -416,15 +396,6 @@ const WorkerPaymentsPage = () => {
                             title="Custom period"
                           >
                             📅 Custom
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRecalculateBalance(wallet)}
-                            disabled={generating}
-                            title="Recalculate balance from actual earnings"
-                          >
-                            🔄 Recalc
                           </Button>
                         </div>
                       </td>

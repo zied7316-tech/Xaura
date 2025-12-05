@@ -213,6 +213,7 @@ if (loadRoute('/api/appointments', './routes/appointmentRoutes')) routesLoaded++
 if (loadRoute('/api/appointment-management', './routes/appointmentManagementRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/notifications', './routes/notificationRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/payments', './routes/paymentRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/finance', './routes/financeRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/expenses', './routes/expenseRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/analytics', './routes/analyticsRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/customers', './routes/customerRoutes')) routesLoaded++; else routesFailed++;

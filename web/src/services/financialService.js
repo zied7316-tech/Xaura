@@ -79,5 +79,15 @@ export const financialService = {
     const response = await api.get(`/reports/custom?startDate=${startDate}&endDate=${endDate}`)
     return response.data
   },
+
+  // Finance Dashboard
+  getFinanceDashboard: async (startDate, endDate) => {
+    const params = new URLSearchParams()
+    if (startDate) params.append('startDate', startDate)
+    if (endDate) params.append('endDate', endDate)
+    const queryString = params.toString()
+    const response = await api.get(`/finance/dashboard${queryString ? `?${queryString}` : ''}`)
+    return response.data
+  },
 }
 
