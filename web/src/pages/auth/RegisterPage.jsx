@@ -138,31 +138,36 @@ const RegisterPage = () => {
               })}
             />
 
-            <Input
-              label="Birthday"
-              type="date"
-              error={errors.birthday?.message}
-              {...register('birthday', { 
-                required: 'Birthday is required',
-                validate: {
-                  notFuture: (value) => {
-                    if (!value) return true
-                    const selectedDate = new Date(value)
-                    const today = new Date()
-                    return selectedDate <= today || 'Birthday cannot be in the future'
-                  },
-                  validAge: (value) => {
-                    if (!value) return true
-                    const selectedDate = new Date(value)
-                    const today = new Date()
-                    const age = today.getFullYear() - selectedDate.getFullYear()
-                    const monthDiff = today.getMonth() - selectedDate.getMonth()
-                    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < selectedDate.getDate()) ? age - 1 : age
-                    return actualAge >= 13 || 'You must be at least 13 years old'
+            <div>
+              <Input
+                label="Birthday (Optional)"
+                type="date"
+                error={errors.birthday?.message}
+                {...register('birthday', { 
+                  required: false,
+                  validate: {
+                    notFuture: (value) => {
+                      if (!value) return true
+                      const selectedDate = new Date(value)
+                      const today = new Date()
+                      return selectedDate <= today || 'Birthday cannot be in the future'
+                    },
+                    validAge: (value) => {
+                      if (!value) return true
+                      const selectedDate = new Date(value)
+                      const today = new Date()
+                      const age = today.getFullYear() - selectedDate.getFullYear()
+                      const monthDiff = today.getMonth() - selectedDate.getMonth()
+                      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < selectedDate.getDate()) ? age - 1 : age
+                      return actualAge >= 13 || 'You must be at least 13 years old'
+                    }
                   }
-                }
-              })}
-            />
+                })}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional: Share your birthday to receive special gifts and discounts from salons on your special day!
+              </p>
+            </div>
 
             <Input
               label="Password"

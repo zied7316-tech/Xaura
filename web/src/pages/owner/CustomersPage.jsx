@@ -37,9 +37,11 @@ const CustomersPage = () => {
 
   const loadCustomers = async () => {
     try {
-      const data = await customerService.getCustomers()
-      setCustomers(data.data || [])
-      setSummary(data.summary)
+      const response = await customerService.getCustomers()
+      // Handle both old format (data.data) and new format (data directly)
+      const customersData = response.data || response
+      setCustomers(Array.isArray(customersData) ? customersData : (customersData.customers || []))
+      setSummary(response.summary)
     } catch (error) {
       console.error('Error loading customers:', error)
       toast.error('Failed to load customers')
@@ -242,10 +244,10 @@ const CustomersPage = () => {
                                 <Star className="text-yellow-500" size={16} fill="currentColor" />
                               )}
                             </div>
-                            {customer.profile?.birthday && (
+                            {customer.birthday && (
                               <div className="text-xs text-gray-500 flex items-center gap-1">
                                 <Gift size={12} />
-                                {formatDate(customer.profile.birthday)}
+                                {formatDate(customer.birthday)}
                               </div>
                             )}
                           </div>
@@ -361,7 +363,7 @@ const CustomersPage = () => {
               <Card>
                 <div className="p-4 text-center">
                   <p className="text-2xl font-bold text-gray-900">
-                    {selectedCustomer.appointments.filter(a => a.status === 'Completed').length}
+                    {selectedCustomer.appointments.filter(a => a.status === 'Completed' || a.status === 'completed').length}
                   </p>
                   <p className="text-sm text-gray-600">Total Visits</p>
                 </div>
@@ -416,8 +418,8 @@ const CustomersPage = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
                             <Badge variant={
-                              appointment.status === 'Completed' ? 'success' :
-                              appointment.status === 'Cancelled' ? 'danger' :
+                              (appointment.status === 'Completed' || appointment.status === 'completed') ? 'success' :
+                              (appointment.status === 'Cancelled' || appointment.status === 'cancelled') ? 'danger' :
                               'default'
                             }>
                               {appointment.status}

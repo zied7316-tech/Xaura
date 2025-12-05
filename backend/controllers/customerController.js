@@ -25,7 +25,7 @@ const getCustomers = async (req, res, next) => {
     if (status) filter.status = status;
 
     let customers = await Customer.find(filter)
-      .populate('userId', 'name email phone avatar')
+      .populate('userId', 'name email phone avatar birthday')
       .sort({ lastVisit: -1 });
 
     // Search by name or email
@@ -36,10 +36,65 @@ const getCustomers = async (req, res, next) => {
       );
     }
 
+    // Format customers with stats and birthday - calculate from actual data
+    const formattedCustomers = await Promise.all(customers.map(async (customer) => {
+      const customerObj = customer.toObject();
+      
+      // Get actual appointment count
+      const appointmentCount = await Appointment.countDocuments({
+        clientId: customer.userId._id,
+        salonId: salon._id
+      });
+      
+      // Get actual total spent from payments
+      const payments = await Payment.find({
+        clientId: customer.userId._id,
+        salonId: salon._id,
+        status: 'completed'
+      });
+      const actualTotalSpent = payments.reduce((sum, p) => sum + p.amount, 0);
+      
+      // Get last visit from appointments
+      const lastAppointment = await Appointment.findOne({
+        clientId: customer.userId._id,
+        salonId: salon._id
+      }).sort({ dateTime: -1 });
+      
+      const lastVisit = lastAppointment?.dateTime || customerObj.lastVisit || null;
+      
+      return {
+        ...customerObj,
+        name: customerObj.userId.name,
+        email: customerObj.userId.email,
+        phone: customerObj.userId.phone,
+        avatar: customerObj.userId.avatar,
+        birthday: customerObj.userId.birthday || customerObj.birthday || null,
+        stats: {
+          totalVisits: appointmentCount || customerObj.totalVisits || 0,
+          totalSpent: actualTotalSpent || customerObj.totalSpent || 0,
+          averageSpent: appointmentCount > 0 ? (actualTotalSpent / appointmentCount) : (customerObj.averageSpending || 0),
+          lastVisit: lastVisit
+        }
+      };
+    }));
+
+    // Calculate summary statistics
+    const summary = {
+      totalCustomers: formattedCustomers.length,
+      vipCustomers: formattedCustomers.filter(c => c.status === 'VIP').length,
+      activeCustomers: formattedCustomers.filter(c => {
+        if (!c.stats.lastVisit) return false;
+        const daysSinceVisit = (Date.now() - new Date(c.stats.lastVisit)) / (1000 * 60 * 60 * 24);
+        return daysSinceVisit <= 90;
+      }).length,
+      totalRevenue: formattedCustomers.reduce((sum, c) => sum + (c.stats.totalSpent || 0), 0)
+    };
+
     res.json({
       success: true,
-      count: customers.length,
-      data: { customers }
+      count: formattedCustomers.length,
+      data: formattedCustomers,
+      summary
     });
   } catch (error) {
     next(error);
@@ -54,7 +109,7 @@ const getCustomers = async (req, res, next) => {
 const getCustomerDetails = async (req, res, next) => {
   try {
     const customer = await Customer.findById(req.params.id)
-      .populate('userId', 'name email phone avatar')
+      .populate('userId', 'name email phone avatar birthday')
       .populate('preferredWorkers', 'name')
       .populate('preferredServices', 'name price');
 
@@ -70,23 +125,60 @@ const getCustomerDetails = async (req, res, next) => {
       clientId: customer.userId._id,
       salonId: customer.salonId
     })
-      .populate('serviceId', 'name')
+      .populate('serviceId', 'name price')
       .populate('workerId', 'name')
-      .sort({ dateTime: -1 })
-      .limit(10);
+      .sort({ dateTime: -1 });
 
     // Get payment history
     const payments = await Payment.find({
       clientId: customer.userId._id,
+      salonId: customer.salonId,
+      status: 'completed'
+    }).sort({ paidAt: -1 });
+
+    // Calculate total spent from payments
+    const totalSpent = payments.reduce((sum, p) => sum + p.amount, 0);
+
+    // Get CustomerProfile if exists
+    const CustomerProfile = require('../models/CustomerProfile');
+    const profile = await CustomerProfile.findOne({
+      userId: customer.userId._id,
       salonId: customer.salonId
-    }).sort({ paidAt: -1 }).limit(10);
+    });
 
     res.json({
       success: true,
       data: {
-        customer,
-        appointmentHistory: appointments,
-        paymentHistory: payments
+        customer: {
+          ...customer.toObject(),
+          name: customer.userId.name,
+          email: customer.userId.email,
+          phone: customer.userId.phone,
+          avatar: customer.userId.avatar,
+          birthday: customer.userId.birthday || customer.birthday || null
+        },
+        profile: profile || null,
+        appointments: appointments.map(apt => ({
+          _id: apt._id,
+          dateTime: apt.dateTime,
+          status: apt.status,
+          serviceId: apt.serviceId,
+          workerId: apt.workerId,
+          servicePriceAtBooking: apt.servicePriceAtBooking || apt.serviceId?.price || 0
+        })),
+        payments: payments.map(p => ({
+          _id: p._id,
+          amount: p.amount,
+          paidAt: p.paidAt,
+          paymentMethod: p.paymentMethod,
+          status: p.status
+        })),
+        stats: {
+          totalVisits: customer.totalVisits || appointments.filter(a => a.status === 'Completed' || a.status === 'completed').length,
+          totalSpent: totalSpent || customer.totalSpent || 0,
+          averageSpent: customer.averageSpending || (customer.totalVisits > 0 ? (totalSpent / customer.totalVisits) : 0),
+          lastVisit: customer.lastVisit || (appointments.length > 0 ? appointments[0].dateTime : null)
+        }
       }
     });
   } catch (error) {
