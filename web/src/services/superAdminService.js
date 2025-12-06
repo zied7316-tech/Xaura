@@ -109,5 +109,21 @@ export const superAdminService = {
   approvePixelPurchase: async (subscriptionId) => {
     const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/approve-pixel`)
     return response
+  },
+
+  // Mark payment as received
+  markUpgradePaymentReceived: async (subscriptionId) => {
+    const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/mark-upgrade-paid`)
+    return response
+  },
+
+  markWhatsAppPaymentReceived: async (subscriptionId) => {
+    const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/mark-whatsapp-paid`)
+    return response
+  },
+
+  markPixelPaymentReceived: async (subscriptionId) => {
+    const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/mark-pixel-paid`)
+    return response
   }
 }

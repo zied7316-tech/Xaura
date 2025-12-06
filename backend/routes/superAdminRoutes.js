@@ -24,7 +24,10 @@ const {
   getPendingWhatsAppPurchases,
   approveWhatsAppPurchase,
   getPendingPixelPurchases,
-  approvePixelPurchase
+  approvePixelPurchase,
+  markUpgradePaymentReceived,
+  markWhatsAppPaymentReceived,
+  markPixelPaymentReceived
 } = require('../controllers/subscriptionController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -57,6 +60,9 @@ router.put('/subscriptions/:id/reactivate', protect, authorize('SuperAdmin'), re
 router.post('/subscriptions/:id/approve-upgrade', protect, authorize('SuperAdmin'), approveUpgrade);
 router.post('/subscriptions/:id/approve-whatsapp', protect, authorize('SuperAdmin'), approveWhatsAppPurchase);
 router.post('/subscriptions/:id/approve-pixel', protect, authorize('SuperAdmin'), approvePixelPurchase);
+router.post('/subscriptions/:id/mark-upgrade-paid', protect, authorize('SuperAdmin'), markUpgradePaymentReceived);
+router.post('/subscriptions/:id/mark-whatsapp-paid', protect, authorize('SuperAdmin'), markWhatsAppPaymentReceived);
+router.post('/subscriptions/:id/mark-pixel-paid', protect, authorize('SuperAdmin'), markPixelPaymentReceived);
 
 module.exports = router;
 

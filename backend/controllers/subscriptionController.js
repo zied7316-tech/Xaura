@@ -740,7 +740,7 @@ const approveUpgrade = async (req, res, next) => {
       });
     }
 
-    // Activate subscription with requested plan
+    // Activate subscription with requested plan (owner can use it)
     subscription.plan = subscription.requestedPlan;
     subscription.price = subscription.requestedPlanPrice;
     subscription.monthlyFee = subscription.requestedBillingInterval === 'year' 
@@ -760,11 +760,15 @@ const approveUpgrade = async (req, res, next) => {
       subscription.annualDiscount = 20; // 20% discount
     }
 
+    // IMPORTANT: Payment is still unpaid - SuperAdmin will mark as paid after receiving payment
+    subscription.upgradePaymentReceived = false;
+    subscription.upgradePaymentReceivedAt = null;
+
     await subscription.save();
 
     res.json({
       success: true,
-      message: 'Upgrade approved and subscription activated',
+      message: 'Upgrade approved and subscription activated. Payment status: Unpaid. Owner can use the plan. Mark payment as paid after receiving payment.',
       data: subscription
     });
   } catch (error) {
@@ -822,7 +826,7 @@ const approveWhatsAppPurchase = async (req, res, next) => {
       });
     }
 
-    // Add credits
+    // Add credits (owner can use them)
     await subscription.addWhatsAppCredits(
       subscription.whatsappCreditPurchase.credits,
       subscription.whatsappCreditPurchase.packageType
@@ -830,12 +834,16 @@ const approveWhatsAppPurchase = async (req, res, next) => {
 
     // Mark as approved
     subscription.whatsappCreditPurchase.status = 'approved';
+    
+    // IMPORTANT: Payment is still unpaid - SuperAdmin will mark as paid after receiving payment
+    subscription.whatsappCreditPurchase.paymentReceived = false;
+    subscription.whatsappCreditPurchase.paymentReceivedAt = null;
 
     await subscription.save();
 
     res.json({
       success: true,
-      message: 'WhatsApp credits approved and added',
+      message: 'WhatsApp credits approved and added. Payment status: Unpaid. Owner can use credits. Mark payment as paid after receiving payment.',
       data: subscription
     });
   } catch (error) {
@@ -892,19 +900,23 @@ const approvePixelPurchase = async (req, res, next) => {
       });
     }
 
-    // Activate Pixel Tracking
+    // Activate Pixel Tracking (owner can use it)
     subscription.addOns.pixelTracking.active = true;
     subscription.addOns.pixelTracking.startDate = new Date();
     subscription.addOns.pixelTracking.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
     // Mark as approved
     subscription.pixelTrackingPurchase.status = 'approved';
+    
+    // IMPORTANT: Payment is still unpaid - SuperAdmin will mark as paid after receiving payment
+    subscription.pixelTrackingPurchase.paymentReceived = false;
+    subscription.pixelTrackingPurchase.paymentReceivedAt = null;
 
     await subscription.save();
 
     res.json({
       success: true,
-      message: 'Pixel Tracking approved and activated',
+      message: 'Pixel Tracking approved and activated. Payment status: Unpaid. Owner can use add-on. Mark payment as paid after receiving payment.',
       data: subscription
     });
   } catch (error) {
@@ -964,6 +976,146 @@ const fixMissingSubscriptions = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Mark upgrade payment as received
+ * @route   POST /api/super-admin/subscriptions/:id/mark-upgrade-paid
+ * @access  Private (SuperAdmin)
+ */
+const markUpgradePaymentReceived = async (req, res, next) => {
+  try {
+    const subscription = await Subscription.findById(req.params.id);
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    if (subscription.upgradeStatus !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        message: 'Upgrade must be approved before marking payment as received'
+      });
+    }
+
+    if (subscription.upgradePaymentReceived) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment already marked as received'
+      });
+    }
+
+    // Mark payment as received
+    subscription.upgradePaymentReceived = true;
+    subscription.upgradePaymentReceivedAt = new Date();
+    subscription.lastPaymentDate = new Date();
+    subscription.totalRevenue = (subscription.totalRevenue || 0) + (subscription.requestedPlanPrice || subscription.price || 0);
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'Upgrade payment marked as received',
+      data: subscription
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Mark WhatsApp credits payment as received
+ * @route   POST /api/super-admin/subscriptions/:id/mark-whatsapp-paid
+ * @access  Private (SuperAdmin)
+ */
+const markWhatsAppPaymentReceived = async (req, res, next) => {
+  try {
+    const subscription = await Subscription.findById(req.params.id);
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    if (!subscription.whatsappCreditPurchase || subscription.whatsappCreditPurchase.status !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        message: 'WhatsApp purchase must be approved before marking payment as received'
+      });
+    }
+
+    if (subscription.whatsappCreditPurchase.paymentReceived) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment already marked as received'
+      });
+    }
+
+    // Mark payment as received
+    subscription.whatsappCreditPurchase.paymentReceived = true;
+    subscription.whatsappCreditPurchase.paymentReceivedAt = new Date();
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'WhatsApp credits payment marked as received',
+      data: subscription
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Mark Pixel Tracking payment as received
+ * @route   POST /api/super-admin/subscriptions/:id/mark-pixel-paid
+ * @access  Private (SuperAdmin)
+ */
+const markPixelPaymentReceived = async (req, res, next) => {
+  try {
+    const subscription = await Subscription.findById(req.params.id);
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    if (!subscription.pixelTrackingPurchase || subscription.pixelTrackingPurchase.status !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        message: 'Pixel Tracking purchase must be approved before marking payment as received'
+      });
+    }
+
+    if (subscription.pixelTrackingPurchase.paymentReceived) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment already marked as received'
+      });
+    }
+
+    // Mark payment as received
+    subscription.pixelTrackingPurchase.paymentReceived = true;
+    subscription.pixelTrackingPurchase.paymentReceivedAt = new Date();
+
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'Pixel Tracking payment marked as received',
+      data: subscription
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   // Super Admin exports
   getAllSubscriptions,
@@ -980,6 +1132,9 @@ module.exports = {
   approveWhatsAppPurchase,
   getPendingPixelPurchases,
   approvePixelPurchase,
+  markUpgradePaymentReceived,
+  markWhatsAppPaymentReceived,
+  markPixelPaymentReceived,
   // Owner exports
   getMySubscription,
   confirmTrial,

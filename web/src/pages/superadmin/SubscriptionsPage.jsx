@@ -9,9 +9,10 @@ import Modal from '../../components/ui/Modal'
 import Select from '../../components/ui/Select'
 import {
   Crown, DollarSign, Calendar, TrendingUp, AlertCircle,
-  CheckCircle, XCircle, Clock, Edit, Ban, Play, RefreshCw, Search, Filter, X
+  CheckCircle, XCircle, Clock, Edit, Ban, Play, RefreshCw, Search, Filter, X,
+  CalendarStart, CalendarEnd, CreditCard, Hourglass, Check
 } from 'lucide-react'
-import { formatDate, formatCurrency } from '../../utils/helpers'
+import { formatDate, formatCurrency, formatDateTime } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const PLAN_PRICING = {
@@ -24,7 +25,7 @@ const SubscriptionsPage = () => {
   const [subscriptions, setSubscriptions] = useState([])
   const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ status: 'all', plan: 'all' })
+  const [filters, setFilters] = useState({ status: 'all', plan: 'all', paymentStatus: 'all' })
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSubscription, setSelectedSubscription] = useState(null)
   const [showPlanModal, setShowPlanModal] = useState(false)
@@ -165,6 +166,26 @@ const SubscriptionsPage = () => {
     }
   }
 
+  const handleMarkPaymentPaid = async (subscription, paymentType) => {
+    if (!confirm(`Mark ${paymentType === 'upgrade' ? 'upgrade' : paymentType} payment as received? This will update the payment status to paid.`)) return
+
+    try {
+      let response
+      if (paymentType === 'upgrade') {
+        response = await superAdminService.markUpgradePaymentReceived(subscription._id)
+      } else if (paymentType === 'whatsapp') {
+        response = await superAdminService.markWhatsAppPaymentReceived(subscription._id)
+      } else if (paymentType === 'pixel') {
+        response = await superAdminService.markPixelPaymentReceived(subscription._id)
+      }
+
+      toast.success('Payment marked as received successfully!')
+      loadSubscriptions()
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to mark payment as received')
+    }
+  }
+
   const getStatusBadge = (status) => {
     const variants = {
       trial: { variant: 'warning', icon: Clock, label: 'Trial' },
@@ -187,6 +208,57 @@ const SubscriptionsPage = () => {
     const config = PLAN_PRICING[plan]
     if (!config) return <Badge variant="default">{plan}</Badge>
     return <Badge variant={config.color === 'yellow' ? 'warning' : 'primary'}>{config.labelEn || config.label}</Badge>
+  }
+
+  // Helper: Get payment status for a subscription
+  const getPaymentStatus = (sub) => {
+    // Check upgrade payment status
+    if (sub.upgradeStatus === 'approved') {
+      if (sub.upgradePaymentReceived) {
+        return { status: 'paid', label: 'Approved & Paid', color: 'green', icon: CheckCircle }
+      } else {
+        return { status: 'approved_unpaid', label: 'Approved but Unpaid', color: 'orange', icon: Hourglass }
+      }
+    }
+    
+    if (sub.upgradeStatus === 'pending') {
+      return { status: 'waiting', label: 'Waiting Approval', color: 'yellow', icon: Clock }
+    }
+    
+    if (sub.status === 'trial') {
+      return { status: 'trial', label: 'Trial (No Payment)', color: 'gray', icon: Clock }
+    }
+    
+    if (sub.status === 'active') {
+      if (sub.lastPaymentDate) {
+        return { status: 'paid', label: 'Paid', color: 'green', icon: CheckCircle }
+      }
+      return { status: 'active_unpaid', label: 'Active but Unpaid', color: 'orange', icon: Hourglass }
+    }
+    
+    return { status: 'none', label: 'N/A', color: 'gray', icon: XCircle }
+  }
+
+  // Helper: Get payment status badge
+  const getPaymentStatusBadge = (sub) => {
+    const paymentStatus = getPaymentStatus(sub)
+    const Icon = paymentStatus.icon
+    return (
+      <Badge variant={paymentStatus.color === 'green' ? 'success' : paymentStatus.color === 'orange' ? 'warning' : 'default'}>
+        <Icon size={12} className="mr-1" />
+        {paymentStatus.label}
+      </Badge>
+    )
+  }
+
+  // Helper: Calculate days remaining
+  const getDaysRemaining = (endDate) => {
+    if (!endDate) return null
+    const now = new Date()
+    const end = new Date(endDate)
+    const diff = end - now
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+    return days
   }
 
   if (loading && subscriptions.length === 0) {
@@ -338,7 +410,7 @@ const SubscriptionsPage = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setFilters({ status: 'all', plan: 'all' })
+                    setFilters({ status: 'all', plan: 'all', paymentStatus: 'all' })
                     setSearchTerm('')
                   }}
                   className="ml-auto"
@@ -363,15 +435,15 @@ const SubscriptionsPage = () => {
               <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Subscriptions Found</h3>
               <p className="text-gray-600 mb-4">
-                {filters.status !== 'all' || filters.plan !== 'all' || searchTerm
+                {filters.status !== 'all' || filters.plan !== 'all' || filters.paymentStatus !== 'all' || searchTerm
                   ? 'No subscriptions match your current filters or search. Try adjusting your filters.'
                   : 'There are no subscriptions in the system yet. Subscriptions will appear here when salons are created.'}
               </p>
-              {(filters.status !== 'all' || filters.plan !== 'all' || searchTerm) && (
+              {(filters.status !== 'all' || filters.plan !== 'all' || filters.paymentStatus !== 'all' || searchTerm) && (
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setFilters({ status: 'all', plan: 'all' })
+                    setFilters({ status: 'all', plan: 'all', paymentStatus: 'all' })
                     setSearchTerm('')
                   }}
                 >
@@ -381,103 +453,210 @@ const SubscriptionsPage = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Salon</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Owner</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Plan</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">MRR</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Trial End</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Next Billing</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Salon / Owner</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Plan / Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">📅 Trial Period</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">📅 Plan Period</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">💳 Payment Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">💰 Price</th>
                     <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {subscriptions.map((sub) => (
-                    <tr key={sub._id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900">{sub.salonId?.name || 'N/A'}</div>
-                        <div className="text-sm text-gray-500">{sub.salonId?.address?.city || ''}</div>
-                        {sub.salonId?.phone && (
-                          <div className="text-xs text-gray-400 mt-1">📞 {sub.salonId.phone}</div>
-                        )}
-                        {sub.salonId?.email && (
-                          <div className="text-xs text-gray-400">✉️ {sub.salonId.email}</div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm font-medium text-gray-900">{sub.ownerId?.name || 'N/A'}</div>
-                        {sub.ownerId?.email && (
-                          <div className="text-xs text-gray-500 mt-1">✉️ {sub.ownerId.email}</div>
-                        )}
-                        {sub.ownerId?.phone && (
-                          <div className="text-xs text-gray-500">📞 {sub.ownerId.phone}</div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">{getPlanBadge(sub.plan)}</td>
-                      <td className="py-3 px-4">{getStatusBadge(sub.status)}</td>
-                      <td className="py-3 px-4">
-                        <span className="font-semibold text-green-600">{formatCurrency(sub.monthlyFee || 0)}</span>
-                        <span className="text-xs text-gray-500">/mo</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm text-gray-600">
-                          {sub.status === 'trial' 
-                            ? formatDate(sub.trialEndDate || sub.trial?.extendedEndDate || sub.trial?.endDate) 
-                            : '-'}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm text-gray-600">
-                          {sub.status === 'active' ? formatDate(sub.currentPeriodEnd) : '-'}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center justify-end gap-2">
-                          {sub.status !== 'cancelled' && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleChangePlan(sub)}
-                                title="Change Plan"
-                              >
-                                <Edit size={16} />
-                              </Button>
-                              {sub.status === 'trial' && (
+                  {subscriptions.map((sub) => {
+                    const trialStart = sub.trial?.startDate
+                    const trialEnd = sub.trial?.extendedEndDate || sub.trial?.endDate
+                    const planStart = sub.startDate || sub.currentPeriodStart
+                    const planEnd = sub.currentPeriodEnd
+                    const paymentStatus = getPaymentStatus(sub)
+                    const trialDaysRemaining = trialEnd ? getDaysRemaining(trialEnd) : null
+                    const planDaysRemaining = planEnd ? getDaysRemaining(planEnd) : null
+                    
+                    return (
+                      <tr key={sub._id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-gray-900">{sub.salonId?.name || 'N/A'}</div>
+                          <div className="text-xs text-gray-500 mt-1">{sub.ownerId?.name || 'N/A'}</div>
+                          {sub.ownerId?.email && (
+                            <div className="text-xs text-gray-400 mt-1">✉️ {sub.ownerId.email}</div>
+                          )}
+                          {sub.ownerId?.phone && (
+                            <div className="text-xs text-gray-400">📞 {sub.ownerId.phone}</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="mb-2">{getPlanBadge(sub.plan)}</div>
+                          <div>{getStatusBadge(sub.status)}</div>
+                          {sub.upgradeStatus === 'pending' && (
+                            <div className="mt-2">
+                              <Badge variant="warning" className="text-xs">
+                                <Hourglass size={10} className="mr-1" />
+                                Upgrade Requested: {sub.requestedPlan ? PLAN_PRICING[sub.requestedPlan]?.labelEn || sub.requestedPlan : 'N/A'}
+                              </Badge>
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {sub.status === 'trial' || trialStart ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-xs text-gray-600">
+                                <CalendarStart size={12} />
+                                <span className="font-medium">Start:</span>
+                                <span>{formatDate(trialStart)}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-gray-600">
+                                <CalendarEnd size={12} />
+                                <span className="font-medium">End:</span>
+                                <span className={trialDaysRemaining !== null && trialDaysRemaining < 7 ? 'text-red-600 font-semibold' : ''}>
+                                  {formatDate(trialEnd)}
+                                </span>
+                              </div>
+                              {trialDaysRemaining !== null && (
+                                <div className={`text-xs font-semibold ${trialDaysRemaining < 7 ? 'text-red-600' : trialDaysRemaining < 15 ? 'text-orange-600' : 'text-green-600'}`}>
+                                  {trialDaysRemaining > 0 ? `${trialDaysRemaining} days left` : 'Expired'}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-400">Trial ended</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {sub.status === 'active' && planStart ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-xs text-gray-600">
+                                <CalendarStart size={12} />
+                                <span className="font-medium">Start:</span>
+                                <span>{formatDate(planStart)}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-gray-600">
+                                <CalendarEnd size={12} />
+                                <span className="font-medium">End:</span>
+                                <span>{formatDate(planEnd)}</span>
+                              </div>
+                              {planDaysRemaining !== null && (
+                                <div className="text-xs font-semibold text-blue-600">
+                                  {planDaysRemaining > 0 ? `${planDaysRemaining} days left` : 'Expired'}
+                                </div>
+                              )}
+                              {sub.lastPaymentDate && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Last paid: {formatDate(sub.lastPaymentDate)}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-400">
+                              {sub.status === 'trial' ? 'Will start after trial' : 'N/A'}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="space-y-2">
+                            {getPaymentStatusBadge(sub)}
+                            {sub.upgradeStatus === 'pending' && (
+                              <div className="text-xs text-orange-600 mt-1">
+                                <div>⏳ Requested: {formatDate(sub.upgradeRequestedAt)}</div>
+                                {sub.paymentMethod && (
+                                  <div>Method: {sub.paymentMethod}</div>
+                                )}
+                                {sub.requestedPlanPrice && (
+                                  <div>Amount: {formatCurrency(sub.requestedPlanPrice)}</div>
+                                )}
+                              </div>
+                            )}
+                            {sub.upgradeStatus === 'approved' && !sub.upgradePaymentReceived && (
+                              <div className="text-xs text-orange-600 mt-1 space-y-1">
+                                <div className="font-semibold">⚠️ Approved but Unpaid</div>
+                                <div>Method: {sub.paymentMethod || 'Not specified'}</div>
+                                <div>Amount: {formatCurrency(sub.requestedPlanPrice || sub.monthlyFee || 0)}</div>
+                                {sub.upgradeRequestedAt && (
+                                  <div>Approved: {formatDate(sub.upgradeRequestedAt)}</div>
+                                )}
+                              </div>
+                            )}
+                            {sub.upgradeStatus === 'approved' && sub.upgradePaymentReceived && (
+                              <div className="text-xs text-green-600 mt-1">
+                                <div>✅ Paid: {formatDate(sub.upgradePaymentReceivedAt)}</div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div>
+                            <span className="font-semibold text-green-600">{formatCurrency(sub.monthlyFee || 0)}</span>
+                            <span className="text-xs text-gray-500">/mo</span>
+                          </div>
+                          {sub.requestedPlanPrice && sub.upgradeStatus === 'pending' && (
+                            <div className="text-xs text-orange-600 mt-1">
+                              Requested: {formatCurrency(sub.requestedPlanPrice)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                        <div className="flex flex-col items-end gap-2">
+                          {/* Mark Payment as Paid Button */}
+                          {sub.upgradeStatus === 'approved' && !sub.upgradePaymentReceived && (
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => handleMarkPaymentPaid(sub, 'upgrade')}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              title="Mark Payment as Received"
+                            >
+                              <CreditCard size={14} className="mr-1" />
+                              Mark Paid
+                            </Button>
+                          )}
+                          
+                          {/* Other Actions */}
+                          <div className="flex items-center gap-2">
+                            {sub.status !== 'cancelled' && (
+                              <>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => handleExtendTrial(sub)}
-                                  title="Extend Trial"
+                                  onClick={() => handleChangePlan(sub)}
+                                  title="Change Plan"
                                 >
-                                  <Clock size={16} />
+                                  <Edit size={16} />
                                 </Button>
-                              )}
+                                {sub.status === 'trial' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleExtendTrial(sub)}
+                                    title="Extend Trial"
+                                  >
+                                    <Clock size={16} />
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCancelSubscription(sub._id)}
+                                  className="text-red-600 hover:bg-red-50"
+                                  title="Cancel"
+                                >
+                                  <Ban size={16} />
+                                </Button>
+                              </>
+                            )}
+                            {sub.status === 'cancelled' && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleCancelSubscription(sub._id)}
-                                className="text-red-600 hover:bg-red-50"
-                                title="Cancel"
+                                onClick={() => handleReactivateSubscription(sub._id)}
+                                className="text-green-600 hover:bg-green-50"
+                                title="Reactivate"
                               >
-                                <Ban size={16} />
+                                <Play size={16} />
                               </Button>
-                            </>
-                          )}
-                          {sub.status === 'cancelled' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleReactivateSubscription(sub._id)}
-                              className="text-green-600 hover:bg-green-50"
-                              title="Reactivate"
-                            >
-                              <Play size={16} />
-                            </Button>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>

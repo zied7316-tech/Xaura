@@ -170,6 +170,15 @@ const subscriptionSchema = new mongoose.Schema({
     enum: ['month', 'year'],
     default: 'month'
   },
+  // Payment tracking for upgrade (separate from approval)
+  upgradePaymentReceived: {
+    type: Boolean,
+    default: false
+  },
+  upgradePaymentReceivedAt: {
+    type: Date,
+    default: null
+  },
   // Add-ons
   addOns: {
     pixelTracking: {
@@ -295,7 +304,16 @@ const subscriptionSchema = new mongoose.Schema({
         message: 'WhatsApp credit purchase status must be null or one of: pending, approved, rejected'
       }
     },
-    requestedAt: { type: Date, default: null }
+    requestedAt: { type: Date, default: null },
+    // Payment tracking (separate from approval)
+    paymentReceived: {
+      type: Boolean,
+      default: false
+    },
+    paymentReceivedAt: {
+      type: Date,
+      default: null
+    }
   },
   smsCreditPurchase: {
     packageType: { type: String, default: null },
@@ -329,7 +347,16 @@ const subscriptionSchema = new mongoose.Schema({
         message: 'Pixel tracking purchase status must be null or one of: pending, approved, rejected'
       }
     },
-    requestedAt: { type: Date, default: null }
+    requestedAt: { type: Date, default: null },
+    // Payment tracking (separate from approval)
+    paymentReceived: {
+      type: Boolean,
+      default: false
+    },
+    paymentReceivedAt: {
+      type: Date,
+      default: null
+    }
   },
   // Usage Limits (for different plans)
   limits: {
