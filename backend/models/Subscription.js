@@ -190,10 +190,46 @@ const subscriptionSchema = new mongoose.Schema({
         default: 15 // 15 TND/month
       }
     },
+    whatsappCredits: {
+      balance: {
+        type: Number,
+        default: TRIAL_CONFIG.freeWhatsAppCredits || TRIAL_CONFIG.freeSmsCredits || 50 // 50 free WhatsApp messages for new salons
+      },
+      totalPurchased: {
+        type: Number,
+        default: 0
+      },
+      totalUsed: {
+        type: Number,
+        default: 0
+      },
+      lastRecharge: {
+        type: Date,
+        default: null
+      },
+      autoRecharge: {
+        type: Boolean,
+        default: false
+      },
+      autoRechargeAmount: {
+        type: Number,
+        default: null
+      },
+      autoRechargePackage: {
+        type: String,
+        default: null,
+        validate: {
+          validator: function(v) {
+            return v === null || v === undefined || ['100', '500', '2000'].includes(v)
+          },
+          message: 'Auto recharge package must be null or one of: 100, 500, 2000'
+        }
+      }
+    },
     smsCredits: {
       balance: {
         type: Number,
-        default: TRIAL_CONFIG.freeSmsCredits // 50 free SMS for new salons
+        default: TRIAL_CONFIG.freeSmsCredits // 50 free SMS for new salons (deprecated - kept for backward compatibility)
       },
       totalPurchased: {
         type: Number,
@@ -228,6 +264,24 @@ const subscriptionSchema = new mongoose.Schema({
     }
   },
   // Purchase requests (for cash payments)
+  whatsappCreditPurchase: {
+    packageType: { type: String, default: null },
+    credits: { type: Number, default: null },
+    price: { type: Number, default: null },
+    paymentMethod: { type: String, default: null },
+    paymentNote: { type: String, default: null },
+    status: {
+      type: String,
+      default: null,
+      validate: {
+        validator: function(v) {
+          return v === null || v === undefined || ['pending', 'approved', 'rejected'].includes(v)
+        },
+        message: 'WhatsApp credit purchase status must be null or one of: pending, approved, rejected'
+      }
+    },
+    requestedAt: { type: Date, default: null }
+  },
   smsCreditPurchase: {
     packageType: { type: String, default: null },
     credits: { type: Number, default: null },
@@ -279,6 +333,10 @@ const subscriptionSchema = new mongoose.Schema({
     maxClients: {
       type: Number,
       default: -1 // Unlimited for all plans
+    },
+    maxWhatsAppMessages: {
+      type: Number,
+      default: 0 // 0 = no limit for basic plan, set by plan features
     }
   }
 }, {
@@ -371,7 +429,33 @@ subscriptionSchema.methods.checkTrialStatus = async function() {
   return this;
 };
 
-// Method: Use SMS credits
+// Method: Use WhatsApp credits
+subscriptionSchema.methods.useWhatsAppCredits = async function(amount) {
+  if (this.addOns.whatsappCredits.balance < amount) {
+    throw new Error('Insufficient WhatsApp credits');
+  }
+  
+  this.addOns.whatsappCredits.balance -= amount;
+  this.addOns.whatsappCredits.totalUsed += amount;
+  await this.save();
+  return this;
+};
+
+// Method: Add WhatsApp credits
+subscriptionSchema.methods.addWhatsAppCredits = async function(credits, packageType) {
+  this.addOns.whatsappCredits.balance += credits;
+  this.addOns.whatsappCredits.totalPurchased += credits;
+  this.addOns.whatsappCredits.lastRecharge = new Date();
+  
+  if (packageType) {
+    this.addOns.whatsappCredits.autoRechargePackage = packageType;
+  }
+  
+  await this.save();
+  return this;
+};
+
+// Method: Use SMS credits (deprecated - kept for backward compatibility)
 subscriptionSchema.methods.useSmsCredits = async function(amount) {
   if (this.addOns.smsCredits.balance < amount) {
     throw new Error('Insufficient SMS credits');
@@ -383,7 +467,7 @@ subscriptionSchema.methods.useSmsCredits = async function(amount) {
   return this;
 };
 
-// Method: Add SMS credits
+// Method: Add SMS credits (deprecated - kept for backward compatibility)
 subscriptionSchema.methods.addSmsCredits = async function(credits, packageType) {
   this.addOns.smsCredits.balance += credits;
   this.addOns.smsCredits.totalPurchased += credits;

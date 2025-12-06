@@ -5,7 +5,7 @@ const {
   confirmTrial,
   requestPlanUpgrade,
   getAvailablePlans,
-  purchaseSmsCredits,
+  purchaseWhatsAppCredits,
   purchasePixelTracking
 } = require('../controllers/subscriptionController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -26,8 +26,8 @@ router.post('/confirm-trial', confirmTrial);
 // Request plan upgrade (cash payment)
 router.post('/request-upgrade', requestPlanUpgrade);
 
-// Purchase SMS credits
-router.post('/sms-credits/purchase', purchaseSmsCredits);
+// Purchase WhatsApp credits
+router.post('/whatsapp-credits/purchase', purchaseWhatsAppCredits);
 
 // Purchase Pixel Tracking add-on
 router.post('/pixel-tracking/purchase', purchasePixelTracking);

@@ -175,23 +175,23 @@ const SubscriptionPage = () => {
     return getPlanPrice(plan)
   }
 
-  const handlePurchaseSms = async () => {
+  const handlePurchaseWhatsApp = async () => {
     if (!selectedSmsPackage) return
     
     setRequesting(true)
     try {
-      const response = await subscriptionService.purchaseSmsCredits(
+      const response = await subscriptionService.purchaseWhatsAppCredits(
         selectedSmsPackage.credits.toString(),
         'cash',
         paymentNote
       )
-      toast.success(response.message || 'SMS credits purchase requested!')
+      toast.success(response.message || 'WhatsApp credits purchase requested!')
       setShowSmsModal(false)
       setSelectedSmsPackage(null)
       setPaymentNote('')
       await loadData()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to request SMS credits')
+      toast.error(error.response?.data?.message || 'Failed to request WhatsApp credits')
     } finally {
       setRequesting(false)
     }
@@ -344,10 +344,10 @@ const SubscriptionPage = () => {
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <MessageSquare className="text-blue-600" size={20} />
-                    <span className="text-sm font-medium">SMS Credits</span>
+                    <span className="text-sm font-medium">WhatsApp Credits</span>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {subscription.addOns.smsCredits?.balance || 0} credits
+                    {subscription.addOns.whatsappCredits?.balance || subscription.addOns.smsCredits?.balance || 0} credits
                   </span>
                 </div>
               </div>
@@ -1023,20 +1023,20 @@ const SubscriptionPage = () => {
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
-              {/* SMS Credits */}
+              {/* WhatsApp Credits */}
               <div className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
                 <div className="flex items-center gap-2 mb-3">
                   <MessageSquare className="text-blue-600" size={20} />
-                  <h3 className="font-semibold text-gray-900">SMS Credits</h3>
+                  <h3 className="font-semibold text-gray-900">WhatsApp Credits</h3>
                   <Badge variant="default" className="bg-blue-50 text-blue-700 text-xs ml-auto">
                     Optional
                   </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
-                  Purchase SMS credits for sending reminders and notifications
+                  Purchase WhatsApp credits for sending reminders and notifications
                 </p>
                 <div className="space-y-2 mb-4">
-                  {addOns.smsCredits?.packages?.map((pkg) => (
+                  {(addOns.whatsappCredits?.packages || addOns.smsCredits?.packages || []).map((pkg) => (
                     <div
                       key={pkg.credits}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
@@ -1045,7 +1045,7 @@ const SubscriptionPage = () => {
                         setShowSmsModal(true)
                       }}
                     >
-                      <span className="font-medium">{pkg.credits} SMS</span>
+                      <span className="font-medium">{pkg.credits} WhatsApp</span>
                       <span className="text-primary-600 font-semibold">
                         {formatCurrency(pkg.price)}
                       </span>
@@ -1197,7 +1197,7 @@ const SubscriptionPage = () => {
         )}
       </Modal>
 
-      {/* SMS Purchase Modal */}
+      {/* WhatsApp Purchase Modal */}
       <Modal
         isOpen={showSmsModal}
         onClose={() => {
@@ -1205,19 +1205,19 @@ const SubscriptionPage = () => {
           setSelectedSmsPackage(null)
           setPaymentNote('')
         }}
-        title="Purchase SMS Credits"
+        title="Purchase WhatsApp Credits"
       >
         <div className="space-y-4">
           {!selectedSmsPackage ? (
             <div className="space-y-2">
-              {addOns?.smsCredits?.packages?.map((pkg) => (
+              {(addOns?.whatsappCredits?.packages || addOns?.smsCredits?.packages || []).map((pkg) => (
                 <div
                   key={pkg.credits}
                   className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50"
                   onClick={() => setSelectedSmsPackage(pkg)}
                 >
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">{pkg.credits} SMS Credits</span>
+                    <span className="font-medium">{pkg.credits} WhatsApp Credits</span>
                     <span className="text-primary-600 font-semibold">
                       {formatCurrency(pkg.price)}
                     </span>
@@ -1229,7 +1229,7 @@ const SubscriptionPage = () => {
             <>
               <div className="p-4 bg-primary-50 rounded-lg">
                 <p className="font-semibold text-primary-900">
-                  {selectedSmsPackage.credits} SMS Credits
+                  {selectedSmsPackage.credits} WhatsApp Credits
                 </p>
                 <p className="text-sm text-primary-700 mt-1">
                   Price: {formatCurrency(selectedSmsPackage.price)}
@@ -1249,7 +1249,7 @@ const SubscriptionPage = () => {
               <div className="flex gap-3 pt-4">
                 <Button
                   fullWidth
-                  onClick={handlePurchaseSms}
+                  onClick={handlePurchaseWhatsApp}
                   loading={requesting}
                 >
                   Request Purchase

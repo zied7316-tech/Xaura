@@ -21,8 +21,8 @@ const {
   fixMissingSubscriptions,
   getPendingUpgrades,
   approveUpgrade,
-  getPendingSmsPurchases,
-  approveSmsPurchase,
+  getPendingWhatsAppPurchases,
+  approveWhatsAppPurchase,
   getPendingPixelPurchases,
   approvePixelPurchase
 } = require('../controllers/subscriptionController');
@@ -45,7 +45,7 @@ router.post('/subscriptions/fix-missing', protect, authorize('SuperAdmin'), fixM
 
 // Approval routes - MUST come before /subscriptions/:id to avoid route conflicts
 router.get('/subscriptions/pending-upgrades', protect, authorize('SuperAdmin'), getPendingUpgrades);
-router.get('/subscriptions/pending-sms', protect, authorize('SuperAdmin'), getPendingSmsPurchases);
+router.get('/subscriptions/pending-whatsapp', protect, authorize('SuperAdmin'), getPendingWhatsAppPurchases);
 router.get('/subscriptions/pending-pixel', protect, authorize('SuperAdmin'), getPendingPixelPurchases);
 
 // Parameterized routes - MUST come after specific routes
@@ -55,7 +55,7 @@ router.post('/subscriptions/:id/extend-trial', protect, authorize('SuperAdmin'),
 router.put('/subscriptions/:id/cancel', protect, authorize('SuperAdmin'), cancelSubscription);
 router.put('/subscriptions/:id/reactivate', protect, authorize('SuperAdmin'), reactivateSubscription);
 router.post('/subscriptions/:id/approve-upgrade', protect, authorize('SuperAdmin'), approveUpgrade);
-router.post('/subscriptions/:id/approve-sms', protect, authorize('SuperAdmin'), approveSmsPurchase);
+router.post('/subscriptions/:id/approve-whatsapp', protect, authorize('SuperAdmin'), approveWhatsAppPurchase);
 router.post('/subscriptions/:id/approve-pixel', protect, authorize('SuperAdmin'), approvePixelPurchase);
 
 module.exports = router;

@@ -30,9 +30,9 @@ export const subscriptionService = {
     return response
   },
 
-  // Purchase SMS credits
-  purchaseSmsCredits: async (packageType, paymentMethod, paymentNote) => {
-    const response = await api.post('/owner/subscription/sms-credits/purchase', {
+  // Purchase WhatsApp credits
+  purchaseWhatsAppCredits: async (packageType, paymentMethod, paymentNote) => {
+    const response = await api.post('/owner/subscription/whatsapp-credits/purchase', {
       packageType,
       paymentMethod: paymentMethod || 'cash',
       paymentNote

@@ -126,6 +126,9 @@ const SUBSCRIPTION_PLANS = {
       pushNotifications: true,
       emailNotifications: true,
       
+      // WhatsApp Messages (new)
+      maxWhatsAppMessages: 1500, // 1500 messages per month
+      
       // Not Included
       pixelTracking: false,
       adsManagerPro: false,
@@ -232,6 +235,9 @@ const SUBSCRIPTION_PLANS = {
       webhooks: true,
       smsNotifications: true, // Via add-on
       
+      // WhatsApp Messages (new)
+      maxWhatsAppMessages: 3000, // 3000 messages per month
+      
       // Support (upgraded)
       prioritySupport: true,
       supportResponseTime: '2 hours',
@@ -245,9 +251,9 @@ const SUBSCRIPTION_PLANS = {
  * Add-ons configuration
  */
 const ADD_ONS = {
-  smsCredits: {
-    name: 'SMS Credits',
-    nameAr: 'رصيد الرسائل النصية',
+  whatsappCredits: {
+    name: 'WhatsApp Credits',
+    nameAr: 'رصيد واتساب',
     packages: [
       { credits: 100, price: 5, currency: 'TND' },
       { credits: 500, price: 20, currency: 'TND' },
@@ -255,7 +261,7 @@ const ADD_ONS = {
     ],
     autoRecharge: true,
     deliveryReports: true,
-    freeTrial: 50, // New salons get 50 free SMS
+    freeTrial: 50, // New salons get 50 free WhatsApp messages
   },
   
   pixelTracking: {
@@ -282,7 +288,8 @@ const TRIAL_CONFIG = {
   initialTrialDays: 45,
   confirmationDay: 15, // Ask for confirmation at day 15
   extendedTrialDays: 30, // Additional days if confirmed (total 75 days)
-  freeSmsCredits: 50, // Free SMS credits for new salons
+  freeWhatsAppCredits: 50, // Free WhatsApp messages for new salons
+  freeSmsCredits: 50, // Free SMS credits for new salons (deprecated - kept for backward compatibility)
 };
 
 /**
@@ -421,6 +428,15 @@ const createTrialSubscription = (salonId, ownerId) => {
     currentPeriodStart: now,
     currentPeriodEnd: new Date(now.getTime() + TRIAL_CONFIG.initialTrialDays * 24 * 60 * 60 * 1000),
     // Purchase requests should be null (not set) by default
+    whatsappCreditPurchase: {
+      status: null,
+      packageType: null,
+      credits: null,
+      price: null,
+      paymentMethod: null,
+      paymentNote: null,
+      requestedAt: null
+    },
     smsCreditPurchase: {
       status: null,
       packageType: null,

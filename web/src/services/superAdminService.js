@@ -91,13 +91,13 @@ export const superAdminService = {
     return response
   },
 
-  getPendingSmsPurchases: async () => {
-    const response = await api.get('/super-admin/subscriptions/pending-sms')
+  getPendingWhatsAppPurchases: async () => {
+    const response = await api.get('/super-admin/subscriptions/pending-whatsapp')
     return response
   },
 
-  approveSmsPurchase: async (subscriptionId) => {
-    const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/approve-sms`)
+  approveWhatsAppPurchase: async (subscriptionId) => {
+    const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/approve-whatsapp`)
     return response
   },
 

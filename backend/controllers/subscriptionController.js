@@ -559,11 +559,11 @@ const getAvailablePlans = async (req, res, next) => {
 };
 
 /**
- * @desc    Purchase SMS credits
- * @route   POST /api/owner/subscription/sms-credits/purchase
+ * @desc    Purchase WhatsApp credits
+ * @route   POST /api/owner/subscription/whatsapp-credits/purchase
  * @access  Private (Owner)
  */
-const purchaseSmsCredits = async (req, res, next) => {
+const purchaseWhatsAppCredits = async (req, res, next) => {
   try {
     const { packageType, paymentMethod, paymentNote } = req.body;
     const ownerSalon = await getOwnerSalon(req.user.id);
@@ -578,15 +578,15 @@ const purchaseSmsCredits = async (req, res, next) => {
     const { salonId } = ownerSalon;
 
     const addOns = getAllAddOns();
-    const smsPackages = addOns.smsCredits.packages;
-    const selectedPackage = smsPackages.find(pkg => 
+    const whatsappPackages = addOns.whatsappCredits.packages;
+    const selectedPackage = whatsappPackages.find(pkg => 
       pkg.credits.toString() === packageType
     );
 
     if (!selectedPackage) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid SMS package selected'
+        message: 'Invalid WhatsApp package selected'
       });
     }
 
@@ -600,7 +600,7 @@ const purchaseSmsCredits = async (req, res, next) => {
     }
 
     // Store purchase request
-    subscription.smsCreditPurchase = {
+    subscription.whatsappCreditPurchase = {
       packageType,
       credits: selectedPackage.credits,
       price: selectedPackage.price,
@@ -614,7 +614,7 @@ const purchaseSmsCredits = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'SMS credits purchase requested. We will contact you to confirm payment.',
+      message: 'WhatsApp credits purchase requested. We will contact you to confirm payment.',
       data: {
         package: selectedPackage,
         status: 'pending'
@@ -773,21 +773,21 @@ const approveUpgrade = async (req, res, next) => {
 };
 
 /**
- * @desc    Get pending SMS credit purchases
- * @route   GET /api/super-admin/subscriptions/pending-sms
+ * @desc    Get pending WhatsApp credit purchases
+ * @route   GET /api/super-admin/subscriptions/pending-whatsapp
  * @access  Private (SuperAdmin)
  */
-const getPendingSmsPurchases = async (req, res, next) => {
+const getPendingWhatsAppPurchases = async (req, res, next) => {
   try {
     const subscriptions = await Subscription.find({
-      'smsCreditPurchase.status': 'pending',
-      'smsCreditPurchase.credits': { $exists: true, $ne: null, $gt: 0 },
-      'smsCreditPurchase.price': { $exists: true, $ne: null, $gt: 0 },
-      'smsCreditPurchase.requestedAt': { $exists: true, $ne: null }
+      'whatsappCreditPurchase.status': 'pending',
+      'whatsappCreditPurchase.credits': { $exists: true, $ne: null, $gt: 0 },
+      'whatsappCreditPurchase.price': { $exists: true, $ne: null, $gt: 0 },
+      'whatsappCreditPurchase.requestedAt': { $exists: true, $ne: null }
     })
       .populate('salonId', 'name')
       .populate('ownerId', 'name email phone')
-      .sort({ 'smsCreditPurchase.requestedAt': -1 });
+      .sort({ 'whatsappCreditPurchase.requestedAt': -1 });
 
     res.json({
       success: true,
@@ -800,11 +800,11 @@ const getPendingSmsPurchases = async (req, res, next) => {
 };
 
 /**
- * @desc    Approve SMS credits purchase
- * @route   POST /api/super-admin/subscriptions/:id/approve-sms
+ * @desc    Approve WhatsApp credits purchase
+ * @route   POST /api/super-admin/subscriptions/:id/approve-whatsapp
  * @access  Private (SuperAdmin)
  */
-const approveSmsPurchase = async (req, res, next) => {
+const approveWhatsAppPurchase = async (req, res, next) => {
   try {
     const subscription = await Subscription.findById(req.params.id);
 
@@ -815,27 +815,27 @@ const approveSmsPurchase = async (req, res, next) => {
       });
     }
 
-    if (!subscription.smsCreditPurchase || subscription.smsCreditPurchase.status !== 'pending') {
+    if (!subscription.whatsappCreditPurchase || subscription.whatsappCreditPurchase.status !== 'pending') {
       return res.status(400).json({
         success: false,
-        message: 'SMS purchase request is not pending'
+        message: 'WhatsApp purchase request is not pending'
       });
     }
 
     // Add credits
-    await subscription.addSmsCredits(
-      subscription.smsCreditPurchase.credits,
-      subscription.smsCreditPurchase.packageType
+    await subscription.addWhatsAppCredits(
+      subscription.whatsappCreditPurchase.credits,
+      subscription.whatsappCreditPurchase.packageType
     );
 
     // Mark as approved
-    subscription.smsCreditPurchase.status = 'approved';
+    subscription.whatsappCreditPurchase.status = 'approved';
 
     await subscription.save();
 
     res.json({
       success: true,
-      message: 'SMS credits approved and added',
+      message: 'WhatsApp credits approved and added',
       data: subscription
     });
   } catch (error) {
@@ -976,8 +976,8 @@ module.exports = {
   fixMissingSubscriptions,
   getPendingUpgrades,
   approveUpgrade,
-  getPendingSmsPurchases,
-  approveSmsPurchase,
+  getPendingWhatsAppPurchases,
+  approveWhatsAppPurchase,
   getPendingPixelPurchases,
   approvePixelPurchase,
   // Owner exports
@@ -985,7 +985,7 @@ module.exports = {
   confirmTrial,
   requestPlanUpgrade,
   getAvailablePlans,
-  purchaseSmsCredits,
+  purchaseWhatsAppCredits,
   purchasePixelTracking
 };
 

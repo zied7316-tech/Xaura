@@ -20,10 +20,10 @@ import toast from 'react-hot-toast'
 
 const PendingApprovalsPage = () => {
   const [pendingUpgrades, setPendingUpgrades] = useState([])
-  const [pendingSms, setPendingSms] = useState([])
+  const [pendingWhatsApp, setPendingWhatsApp] = useState([])
   const [pendingPixel, setPendingPixel] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('all') // all, upgrades, sms, pixel
+  const [activeTab, setActiveTab] = useState('all') // all, upgrades, whatsapp, pixel
   const [approving, setApproving] = useState(null)
 
   useEffect(() => {
@@ -33,14 +33,14 @@ const PendingApprovalsPage = () => {
   const loadPendingRequests = async () => {
     try {
       setLoading(true)
-      const [upgrades, sms, pixel] = await Promise.all([
+      const [upgrades, whatsapp, pixel] = await Promise.all([
         superAdminService.getPendingUpgrades(),
-        superAdminService.getPendingSmsPurchases(),
+        superAdminService.getPendingWhatsAppPurchases(),
         superAdminService.getPendingPixelPurchases()
       ])
       
       setPendingUpgrades(upgrades.data || [])
-      setPendingSms(sms.data || [])
+      setPendingWhatsApp(whatsapp.data || [])
       setPendingPixel(pixel.data || [])
     } catch (error) {
       console.error('Error loading pending requests:', error)
@@ -65,16 +65,16 @@ const PendingApprovalsPage = () => {
     }
   }
 
-  const handleApproveSms = async (subscriptionId) => {
-    if (!confirm('Approve this SMS credits purchase? Credits will be added immediately.')) return
+  const handleApproveWhatsApp = async (subscriptionId) => {
+    if (!confirm('Approve this WhatsApp credits purchase? Credits will be added immediately.')) return
 
-    setApproving(`sms-${subscriptionId}`)
+    setApproving(`whatsapp-${subscriptionId}`)
     try {
-      await superAdminService.approveSmsPurchase(subscriptionId)
-      toast.success('SMS credits approved and added!')
+      await superAdminService.approveWhatsAppPurchase(subscriptionId)
+      toast.success('WhatsApp credits approved and added!')
       await loadPendingRequests()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to approve SMS purchase')
+      toast.error(error.response?.data?.message || 'Failed to approve WhatsApp purchase')
     } finally {
       setApproving(null)
     }
@@ -133,8 +133,8 @@ const PendingApprovalsPage = () => {
       groups.get(key).upgrade = sub
     })
     
-    // Add SMS requests
-    pendingSms.forEach(sub => {
+    // Add WhatsApp requests
+    pendingWhatsApp.forEach(sub => {
       const key = sub._id.toString()
       if (!groups.has(key)) {
         groups.set(key, {
@@ -142,11 +142,11 @@ const PendingApprovalsPage = () => {
           salonId: sub.salonId,
           ownerId: sub.ownerId,
           upgrade: null,
-          sms: null,
+          whatsapp: null,
           pixel: null
         })
       }
-      groups.get(key).sms = sub
+      groups.get(key).whatsapp = sub
     })
     
     // Add Pixel requests
@@ -158,7 +158,7 @@ const PendingApprovalsPage = () => {
           salonId: sub.salonId,
           ownerId: sub.ownerId,
           upgrade: null,
-          sms: null,
+          whatsapp: null,
           pixel: null
         })
       }
@@ -169,16 +169,16 @@ const PendingApprovalsPage = () => {
   }
 
   const grouped = groupedRequests()
-  const totalPending = pendingUpgrades.length + pendingSms.length + pendingPixel.length
+  const totalPending = pendingUpgrades.length + pendingWhatsApp.length + pendingPixel.length
 
-  const handleApproveAll = async (subscriptionId, hasUpgrade, hasSms, hasPixel) => {
+  const handleApproveAll = async (subscriptionId, hasUpgrade, hasWhatsApp, hasPixel) => {
     if (!confirm('Approve all pending requests for this subscription? This will activate the plan and all add-ons immediately.')) return
 
     setApproving(`all-${subscriptionId}`)
     try {
       const promises = []
       if (hasUpgrade) promises.push(superAdminService.approveUpgrade(subscriptionId))
-      if (hasSms) promises.push(superAdminService.approveSmsPurchase(subscriptionId))
+      if (hasWhatsApp) promises.push(superAdminService.approveWhatsAppPurchase(subscriptionId))
       if (hasPixel) promises.push(superAdminService.approvePixelPurchase(subscriptionId))
       
       await Promise.all(promises)
@@ -240,18 +240,18 @@ const PendingApprovalsPage = () => {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('sms')}
+          onClick={() => setActiveTab('whatsapp')}
           className={`px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'sms'
+            activeTab === 'whatsapp'
               ? 'border-primary-600 text-primary-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
         >
           <div className="flex items-center gap-2">
             <MessageSquare size={18} />
-            SMS Credits
-            {pendingSms.length > 0 && (
-              <Badge variant="warning" className="ml-2">{pendingSms.length}</Badge>
+            WhatsApp Credits
+            {pendingWhatsApp.length > 0 && (
+              <Badge variant="warning" className="ml-2">{pendingWhatsApp.length}</Badge>
             )}
           </div>
         </button>
@@ -290,9 +290,9 @@ const PendingApprovalsPage = () => {
               <div className="space-y-6">
                 {grouped.map((group) => {
                   const hasUpgrade = !!group.upgrade
-                  const hasSms = !!group.sms
+                  const hasWhatsApp = !!group.whatsapp
                   const hasPixel = !!group.pixel
-                  const requestCount = [hasUpgrade, hasSms, hasPixel].filter(Boolean).length
+                  const requestCount = [hasUpgrade, hasWhatsApp, hasPixel].filter(Boolean).length
                   
                   return (
                     <div
@@ -325,7 +325,7 @@ const PendingApprovalsPage = () => {
                         </div>
                         {requestCount > 1 && (
                           <Button
-                            onClick={() => handleApproveAll(group.subscriptionId, hasUpgrade, hasSms, hasPixel)}
+                            onClick={() => handleApproveAll(group.subscriptionId, hasUpgrade, hasWhatsApp, hasPixel)}
                             loading={approving === `all-${group.subscriptionId}`}
                             className="ml-4"
                           >
@@ -386,44 +386,44 @@ const PendingApprovalsPage = () => {
                           </div>
                         )}
 
-                        {/* SMS Request */}
-                        {hasSms && (
+                        {/* WhatsApp Request */}
+                        {hasWhatsApp && (
                           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <MessageSquare className="text-blue-600" size={20} />
-                                  <span className="font-semibold text-gray-900">SMS Credits Purchase</span>
+                                  <span className="font-semibold text-gray-900">WhatsApp Credits Purchase</span>
                                 </div>
                                 <div className="grid md:grid-cols-2 gap-3 text-sm">
                                   <div>
                                     <p className="text-gray-600">Package:</p>
                                     <p className="font-semibold text-primary-600">
-                                      {group.sms.smsCreditPurchase?.credits || 0} SMS Credits
+                                      {group.whatsapp.whatsappCreditPurchase?.credits || 0} WhatsApp Credits
                                     </p>
                                     <p className="text-gray-600">
-                                      Price: {formatCurrency(group.sms.smsCreditPurchase?.price || 0)}
+                                      Price: {formatCurrency(group.whatsapp.whatsappCreditPurchase?.price || 0)}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-gray-600">Payment Method:</p>
-                                    <p className="font-medium">{group.sms.smsCreditPurchase?.paymentMethod || 'Cash'}</p>
+                                    <p className="font-medium">{group.whatsapp.whatsappCreditPurchase?.paymentMethod || 'Cash'}</p>
                                     <p className="text-xs text-gray-500 mt-1">
-                                      Requested: {formatDate(group.sms.smsCreditPurchase?.requestedAt)}
+                                      Requested: {formatDate(group.whatsapp.whatsappCreditPurchase?.requestedAt)}
                                     </p>
                                   </div>
                                 </div>
-                                {group.sms.smsCreditPurchase?.paymentNote && (
+                                {group.whatsapp.whatsappCreditPurchase?.paymentNote && (
                                   <div className="mt-2 p-2 bg-white rounded border border-blue-300">
                                     <p className="text-xs font-medium text-gray-700">Payment Note:</p>
-                                    <p className="text-xs text-gray-600">{group.sms.smsCreditPurchase.paymentNote}</p>
+                                    <p className="text-xs text-gray-600">{group.whatsapp.whatsappCreditPurchase.paymentNote}</p>
                                   </div>
                                 )}
                               </div>
                               <div className="ml-4">
                                 <Button
-                                  onClick={() => handleApproveSms(group.subscriptionId)}
-                                  loading={approving === `sms-${group.subscriptionId}`}
+                                  onClick={() => handleApproveWhatsApp(group.subscriptionId)}
+                                  loading={approving === `whatsapp-${group.subscriptionId}`}
                                   size="sm"
                                   variant="primary"
                                 >
@@ -569,21 +569,21 @@ const PendingApprovalsPage = () => {
         </Card>
       )}
 
-      {/* Pending SMS Purchases */}
-      {activeTab === 'sms' && (
+      {/* Pending WhatsApp Purchases */}
+      {activeTab === 'whatsapp' && (
         <Card>
           <CardHeader>
-            <CardTitle>Pending SMS Credit Purchases ({pendingSms.length})</CardTitle>
+            <CardTitle>Pending WhatsApp Credit Purchases ({pendingWhatsApp.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            {pendingSms.length === 0 ? (
+            {pendingWhatsApp.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
-                <p>No pending SMS credit purchases</p>
+                <p>No pending WhatsApp credit purchases</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {pendingSms.map((sub) => (
+                {pendingWhatsApp.map((sub) => (
                   <div
                     key={sub._id}
                     className="p-6 border-2 border-blue-200 bg-blue-50 rounded-lg"
@@ -605,30 +605,30 @@ const PendingApprovalsPage = () => {
                           <div>
                             <p className="text-sm text-gray-600">Purchase Details</p>
                             <p className="font-semibold text-primary-600">
-                              {sub.smsCreditPurchase?.credits || 0} SMS Credits
+                              {sub.whatsappCreditPurchase?.credits || 0} WhatsApp Credits
                             </p>
                             <p className="text-sm text-gray-600">
-                              Price: {formatCurrency(sub.smsCreditPurchase?.price || 0)}
+                              Price: {formatCurrency(sub.whatsappCreditPurchase?.price || 0)}
                             </p>
                             <p className="text-sm text-gray-500 mt-1">
-                              Payment: {sub.smsCreditPurchase?.paymentMethod || 'Cash'}
+                              Payment: {sub.whatsappCreditPurchase?.paymentMethod || 'Cash'}
                             </p>
                             <p className="text-sm text-gray-500">
-                              Requested: {formatDate(sub.smsCreditPurchase?.requestedAt)}
+                              Requested: {formatDate(sub.whatsappCreditPurchase?.requestedAt)}
                             </p>
                           </div>
                         </div>
-                        {sub.smsCreditPurchase?.paymentNote && (
+                        {sub.whatsappCreditPurchase?.paymentNote && (
                           <div className="mt-3 p-3 bg-white rounded border">
                             <p className="text-sm font-medium text-gray-700">Payment Note:</p>
-                            <p className="text-sm text-gray-600">{sub.smsCreditPurchase.paymentNote}</p>
+                            <p className="text-sm text-gray-600">{sub.whatsappCreditPurchase.paymentNote}</p>
                           </div>
                         )}
                       </div>
                       <div className="ml-4">
                         <Button
-                          onClick={() => handleApproveSms(sub._id)}
-                          loading={approving === `sms-${sub._id}`}
+                          onClick={() => handleApproveWhatsApp(sub._id)}
+                          loading={approving === `whatsapp-${sub._id}`}
                         >
                           <CheckCircle size={16} className="mr-2" />
                           Approve
