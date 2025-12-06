@@ -29,7 +29,7 @@ const RegisterPage = () => {
   const roleOptions = [
     { value: USER_ROLES.CLIENT, label: 'Client' },
     { value: USER_ROLES.WORKER, label: 'Worker - Provide services' },
-    { value: USER_ROLES.OWNER, label: 'Owner - Manage salon' },
+    { value: USER_ROLES.OWNER, label: 'Owner' },
   ]
 
   const onSubmit = async (data) => {
