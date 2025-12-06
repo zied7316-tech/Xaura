@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { appointmentService } from '../../services/appointmentService'
 import { appointmentManagementService } from '../../services/appointmentManagementService'
 import { workerService } from '../../services/workerService'
@@ -22,6 +22,7 @@ const AppointmentsPage = () => {
   const { user, isClient, isOwner, salon } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -45,6 +46,27 @@ const AppointmentsPage = () => {
       loadWorkers()
     }
   }, [isOwner, salon])
+
+  // Handle review link from WhatsApp message
+  useEffect(() => {
+    const reviewAppointmentId = searchParams.get('review')
+    if (reviewAppointmentId && appointments.length > 0) {
+      const appointmentToReview = appointments.find(apt => 
+        apt._id === reviewAppointmentId || apt._id?.toString() === reviewAppointmentId
+      )
+      
+      if (appointmentToReview && appointmentToReview.status === 'Completed') {
+        // Remove the review parameter from URL
+        const newSearchParams = new URLSearchParams(searchParams)
+        newSearchParams.delete('review')
+        setSearchParams(newSearchParams, { replace: true })
+        
+        // Open review modal
+        setSelectedAppointment(appointmentToReview)
+        setShowReviewModal(true)
+      }
+    }
+  }, [searchParams, appointments, setSearchParams])
 
   const loadWorkers = async () => {
     try {

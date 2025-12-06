@@ -123,18 +123,25 @@ class WhatsAppService {
 
       // Provide helpful error messages
       let errorMessage = error.message;
+      let isTwilioLimitError = false;
+      
       if (error.code === 21211) {
         errorMessage = 'Invalid recipient phone number format';
       } else if (error.code === 21608 || error.message.includes('Channel')) {
         errorMessage = 'TWILIO_WHATSAPP_NUMBER is not configured correctly. Check your Twilio Console -> Messaging -> Try it out -> Send a WhatsApp message for the correct number format.';
       } else if (error.code === 20003) {
         errorMessage = 'Twilio authentication failed. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.';
+      } else if (error.code === 63038 || error.message.includes('exceeded') || error.message.includes('daily messages limit')) {
+        // Twilio account daily limit reached (sandbox: 50/day, production: based on account)
+        isTwilioLimitError = true;
+        errorMessage = 'Twilio account daily message limit reached. Please wait 24 hours or upgrade your Twilio account.';
       }
 
       return {
         success: false,
         error: errorMessage,
-        errorCode: error.code
+        errorCode: error.code,
+        isTwilioLimitError: isTwilioLimitError // Flag to prevent credit deduction
       };
     }
   }

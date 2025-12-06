@@ -2,6 +2,7 @@ const Notification = require('../models/Notification');
 const WhatsAppService = require('./whatsappService');
 const Appointment = require('../models/Appointment');
 const Subscription = require('../models/Subscription');
+const Review = require('../models/Review');
 const { formatTunisianPhone } = require('../utils/phoneFormatter');
 
 /**
@@ -328,8 +329,9 @@ class NotificationService {
       // Send WhatsApp via Twilio (with formatted phone number)
       const result = await this.whatsappService.sendWhatsApp(formattedPhone, message);
 
-      // Track usage if message was sent successfully
-      if (result.success && usageChecked && metadata.salonId) {
+      // Track usage ONLY if message was sent successfully AND not blocked by Twilio account limits
+      // Do NOT deduct credits if message failed due to Twilio account limits (error code 63038)
+      if (result.success && !result.isTwilioLimitError && usageChecked && metadata.salonId) {
         try {
           const subscription = await this._getSubscriptionFromSalonId(metadata.salonId);
           if (subscription) {
@@ -340,6 +342,8 @@ class NotificationService {
           console.error('[NotificationService] Error tracking usage (message was sent):', trackError.message);
           // Don't fail the send if tracking fails
         }
+      } else if (result.isTwilioLimitError) {
+        console.warn('[NotificationService] ⚠️ Message blocked by Twilio account limit - credits NOT deducted');
       }
 
       // Log result
@@ -366,7 +370,9 @@ class NotificationService {
             ? 'WhatsApp message sent successfully' 
             : 'Failed to send WhatsApp message',
         error: result.error || null,
-        formattedPhone: formattedPhone
+        formattedPhone: formattedPhone,
+        isTwilioLimitError: result.isTwilioLimitError || false,
+        errorCode: result.errorCode || null
       };
     } catch (error) {
       console.error('[NotificationService] Exception sending WhatsApp:', {
@@ -446,7 +452,16 @@ class NotificationService {
         );
         
         if (!clientResult.success) {
-          console.error('[NotificationService] Failed to send WhatsApp to client:', clientResult.error);
+          console.error('[NotificationService] Failed to send WhatsApp to client:', {
+            error: clientResult.error,
+            errorCode: clientResult.errorCode,
+            isTwilioLimitError: clientResult.isTwilioLimitError,
+            appointmentId: appointment._id,
+            clientPhone: clientPhone
+          });
+          if (clientResult.isTwilioLimitError) {
+            console.error('[NotificationService] ⚠️ Twilio daily limit reached - credits NOT deducted for client message');
+          }
         }
       } else {
         console.warn('[NotificationService] Skipping client WhatsApp - no phone number');
@@ -476,7 +491,16 @@ class NotificationService {
         );
         
         if (!workerResult.success) {
-          console.error('[NotificationService] Failed to send WhatsApp to worker:', workerResult.error);
+          console.error('[NotificationService] Failed to send WhatsApp to worker:', {
+            error: workerResult.error,
+            errorCode: workerResult.errorCode,
+            isTwilioLimitError: workerResult.isTwilioLimitError,
+            appointmentId: appointment._id,
+            workerPhone: workerPhone
+          });
+          if (workerResult.isTwilioLimitError) {
+            console.error('[NotificationService] ⚠️ Twilio daily limit reached - credits NOT deducted for worker message');
+          }
         }
       } else {
         console.warn('[NotificationService] Skipping worker WhatsApp - no phone number');
@@ -630,6 +654,118 @@ class NotificationService {
       return result;
     } catch (error) {
       console.error('[NotificationService] Exception in sendAppointmentReminder:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Helper: Check if this is the first completed appointment between client and worker
+   * @param {String|Object} clientId - Client ID
+   * @param {String|Object} workerId - Worker ID
+   * @param {String|Object} currentAppointmentId - Current appointment ID to exclude from check
+   * @returns {Boolean} - True if this is the first visit, false otherwise
+   */
+  async _isFirstVisitWithWorker(clientId, workerId, currentAppointmentId) {
+    try {
+      const clientIdValue = clientId?._id ? clientId._id.toString() : clientId?.toString ? clientId.toString() : clientId;
+      const workerIdValue = workerId?._id ? workerId._id.toString() : workerId?.toString ? workerId.toString() : workerId;
+      const currentAppointmentIdValue = currentAppointmentId?._id ? currentAppointmentId._id.toString() : currentAppointmentId?.toString ? currentAppointmentId.toString() : currentAppointmentId;
+
+      // Check if there are any previous completed appointments with this worker
+      const previousCompletedAppointments = await Appointment.countDocuments({
+        clientId: clientIdValue,
+        workerId: workerIdValue,
+        status: 'Completed',
+        _id: { $ne: currentAppointmentIdValue }
+      });
+
+      return previousCompletedAppointments === 0;
+    } catch (error) {
+      console.error('[NotificationService] Error checking first visit with worker:', error);
+      // On error, assume it's not first visit to avoid sending multiple review requests
+      return false;
+    }
+  }
+
+  /**
+   * Send review request WhatsApp message after service completion (FRENCH)
+   * Only sent on first visit with the worker
+   * @param {Object} appointment - Appointment object with populated fields
+   */
+  async sendReviewRequest(appointment) {
+    try {
+      // Validate appointment has required fields
+      if (!appointment || !appointment.clientId || !appointment.workerId || !appointment.salonId) {
+        console.error('[NotificationService] sendReviewRequest: Appointment missing required fields');
+        return { success: false, error: 'Appointment missing required fields' };
+      }
+
+      const clientId = appointment.clientId._id || appointment.clientId;
+      const workerId = appointment.workerId._id || appointment.workerId;
+      const appointmentId = appointment._id;
+
+      // Check if this is first visit with this worker
+      const isFirstVisit = await this._isFirstVisitWithWorker(clientId, workerId, appointmentId);
+      
+      if (!isFirstVisit) {
+        console.log(`[NotificationService] Skipping review request - not first visit with worker. Appointment: ${appointmentId}`);
+        return { success: false, skipped: true, reason: 'Not first visit with worker' };
+      }
+
+      // Check if review already exists
+      const existingReview = await Review.findOne({ appointmentId });
+      if (existingReview) {
+        console.log(`[NotificationService] Skipping review request - review already exists. Appointment: ${appointmentId}`);
+        return { success: false, skipped: true, reason: 'Review already exists' };
+      }
+
+      const clientPhone = appointment.clientId.phone;
+      const salonName = appointment.salonId.name || appointment.salonId;
+      const clientName = appointment.clientId.name;
+      const workerName = appointment.workerId?.name || 'votre prestataire';
+      
+      // Get all services
+      const services = this._getServicesFromAppointment(appointment);
+      const servicesList = services.length > 0 ? services.join(', ') : 'Service';
+
+      // Validate phone number exists
+      if (!clientPhone) {
+        console.error('[NotificationService] Client phone number missing for review request:', appointmentId);
+        return { success: false, error: 'Client phone number missing' };
+      }
+
+      // Generate review link
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const reviewLink = `${frontendUrl}/appointments?review=${appointmentId}`;
+
+      // Build message in French
+      let message = `⭐ Votre avis compte beaucoup pour nous !\n\n`;
+      message += `Bonjour ${clientName},\n\n`;
+      message += `Nous espérons que vous avez apprécié votre service ${servicesList} avec ${workerName}.\n\n`;
+      message += `Pouvez-vous prendre quelques instants pour partager votre expérience ?\n\n`;
+      message += `👉 Cliquez ici pour laisser un avis :\n${reviewLink}\n\n`;
+      message += `Merci de votre confiance ! 🙏`;
+
+      const result = await this.sendWhatsApp(
+        clientId,
+        clientPhone,
+        message,
+        {
+          appointmentId: appointmentId,
+          salonId: appointment.salonId._id || appointment.salonId,
+          additionalInfo: { type: 'review_request' }
+        }
+      );
+
+      if (!result.success) {
+        console.error('[NotificationService] Failed to send review request:', result.error);
+      } else {
+        console.log(`[NotificationService] ✅ Review request sent for appointment ${appointmentId} (first visit with worker)`);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('[NotificationService] Exception in sendReviewRequest:', error);
       return { success: false, error: error.message };
     }
   }

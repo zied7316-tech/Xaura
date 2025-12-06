@@ -453,11 +453,22 @@ const completeAppointment = async (req, res, next) => {
       const populatedAppointment = await Appointment.findById(appointment._id)
         .populate('clientId', 'name email phone')
         .populate('serviceId', 'name')
+        .populate('workerId', 'name')
         .populate('salonId', 'name');
       
       if (populatedAppointment && populatedAppointment.clientId && populatedAppointment.clientId.phone) {
         const notificationService = require('../services/notificationService');
+        
+        // Send completion notification
         await notificationService.sendAppointmentStatusUpdate(populatedAppointment);
+        
+        // Send review request (only on first visit with worker)
+        try {
+          await notificationService.sendReviewRequest(populatedAppointment);
+        } catch (reviewError) {
+          console.error('[AppointmentManagementController] Failed to send review request:', reviewError);
+          // Don't fail appointment completion if review request fails
+        }
       }
     } catch (error) {
       console.error('[AppointmentManagementController] Failed to send WhatsApp completion:', error);
