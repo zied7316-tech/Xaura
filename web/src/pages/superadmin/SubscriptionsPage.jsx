@@ -10,7 +10,7 @@ import Select from '../../components/ui/Select'
 import {
   Crown, DollarSign, Calendar, TrendingUp, AlertCircle,
   CheckCircle, XCircle, Clock, Edit, Ban, Play, RefreshCw, Search, Filter, X,
-  CalendarStart, CalendarEnd, CreditCard, Hourglass, Check
+  CalendarClock, CreditCard, Hourglass, Check
 } from 'lucide-react'
 import { formatDate, formatCurrency, formatDateTime } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -503,12 +503,12 @@ const SubscriptionsPage = () => {
                           {sub.status === 'trial' || trialStart ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-1 text-xs text-gray-600">
-                                <CalendarStart size={12} />
+                                <Calendar size={12} />
                                 <span className="font-medium">Start:</span>
                                 <span>{formatDate(trialStart)}</span>
                               </div>
                               <div className="flex items-center gap-1 text-xs text-gray-600">
-                                <CalendarEnd size={12} />
+                                <CalendarClock size={12} />
                                 <span className="font-medium">End:</span>
                                 <span className={trialDaysRemaining !== null && trialDaysRemaining < 7 ? 'text-red-600 font-semibold' : ''}>
                                   {formatDate(trialEnd)}
@@ -528,12 +528,12 @@ const SubscriptionsPage = () => {
                           {sub.status === 'active' && planStart ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-1 text-xs text-gray-600">
-                                <CalendarStart size={12} />
+                                <Calendar size={12} />
                                 <span className="font-medium">Start:</span>
                                 <span>{formatDate(planStart)}</span>
                               </div>
                               <div className="flex items-center gap-1 text-xs text-gray-600">
-                                <CalendarEnd size={12} />
+                                <CalendarClock size={12} />
                                 <span className="font-medium">End:</span>
                                 <span>{formatDate(planEnd)}</span>
                               </div>
