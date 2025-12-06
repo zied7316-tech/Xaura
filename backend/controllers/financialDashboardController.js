@@ -12,21 +12,18 @@ const getFinancialOverview = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
     
-    // Date filter
-    const dateFilter = {};
+    // Build date filter for upgrade payments
+    const upgradeDateFilter = { upgradePaymentReceived: true };
     if (startDate || endDate) {
-      dateFilter.createdAt = {};
-      if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
-      if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+      upgradeDateFilter.upgradePaymentReceivedAt = {};
+      if (startDate) upgradeDateFilter.upgradePaymentReceivedAt.$gte = new Date(startDate);
+      if (endDate) upgradeDateFilter.upgradePaymentReceivedAt.$lte = new Date(endDate);
     }
 
     // Total revenue from subscriptions (paid upgrades)
     const subscriptionRevenue = await Subscription.aggregate([
       {
-        $match: {
-          upgradePaymentReceived: true,
-          ...dateFilter
-        }
+        $match: upgradeDateFilter
       },
       {
         $group: {
@@ -37,14 +34,21 @@ const getFinancialOverview = async (req, res, next) => {
       }
     ]);
 
+    // Build date filter for WhatsApp payments
+    const whatsappDateFilter = {
+      'whatsappCreditPurchase.status': 'approved',
+      'whatsappCreditPurchase.paymentReceived': true
+    };
+    if (startDate || endDate) {
+      whatsappDateFilter['whatsappCreditPurchase.paymentReceivedAt'] = {};
+      if (startDate) whatsappDateFilter['whatsappCreditPurchase.paymentReceivedAt'].$gte = new Date(startDate);
+      if (endDate) whatsappDateFilter['whatsappCreditPurchase.paymentReceivedAt'].$lte = new Date(endDate);
+    }
+
     // Revenue from WhatsApp credits
     const whatsappRevenue = await Subscription.aggregate([
       {
-        $match: {
-          'whatsappCreditPurchase.status': 'approved',
-          'whatsappCreditPurchase.paymentReceived': true,
-          ...dateFilter
-        }
+        $match: whatsappDateFilter
       },
       {
         $group: {
@@ -55,14 +59,21 @@ const getFinancialOverview = async (req, res, next) => {
       }
     ]);
 
+    // Build date filter for Pixel payments
+    const pixelDateFilter = {
+      'pixelTrackingPurchase.status': 'approved',
+      'pixelTrackingPurchase.paymentReceived': true
+    };
+    if (startDate || endDate) {
+      pixelDateFilter['pixelTrackingPurchase.paymentReceivedAt'] = {};
+      if (startDate) pixelDateFilter['pixelTrackingPurchase.paymentReceivedAt'].$gte = new Date(startDate);
+      if (endDate) pixelDateFilter['pixelTrackingPurchase.paymentReceivedAt'].$lte = new Date(endDate);
+    }
+
     // Revenue from Pixel Tracking
     const pixelRevenue = await Subscription.aggregate([
       {
-        $match: {
-          'pixelTrackingPurchase.status': 'approved',
-          'pixelTrackingPurchase.paymentReceived': true,
-          ...dateFilter
-        }
+        $match: pixelDateFilter
       },
       {
         $group: {
