@@ -24,6 +24,20 @@ const registerViaQR = async (req, res, next) => {
     const { qrCode } = req.params;
     const { email, password, name, phone } = req.body;
 
+    // Format phone number with Tunisian country code (+216) automatically
+    const { formatTunisianPhone } = require('../utils/phoneFormatter');
+    let formattedPhone = phone;
+    
+    if (phone) {
+      formattedPhone = formatTunisianPhone(phone);
+      if (!formattedPhone) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid phone number format. Please enter your 8-digit Tunisian phone number (e.g., 12345678). The system will automatically add the country code (+216).',
+        });
+      }
+    }
+
     // Find salon by QR code
     const salon = await Salon.findOne({ qrCode });
     if (!salon) {
@@ -42,13 +56,13 @@ const registerViaQR = async (req, res, next) => {
       });
     }
 
-    // Create new client user
+    // Create new client user with formatted phone number
     const user = await User.create({
       email,
       password,
       role: 'Client', // Auto-assign Client role
       name,
-      phone
+      phone: formattedPhone // Store formatted phone with +216
     });
 
     // Automatically create customer profile linked to this salon

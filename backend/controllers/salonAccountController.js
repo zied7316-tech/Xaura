@@ -67,13 +67,38 @@ const createSalonAccount = async (req, res, next) => {
       });
     }
 
+    // Format phone number with Tunisian country code (+216) automatically
+    const { formatTunisianPhone } = require('../utils/phoneFormatter');
+    let formattedOwnerPhone = ownerPhone;
+    
+    if (ownerPhone) {
+      formattedOwnerPhone = formatTunisianPhone(ownerPhone);
+      if (!formattedOwnerPhone) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid phone number format. Please enter your 8-digit Tunisian phone number (e.g., 12345678). The system will automatically add the country code (+216).',
+        });
+      }
+    }
+
+    // Format salon phone if provided
+    let formattedSalonPhone = salonPhone;
+    if (salonPhone) {
+      formattedSalonPhone = formatTunisianPhone(salonPhone);
+      // Don't fail if salon phone is invalid, just log warning
+      if (!formattedSalonPhone) {
+        console.warn('[SalonAccountController] Invalid salon phone format, using as-is:', salonPhone);
+        formattedSalonPhone = salonPhone;
+      }
+    }
+
     // Step 1: Create Owner/Admin account first
     const owner = await User.create({
       email: ownerEmail,
       password: ownerPassword,
       role: 'Owner',
       name: ownerName,
-      phone: ownerPhone,
+      phone: formattedOwnerPhone, // Store formatted phone with +216
       isActive: true
     });
 
@@ -87,7 +112,7 @@ const createSalonAccount = async (req, res, next) => {
     const salon = await Salon.create({
       name: salonName,
       description: salonDescription || '',
-      phone: salonPhone,
+      phone: formattedSalonPhone || salonPhone,
       email: salonEmail || '',
       address: salonAddress || {},
       workingHours: workingHours || {

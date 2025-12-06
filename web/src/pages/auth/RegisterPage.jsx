@@ -129,14 +129,22 @@ const RegisterPage = () => {
             />
 
             <Input
-              label="Phone Number"
+              label="Phone Number (WhatsApp)"
               type="tel"
-              placeholder="+1234567890"
+              placeholder="12345678"
               error={errors.phone?.message}
               {...register('phone', { 
-                required: 'Phone number is required'
+                required: 'WhatsApp phone number is required',
+                pattern: {
+                  value: /^[0-9]{8}$/,
+                  message: 'Please enter your 8-digit Tunisian phone number (e.g., 12345678). The system will automatically add +216.'
+                }
               })}
             />
+            <p className="text-xs text-gray-600 -mt-2 mb-2">
+              💬 Enter your 8-digit Tunisian phone number. We'll automatically add the country code (+216). 
+              This number will be used for WhatsApp notifications about your appointments.
+            </p>
 
             <div>
               <Input

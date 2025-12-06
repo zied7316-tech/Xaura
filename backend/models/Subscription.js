@@ -263,6 +263,21 @@ const subscriptionSchema = new mongoose.Schema({
       }
     }
   },
+  // WhatsApp usage tracking (monthly limits)
+  whatsappUsage: {
+    currentMonthCount: {
+      type: Number,
+      default: 0
+    },
+    lastResetDate: {
+      type: Date,
+      default: Date.now
+    },
+    lastMessageDate: {
+      type: Date,
+      default: null
+    }
+  },
   // Purchase requests (for cash payments)
   whatsappCreditPurchase: {
     packageType: { type: String, default: null },
@@ -475,6 +490,92 @@ subscriptionSchema.methods.addSmsCredits = async function(credits, packageType) 
   
   if (packageType) {
     this.addOns.smsCredits.autoRechargePackage = packageType;
+  }
+  
+  await this.save();
+  return this;
+};
+
+// Method: Check and reset monthly WhatsApp usage if needed
+subscriptionSchema.methods.checkAndResetMonthlyUsage = async function() {
+  const now = new Date();
+  const lastReset = this.whatsappUsage.lastResetDate || new Date();
+  
+  // Check if we need to reset (new month started)
+  const lastResetMonth = lastReset.getMonth();
+  const lastResetYear = lastReset.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  if (currentMonth !== lastResetMonth || currentYear !== lastResetYear) {
+    // New month - reset counter
+    this.whatsappUsage.currentMonthCount = 0;
+    this.whatsappUsage.lastResetDate = now;
+    await this.save();
+    console.log(`[Subscription] Reset monthly WhatsApp usage for subscription ${this._id}`);
+  }
+  
+  return this;
+};
+
+// Method: Check if can send WhatsApp message (check limits)
+subscriptionSchema.methods.canSendWhatsAppMessage = async function() {
+  // Check and reset monthly usage if needed
+  await this.checkAndResetMonthlyUsage();
+  
+  // Get plan details
+  const { getPlanDetails } = require('../config/subscriptionPlans');
+  const planDetails = getPlanDetails(this.plan);
+  
+  // Get monthly limit from plan
+  const monthlyLimit = planDetails?.features?.maxWhatsAppMessages || 0;
+  
+  // If monthly limit is 0, check credits instead
+  if (monthlyLimit === 0) {
+    // Use credit-based system (for Basic plan or credit purchases)
+    const creditsAvailable = this.addOns.whatsappCredits?.balance || 0;
+    return {
+      canSend: creditsAvailable > 0,
+      reason: creditsAvailable > 0 ? null : 'Insufficient WhatsApp credits. Please purchase more credits.',
+      monthlyLimit: 0,
+      currentUsage: this.whatsappUsage.currentMonthCount || 0,
+      creditsAvailable
+    };
+  }
+  
+  // Check monthly limit
+  const currentUsage = this.whatsappUsage.currentMonthCount || 0;
+  const canSend = monthlyLimit === -1 || currentUsage < monthlyLimit;
+  
+  return {
+    canSend,
+    reason: canSend ? null : `Monthly limit reached (${monthlyLimit} messages/month). Limit resets at start of next month.`,
+    monthlyLimit,
+    currentUsage,
+    remaining: monthlyLimit === -1 ? -1 : Math.max(0, monthlyLimit - currentUsage)
+  };
+};
+
+// Method: Track WhatsApp message usage (increment counter)
+subscriptionSchema.methods.trackWhatsAppMessage = async function() {
+  // Check and reset monthly usage if needed
+  await this.checkAndResetMonthlyUsage();
+  
+  // Increment monthly counter
+  this.whatsappUsage.currentMonthCount = (this.whatsappUsage.currentMonthCount || 0) + 1;
+  this.whatsappUsage.lastMessageDate = new Date();
+  
+  // If using credit-based system, deduct from credits
+  const { getPlanDetails } = require('../config/subscriptionPlans');
+  const planDetails = getPlanDetails(this.plan);
+  const monthlyLimit = planDetails?.features?.maxWhatsAppMessages || 0;
+  
+  if (monthlyLimit === 0) {
+    // Deduct from credits
+    if (this.addOns.whatsappCredits && this.addOns.whatsappCredits.balance > 0) {
+      this.addOns.whatsappCredits.balance -= 1;
+      this.addOns.whatsappCredits.totalUsed = (this.addOns.whatsappCredits.totalUsed || 0) + 1;
+    }
   }
   
   await this.save();

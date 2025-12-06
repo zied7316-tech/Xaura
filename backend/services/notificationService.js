@@ -1,6 +1,8 @@
 const Notification = require('../models/Notification');
 const WhatsAppService = require('./whatsappService');
 const Appointment = require('../models/Appointment');
+const Subscription = require('../models/Subscription');
+const { formatTunisianPhone } = require('../utils/phoneFormatter');
 
 /**
  * Notification Service
@@ -227,11 +229,29 @@ class NotificationService {
   }
 
   /**
-   * Send WhatsApp notification using Twilio
+   * Get subscription from salonId for usage tracking
+   * @param {String|Object} salonId - Salon ID (can be ObjectId or populated object)
+   * @returns {Object|null} - Subscription object or null
+   */
+  async _getSubscriptionFromSalonId(salonId) {
+    try {
+      const salonIdValue = salonId?._id ? salonId._id : salonId;
+      if (!salonIdValue) return null;
+      
+      const subscription = await Subscription.findOne({ salonId: salonIdValue });
+      return subscription;
+    } catch (error) {
+      console.error('[NotificationService] Error getting subscription:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Send WhatsApp notification using Twilio with usage tracking
    * @param {String} userId - User ID to send notification to
-   * @param {String} phoneNumber - Recipient phone number (with country code)
+   * @param {String} phoneNumber - Recipient phone number (will be formatted with +216)
    * @param {String} message - Message content
-   * @param {Object} metadata - Additional metadata
+   * @param {Object} metadata - Additional metadata (must include salonId for usage tracking)
    */
   async sendWhatsApp(userId, phoneNumber, message, metadata = {}) {
     try {
@@ -244,30 +264,97 @@ class NotificationService {
         };
       }
 
-      // Log attempt
-      console.log('[NotificationService] Sending WhatsApp to:', phoneNumber);
+      // Format phone number with Tunisian country code (+216)
+      const formattedPhone = formatTunisianPhone(phoneNumber);
+      if (!formattedPhone) {
+        console.error('[NotificationService] sendWhatsApp: Invalid phone number format:', phoneNumber);
+        return {
+          success: false,
+          error: 'Invalid phone number format. Please provide a valid Tunisian phone number.'
+        };
+      }
+
+      // Check usage limits if salonId is provided
+      let usageChecked = false;
+      let canSend = true;
+      let usageError = null;
+      
+      if (metadata.salonId) {
+        try {
+          const subscription = await this._getSubscriptionFromSalonId(metadata.salonId);
+          
+          if (subscription) {
+            // Check if we can send WhatsApp message
+            const usageCheck = await subscription.canSendWhatsAppMessage();
+            canSend = usageCheck.canSend;
+            usageError = usageCheck.reason;
+            usageChecked = true;
+            
+            if (!canSend) {
+              console.warn('[NotificationService] WhatsApp message blocked by usage limit:', {
+                salonId: metadata.salonId,
+                reason: usageError,
+                monthlyLimit: usageCheck.monthlyLimit,
+                currentUsage: usageCheck.currentUsage,
+                creditsAvailable: usageCheck.creditsAvailable
+              });
+              
+              return {
+                success: false,
+                error: usageError || 'WhatsApp message limit reached',
+                limitReached: true,
+                usageInfo: {
+                  monthlyLimit: usageCheck.monthlyLimit,
+                  currentUsage: usageCheck.currentUsage,
+                  creditsAvailable: usageCheck.creditsAvailable
+                }
+              };
+            }
+          }
+        } catch (usageError) {
+          console.error('[NotificationService] Error checking usage limits:', usageError.message);
+          // Continue sending even if usage check fails (don't block messages)
+        }
+      }
+
+      // Log attempt with formatted phone
+      console.log('[NotificationService] Sending WhatsApp:', {
+        originalPhone: phoneNumber,
+        formattedPhone: formattedPhone,
+        userId: userId
+      });
       console.log('[NotificationService] Message preview:', message.substring(0, 50) + '...');
 
-      // Send WhatsApp via Twilio
-      const result = await this.whatsappService.sendWhatsApp(phoneNumber, message);
+      // Send WhatsApp via Twilio (with formatted phone number)
+      const result = await this.whatsappService.sendWhatsApp(formattedPhone, message);
+
+      // Track usage if message was sent successfully
+      if (result.success && usageChecked && metadata.salonId) {
+        try {
+          const subscription = await this._getSubscriptionFromSalonId(metadata.salonId);
+          if (subscription) {
+            await subscription.trackWhatsAppMessage();
+            console.log('[NotificationService] ✅ Usage tracked for salon:', metadata.salonId);
+          }
+        } catch (trackError) {
+          console.error('[NotificationService] Error tracking usage (message was sent):', trackError.message);
+          // Don't fail the send if tracking fails
+        }
+      }
 
       // Log result
       if (result.success) {
         console.log('[NotificationService] ✅ WhatsApp sent successfully:', {
-          phoneNumber,
+          phoneNumber: formattedPhone,
           messageSid: result.messageSid,
           status: result.status
         });
       } else {
         console.error('[NotificationService] ❌ WhatsApp send failed:', {
-          phoneNumber,
+          phoneNumber: formattedPhone,
           error: result.error
         });
       }
-
-      // Note: We don't create Notification records for WhatsApp messages
-      // The Notification model is for in-app notifications only
-      // WhatsApp messages are tracked via Twilio logs
 
       return {
         success: result.success,
@@ -278,7 +365,8 @@ class NotificationService {
           : result.success 
             ? 'WhatsApp message sent successfully' 
             : 'Failed to send WhatsApp message',
-        error: result.error || null
+        error: result.error || null,
+        formattedPhone: formattedPhone
       };
     } catch (error) {
       console.error('[NotificationService] Exception sending WhatsApp:', {

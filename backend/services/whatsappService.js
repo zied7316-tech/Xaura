@@ -1,4 +1,5 @@
 const twilio = require('twilio');
+const { formatTunisianPhone } = require('../utils/phoneFormatter');
 
 class WhatsAppService {
   constructor(accountSid, authToken, whatsappNumber) {
@@ -68,21 +69,24 @@ class WhatsAppService {
         };
       }
 
-      // Format phone number with whatsapp: prefix
-      let formattedTo = to.trim();
+      // Format phone number with Tunisian country code (+216) if needed
+      let formattedTo = formatTunisianPhone(to);
+      
+      if (!formattedTo) {
+        console.error('[WhatsApp] Invalid phone number format:', to);
+        return {
+          success: false,
+          error: 'Invalid phone number format. Please provide a valid Tunisian phone number.'
+        };
+      }
 
       // Remove any existing whatsapp: prefix to normalize
       if (formattedTo.startsWith('whatsapp:')) {
         formattedTo = formattedTo.replace('whatsapp:', '');
       }
 
-      // Remove leading + if present (will add it back)
-      if (formattedTo.startsWith('+')) {
-        formattedTo = formattedTo.substring(1);
-      }
-
-      // Add whatsapp: prefix and ensure country code is present
-      formattedTo = `whatsapp:+${formattedTo}`;
+      // Add whatsapp: prefix for Twilio (formattedTo already has +216 from formatter)
+      formattedTo = `whatsapp:${formattedTo}`;
 
       console.log('[WhatsApp] Sending message:', {
         from: this.whatsappNumber,
