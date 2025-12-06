@@ -1,0 +1,66 @@
+═══════════════════════════════════════════════════
+  SIMPLE FIX FOR WHATSAPP ERROR - STEP BY STEP
+═══════════════════════════════════════════════════
+
+PROBLEM:
+Your WhatsApp number is wrong. Twilio doesn't recognize it.
+
+SOLUTION:
+Replace the wrong number with the correct one from Twilio.
+
+═══════════════════════════════════════════════════
+STEP 1: FIND YOUR WHATSAPP NUMBER
+═══════════════════════════════════════════════════
+
+1. Go to: https://console.twilio.com/
+2. Click "Messaging" (left menu)
+3. Click "Try it out"
+4. Click "Send a WhatsApp message"
+5. You'll see a number like: +1 415 523 8886
+6. Write this number down!
+
+═══════════════════════════════════════════════════
+STEP 2: JOIN SANDBOX (DO THIS ONCE)
+═══════════════════════════════════════════════════
+
+1. On the same page, find the "join" code
+2. Open WhatsApp on your phone
+3. Send: join <code> to the number from Step 1
+4. Wait for confirmation
+5. Done!
+
+═══════════════════════════════════════════════════
+STEP 3: UPDATE RAILWAY
+═══════════════════════════════════════════════════
+
+1. Go to: https://railway.app/dashboard
+2. Click your project
+3. Click "Variables" tab
+4. Find: TWILIO_WHATSAPP_NUMBER
+5. Change value to: whatsapp:+14155238886
+   (Replace +14155238886 with YOUR number from Step 1)
+   (Remove spaces, add whatsapp: at start)
+6. Save
+7. Go to "Deployments" tab
+8. Click "Redeploy"
+9. Wait 2-3 minutes
+
+═══════════════════════════════════════════════════
+STEP 4: TEST
+═══════════════════════════════════════════════════
+
+1. Book an appointment
+2. Check WhatsApp - you should get a message!
+
+═══════════════════════════════════════════════════
+EXAMPLE:
+═══════════════════════════════════════════════════
+
+WRONG: whatsapp:+16604933361  ❌
+RIGHT: whatsapp:+14155238886  ✅
+
+The number MUST come from Twilio Console!
+
+═══════════════════════════════════════════════════
+
+

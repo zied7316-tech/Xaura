@@ -259,6 +259,16 @@ if (process.env.NODE_ENV !== 'test') {
   }
 }
 
+// Start WhatsApp reminder scheduler (1 hour before appointments)
+if (process.env.NODE_ENV !== 'test') {
+  try {
+    require('./jobs/whatsappReminderScheduler');
+    console.log('✅ WhatsApp reminder scheduler started');
+  } catch (error) {
+    console.error('❌ Failed to start WhatsApp reminder scheduler:', error.message);
+  }
+}
+
 // Error handling middleware - MUST include CORS headers
 app.use((err, req, res, next) => {
   // Set CORS headers even on errors (including CORS errors)

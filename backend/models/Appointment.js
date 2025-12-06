@@ -129,6 +129,15 @@ const appointmentSchema = new mongoose.Schema({
   completedAt: {
     type: Date,
     default: null
+  },
+  // Track if WhatsApp reminder was sent (1 hour before appointment)
+  whatsappReminderSent: {
+    type: Boolean,
+    default: false
+  },
+  whatsappReminderSentAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true // This automatically adds createdAt and updatedAt

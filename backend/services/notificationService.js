@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const WhatsAppService = require('./whatsappService');
+const Appointment = require('../models/Appointment');
 
 /**
  * Notification Service
@@ -32,6 +33,142 @@ class NotificationService {
     );
     
     console.log('[NotificationService] ✅ Initialized');
+  }
+
+  /**
+   * Helper: Get all services from appointment (handles both single serviceId and services array)
+   */
+  _getServicesFromAppointment(appointment) {
+    const services = [];
+    
+    // Check if appointment has services array (multiple services)
+    if (appointment.services && Array.isArray(appointment.services) && appointment.services.length > 0) {
+      appointment.services.forEach(service => {
+        if (service.name) {
+          services.push(service.name);
+        }
+      });
+    }
+    
+    // Fallback to single serviceId if services array is empty
+    if (services.length === 0 && appointment.serviceId) {
+      if (typeof appointment.serviceId === 'object' && appointment.serviceId.name) {
+        services.push(appointment.serviceId.name);
+      } else if (typeof appointment.serviceId === 'string') {
+        // Service not populated, use serviceId as fallback
+        services.push('Service');
+      }
+    }
+    
+    return services;
+  }
+
+  /**
+   * Helper: Format date and time in French
+   */
+  _formatDateFrench(dateTime) {
+    const date = new Date(dateTime);
+    const options = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    return date.toLocaleDateString('fr-FR', options);
+  }
+
+  /**
+   * Helper: Format date only in French
+   */
+  _formatDateOnlyFrench(dateTime) {
+    const date = new Date(dateTime);
+    return date.toLocaleDateString('fr-FR', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  }
+
+  /**
+   * Helper: Format time only in French
+   */
+  _formatTimeOnlyFrench(dateTime) {
+    const date = new Date(dateTime);
+    return date.toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  }
+
+  /**
+   * Helper: Check if appointment is part of multi-person booking
+   */
+  async _isMultiPersonBooking(appointment) {
+    // Check notes for multi-person indicator
+    if (appointment.notes && appointment.notes.includes('Person') && appointment.notes.includes('Multi-person')) {
+      return true;
+    }
+    
+    // Check for other appointments at the same time with same client and worker
+    if (!appointment.clientId || !appointment.workerId) {
+      return false;
+    }
+    
+    const clientId = appointment.clientId._id || appointment.clientId;
+    const workerId = appointment.workerId._id || appointment.workerId;
+    
+    const sameTimeAppointments = await Appointment.countDocuments({
+      clientId: clientId,
+      workerId: workerId,
+      dateTime: appointment.dateTime,
+      _id: { $ne: appointment._id },
+      status: { $in: ['Pending', 'Confirmed'] }
+    });
+    
+    return sameTimeAppointments > 0;
+  }
+
+  /**
+   * Helper: Get multi-person booking info (how many people total and all services)
+   */
+  async _getMultiPersonBookingInfo(appointment) {
+    if (!appointment.clientId || !appointment.workerId) {
+      return null;
+    }
+    
+    const clientId = appointment.clientId._id || appointment.clientId;
+    const workerId = appointment.workerId._id || appointment.workerId;
+    
+    const sameTimeAppointments = await Appointment.find({
+      clientId: clientId,
+      workerId: workerId,
+      dateTime: appointment.dateTime,
+      status: { $in: ['Pending', 'Confirmed'] }
+    }).populate('serviceId', 'name').lean();
+    
+    if (sameTimeAppointments.length <= 1) {
+      return null; // Not a multi-person booking
+    }
+    
+    // Get all services from all appointments in this multi-person booking
+    const allServices = [];
+    sameTimeAppointments.forEach(apt => {
+      if (apt.services && Array.isArray(apt.services)) {
+        apt.services.forEach(s => {
+          if (s.name) allServices.push(s.name);
+        });
+      } else if (apt.serviceId && apt.serviceId.name) {
+        allServices.push(apt.serviceId.name);
+      }
+    });
+    
+    return {
+      totalPeople: sameTimeAppointments.length,
+      allServices: [...new Set(allServices)] // Remove duplicates
+    };
   }
   /**
    * Send SMS notification (MOCK implementation)
@@ -158,22 +295,33 @@ class NotificationService {
   }
 
   /**
-   * Send appointment confirmation notification via WhatsApp
+   * Send appointment confirmation notification via WhatsApp (FRENCH)
    * @param {Object} appointment - Appointment object with populated fields
    */
   async sendAppointmentConfirmation(appointment) {
     try {
       // Validate appointment has required fields
-      if (!appointment || !appointment.clientId || !appointment.workerId || !appointment.salonId || !appointment.serviceId) {
+      if (!appointment || !appointment.clientId || !appointment.workerId || !appointment.salonId) {
         console.error('[NotificationService] sendAppointmentConfirmation: Appointment missing required fields');
         return;
       }
 
-      const dateStr = new Date(appointment.dateTime).toLocaleString();
       const clientPhone = appointment.clientId.phone;
       const workerPhone = appointment.workerId.phone;
-      const salonName = appointment.salonId.name;
-      const serviceName = appointment.serviceId.name;
+      const salonName = appointment.salonId.name || appointment.salonId;
+      const clientName = appointment.clientId.name;
+      const workerName = appointment.workerId.name;
+      
+      // Get all services
+      const services = this._getServicesFromAppointment(appointment);
+      const servicesList = services.length > 0 ? services.join(', ') : 'Service';
+      
+      // Format date and time in French
+      const dateTimeStr = this._formatDateFrench(appointment.dateTime);
+      
+      // Check for multi-person booking
+      const isMultiPerson = await this._isMultiPersonBooking(appointment);
+      const multiPersonInfo = isMultiPerson ? await this._getMultiPersonBookingInfo(appointment) : null;
 
       // Validate phone numbers exist
       if (!clientPhone) {
@@ -183,9 +331,22 @@ class NotificationService {
         console.error('[NotificationService] Worker phone number missing for appointment:', appointment._id);
       }
 
-      // Send WhatsApp to client
+      // Send WhatsApp to client (FRENCH)
       if (clientPhone) {
-        const clientMessage = `Your appointment at ${salonName} has been booked!\nService: ${serviceName}\nDate: ${dateStr}\nWorker: ${appointment.workerId.name}`;
+        let clientMessage = `Bonjour ${clientName},\n\n`;
+        clientMessage += `Votre rendez-vous à ${salonName} a été réservé !\n\n`;
+        clientMessage += `📍 Salon: ${salonName}\n`;
+        clientMessage += `💇 Service${services.length > 1 ? 's' : ''}: ${servicesList}\n`;
+        
+        if (multiPersonInfo) {
+          clientMessage += `👥 Nombre de personnes: ${multiPersonInfo.totalPeople}\n`;
+          clientMessage += `📋 Tous les services: ${multiPersonInfo.allServices.join(', ')}\n`;
+        }
+        
+        clientMessage += `👤 Prestataire: ${workerName}\n`;
+        clientMessage += `📅 Date et heure: ${dateTimeStr}\n\n`;
+        clientMessage += `À bientôt !`;
+        
         const clientResult = await this.sendWhatsApp(
           appointment.clientId._id || appointment.clientId,
           clientPhone,
@@ -203,9 +364,19 @@ class NotificationService {
         console.warn('[NotificationService] Skipping client WhatsApp - no phone number');
       }
 
-      // Send WhatsApp to worker
+      // Send WhatsApp to worker (FRENCH)
       if (workerPhone) {
-        const workerMessage = `New appointment scheduled!\nClient: ${appointment.clientId.name}\nService: ${serviceName}\nDate: ${dateStr}`;
+        let workerMessage = `Nouveau rendez-vous programmé !\n\n`;
+        workerMessage += `👤 Client: ${clientName}\n`;
+        workerMessage += `💇 Service${services.length > 1 ? 's' : ''}: ${servicesList}\n`;
+        
+        if (multiPersonInfo) {
+          workerMessage += `👥 Nombre de personnes: ${multiPersonInfo.totalPeople}\n`;
+          workerMessage += `📋 Tous les services: ${multiPersonInfo.allServices.join(', ')}\n`;
+        }
+        
+        workerMessage += `📅 Date et heure: ${dateTimeStr}`;
+        
         const workerResult = await this.sendWhatsApp(
           appointment.workerId._id || appointment.workerId,
           workerPhone,
@@ -229,21 +400,29 @@ class NotificationService {
   }
 
   /**
-   * Send appointment status update notification via WhatsApp
+   * Send appointment status update notification via WhatsApp (FRENCH)
    * @param {Object} appointment - Appointment object with populated fields
    */
   async sendAppointmentStatusUpdate(appointment) {
     try {
       // Validate appointment has required fields
-      if (!appointment || !appointment.clientId || !appointment.salonId || !appointment.serviceId) {
+      if (!appointment || !appointment.clientId || !appointment.salonId) {
         console.error('[NotificationService] sendAppointmentStatusUpdate: Appointment missing required fields');
         return;
       }
 
-      const dateStr = new Date(appointment.dateTime).toLocaleString();
       const clientPhone = appointment.clientId.phone;
-      const salonName = appointment.salonId.name;
-      const serviceName = appointment.serviceId.name;
+      const salonName = appointment.salonId.name || appointment.salonId;
+      const clientName = appointment.clientId.name;
+      
+      // Get all services
+      const services = this._getServicesFromAppointment(appointment);
+      const servicesList = services.length > 0 ? services.join(', ') : 'Service';
+      
+      // Format date and time in French
+      const dateTimeStr = this._formatDateFrench(appointment.dateTime);
+      const dateOnlyStr = this._formatDateOnlyFrench(appointment.dateTime);
+      const timeOnlyStr = this._formatTimeOnlyFrench(appointment.dateTime);
 
       // Validate phone number exists
       if (!clientPhone) {
@@ -256,18 +435,34 @@ class NotificationService {
       switch (appointment.status) {
         case 'Confirmed':
         case 'confirmed':
-          message = `Your appointment at ${salonName} has been confirmed!\nService: ${serviceName}\nDate: ${dateStr}`;
+          message = `Bonjour ${clientName},\n\n`;
+          message += `Votre rendez-vous à ${salonName} a été confirmé !\n\n`;
+          message += `📍 Salon: ${salonName}\n`;
+          message += `💇 Service${services.length > 1 ? 's' : ''}: ${servicesList}\n`;
+          message += `📅 Date: ${dateOnlyStr}\n`;
+          message += `⏰ Heure: ${timeOnlyStr}\n\n`;
+          message += `Nous avons hâte de vous accueillir !`;
           break;
         case 'Cancelled':
         case 'cancelled':
-          message = `Your appointment at ${salonName} has been cancelled.\nService: ${serviceName}\nDate: ${dateStr}`;
+          message = `Bonjour ${clientName},\n\n`;
+          message += `Votre rendez-vous à ${salonName} a été annulé.\n\n`;
+          message += `📍 Salon: ${salonName}\n`;
+          message += `💇 Service${services.length > 1 ? 's' : ''}: ${servicesList}\n`;
+          message += `📅 Date: ${dateOnlyStr}\n`;
+          message += `⏰ Heure: ${timeOnlyStr}\n\n`;
+          message += `N'hésitez pas à prendre un nouveau rendez-vous.`;
           break;
         case 'Completed':
         case 'completed':
-          message = `Thank you for visiting ${salonName}! We hope you enjoyed your ${serviceName}. See you next time!`;
+          message = `Bonjour ${clientName},\n\n`;
+          message += `Merci d'avoir visité ${salonName} !\n\n`;
+          message += `Nous espérons que vous avez apprécié ${services.length > 1 ? 'vos services' : 'votre service'} ${servicesList}.\n\n`;
+          message += `À bientôt !`;
           break;
         default:
-          message = `Your appointment status has been updated to: ${appointment.status}`;
+          message = `Bonjour ${clientName},\n\n`;
+          message += `Le statut de votre rendez-vous a été mis à jour: ${appointment.status}`;
       }
 
       const result = await this.sendWhatsApp(
@@ -290,22 +485,65 @@ class NotificationService {
   }
 
   /**
-   * Send appointment reminder (for scheduled tasks)
+   * Send appointment reminder 1 hour before (FRENCH)
    * @param {Object} appointment - Appointment object with populated fields
    */
   async sendAppointmentReminder(appointment) {
-    const dateStr = new Date(appointment.dateTime).toLocaleString();
-    const clientPhone = appointment.clientId.phone;
-    const salonName = appointment.salonId.name;
-    const serviceName = appointment.serviceId.name;
+    try {
+      // Validate appointment has required fields
+      if (!appointment || !appointment.clientId || !appointment.salonId) {
+        console.error('[NotificationService] sendAppointmentReminder: Appointment missing required fields');
+        return { success: false, error: 'Appointment missing required fields' };
+      }
 
-    const message = `Reminder: You have an appointment tomorrow at ${salonName}\nService: ${serviceName}\nTime: ${dateStr}\nSee you soon!`;
+      const clientPhone = appointment.clientId.phone;
+      const salonName = appointment.salonId.name || appointment.salonId;
+      const clientName = appointment.clientId.name;
+      const workerName = appointment.workerId?.name || 'votre prestataire';
+      
+      // Get all services
+      const services = this._getServicesFromAppointment(appointment);
+      const servicesList = services.length > 0 ? services.join(', ') : 'Service';
+      
+      // Format date and time in French
+      const dateOnlyStr = this._formatDateOnlyFrench(appointment.dateTime);
+      const timeOnlyStr = this._formatTimeOnlyFrench(appointment.dateTime);
 
-    await this.sendSMS(appointment.clientId._id, clientPhone, message, {
-      appointmentId: appointment._id,
-      salonId: appointment.salonId._id,
-      additionalInfo: { type: 'reminder' }
-    });
+      // Validate phone number exists
+      if (!clientPhone) {
+        console.error('[NotificationService] Client phone number missing for reminder:', appointment._id);
+        return { success: false, error: 'Client phone number missing' };
+      }
+
+      let message = `🔔 Rappel: Vous avez un rendez-vous dans 1 heure !\n\n`;
+      message += `Bonjour ${clientName},\n\n`;
+      message += `📍 Salon: ${salonName}\n`;
+      message += `💇 Service${services.length > 1 ? 's' : ''}: ${servicesList}\n`;
+      message += `👤 Prestataire: ${workerName}\n`;
+      message += `📅 Date: ${dateOnlyStr}\n`;
+      message += `⏰ Heure: ${timeOnlyStr}\n\n`;
+      message += `À tout à l'heure !`;
+
+      const result = await this.sendWhatsApp(
+        appointment.clientId._id || appointment.clientId,
+        clientPhone,
+        message,
+        {
+          appointmentId: appointment._id,
+          salonId: appointment.salonId._id || appointment.salonId,
+          additionalInfo: { type: 'reminder' }
+        }
+      );
+
+      if (!result.success) {
+        console.error('[NotificationService] Failed to send WhatsApp reminder:', result.error);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('[NotificationService] Exception in sendAppointmentReminder:', error);
+      return { success: false, error: error.message };
+    }
   }
 }
 
