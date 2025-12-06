@@ -9,6 +9,7 @@ import { CheckCircle } from 'lucide-react'
 import Logo from '../../components/ui/Logo'
 import { USER_ROLES } from '../../utils/constants'
 import toast from 'react-hot-toast'
+import LanguageSwitcher from '../../components/layout/LanguageSwitcher'
 
 const RegisterPage = () => {
   const { register: registerUser } = useAuth()
@@ -28,7 +29,7 @@ const RegisterPage = () => {
 
   const roleOptions = [
     { value: USER_ROLES.CLIENT, label: 'Client' },
-    { value: USER_ROLES.WORKER, label: 'Worker - Provide services' },
+    { value: USER_ROLES.WORKER, label: 'Worker' },
     { value: USER_ROLES.OWNER, label: 'Owner' },
   ]
 
@@ -80,6 +81,11 @@ const RegisterPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Language Switcher - Top Right */}
+        <div className="flex justify-end mb-4">
+          <LanguageSwitcher />
+        </div>
+        
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">

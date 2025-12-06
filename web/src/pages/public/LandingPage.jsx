@@ -4,6 +4,7 @@ import { Calendar, Users, TrendingUp, QrCode } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import ParticlesBackground from '../../components/background/ParticlesBackground'
 import Logo from '../../components/ui/Logo'
+import LanguageSwitcher from '../../components/layout/LanguageSwitcher'
 
 const LandingPage = () => {
   // Landing page component
@@ -53,6 +54,7 @@ const LandingPage = () => {
           <div className="flex justify-between items-center h-16">
             <Logo size="lg" showText={true} linkTo="/" />
             <div className="flex items-center gap-4">
+              <LanguageSwitcher />
               {user ? (
                 <Link to={`/${user.role.toLowerCase()}/dashboard`}>
                   <Button>Dashboard</Button>
@@ -85,7 +87,7 @@ const LandingPage = () => {
           </p>
           <div className="flex gap-4 justify-center">
             <Link to="/register-salon">
-              <Button size="lg" className="btn-confirm-booking">Create Salon Account</Button>
+              <Button size="lg" className="btn-confirm-booking">Create Business Account</Button>
             </Link>
             <Link to="/login">
               <Button variant="outline" size="lg">Sign In</Button>

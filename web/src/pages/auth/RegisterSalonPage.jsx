@@ -9,6 +9,7 @@ import Select from '../../components/ui/Select'
 import Card from '../../components/ui/Card'
 import { Store, User, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
+import LanguageSwitcher from '../../components/layout/LanguageSwitcher'
 
 const RegisterSalonPage = () => {
   const navigate = useNavigate()
@@ -86,6 +87,11 @@ const RegisterSalonPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
+        {/* Language Switcher - Top Right */}
+        <div className="flex justify-end mb-4">
+          <LanguageSwitcher />
+        </div>
+        
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-4">
@@ -113,7 +119,7 @@ const RegisterSalonPage = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
                   <Store className="text-primary-600" size={32} />
                 </div>
-                <h2 className="text-2xl font-bold">Create Your Salon Account</h2>
+                <h2 className="text-2xl font-bold">Create Your Business Account</h2>
                 <p className="text-gray-600 mt-2">First, let's set up your salon business</p>
               </div>
 
@@ -276,7 +282,7 @@ const RegisterSalonPage = () => {
                   Back
                 </Button>
                 <Button onClick={handleSubmit} fullWidth loading={loading}>
-                  Create Salon Account
+                  Create Business Account
                   <Check size={20} />
                 </Button>
               </div>
@@ -286,7 +292,7 @@ const RegisterSalonPage = () => {
 
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
-            Already have a salon account?{' '}
+            Already have a business account?{' '}
             <button onClick={() => navigate('/login')} className="text-primary-600 hover:text-primary-700 font-medium">
               Sign in
             </button>
