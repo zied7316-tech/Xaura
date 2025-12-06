@@ -660,7 +660,7 @@ const SubscriptionsPage = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
