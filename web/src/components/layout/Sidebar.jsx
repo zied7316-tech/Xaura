@@ -24,7 +24,8 @@ import {
   Wifi,
   QrCode,
   ShoppingCart,
-  Wrench
+  Wrench,
+  BarChart3
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {

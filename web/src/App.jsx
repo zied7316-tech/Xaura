@@ -49,6 +49,7 @@ import SuperAdminReportsPage from './pages/superadmin/ReportsPage'
 import EmailCampaignsPage from './pages/superadmin/EmailCampaignsPage'
 import SupportTicketsPage from './pages/superadmin/SupportTicketsPage'
 import PendingApprovalsPage from './pages/superadmin/PendingApprovalsPage'
+import FinancialDashboardPage from './pages/superadmin/FinancialDashboardPage'
 
 // Worker pages
 import WorkerDashboard from './pages/worker/WorkerDashboard'
@@ -132,6 +133,7 @@ function App() {
         <Route path="/super-admin/campaigns" element={<ProtectedRoute roles={['SuperAdmin']}><EmailCampaignsPage /></ProtectedRoute>} />
         <Route path="/super-admin/support" element={<ProtectedRoute roles={['SuperAdmin']}><SupportTicketsPage /></ProtectedRoute>} />
         <Route path="/super-admin/pending-approvals" element={<ProtectedRoute roles={['SuperAdmin']}><PendingApprovalsPage /></ProtectedRoute>} />
+        <Route path="/super-admin/finance" element={<ProtectedRoute roles={['SuperAdmin']}><FinancialDashboardPage /></ProtectedRoute>} />
         
         {/* Owner routes */}
         <Route path="/owner/dashboard" element={<ProtectedRoute roles={['Owner']}><OwnerDashboard /></ProtectedRoute>} />
