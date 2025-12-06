@@ -170,7 +170,7 @@ function App() {
         {/* Client routes */}
         <Route path="/client/dashboard" element={<ProtectedRoute roles={['Client']}><ClientDashboard /></ProtectedRoute>} />
         <Route path="/search-salons" element={<ProtectedRoute roles={['Client']}><SalonSearchPage /></ProtectedRoute>} />
-        <Route path="/salon/:id" element={<SalonDetailsPage />} />
+        <Route path="/salon/:salonId" element={<SalonDetailsPage />} />
         <Route path="/join-salon" element={<ProtectedRoute roles={['Client']}><JoinSalonPage /></ProtectedRoute>} />
         <Route path="/book" element={<ProtectedRoute roles={['Client']}><BookAppointmentPage /></ProtectedRoute>} />
         <Route path="/booking" element={<ProtectedRoute roles={['Client']}><BookingPage /></ProtectedRoute>} />
