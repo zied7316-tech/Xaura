@@ -174,7 +174,48 @@ const getSalonByQRCode = async (req, res, next) => {
  */
 const getSalonBySlug = async (req, res, next) => {
   try {
-    const salon = await Salon.findOne({ slug: req.params.slug })
+    const { slug } = req.params;
+    
+    // Check if the slug parameter is actually a MongoDB ObjectId
+    // Use Mongoose validation which is more reliable than regex
+    const mongoose = require('mongoose');
+    const isObjectId = mongoose.Types.ObjectId.isValid(slug);
+    
+    if (isObjectId) {
+      // This is an ID, not a slug - try to find by ID instead
+      const salon = await Salon.findById(slug)
+        .populate('ownerId', 'name email phone');
+      
+      if (!salon) {
+        return res.status(404).json({
+          success: false,
+          message: 'Salon not found with this ID'
+        });
+      }
+      
+      // Auto-generate slug if missing
+      if (!salon.slug && salon.name) {
+        try {
+          const { generateUniqueSlug } = require('../utils/slugGenerator');
+          salon.slug = await generateUniqueSlug(salon.name, Salon, salon._id);
+          await salon.save();
+          console.log(`✅ Auto-generated slug "${salon.slug}" for salon "${salon.name}"`);
+        } catch (error) {
+          console.error('Error generating slug:', error);
+          // Continue without slug - backward compatibility
+        }
+      }
+      
+      // Return the salon (found by ID, not slug)
+      return res.json({
+        success: true,
+        data: { salon },
+        foundById: true // Indicate it was found by ID, not slug
+      });
+    }
+    
+    // Valid slug format - find by slug
+    const salon = await Salon.findOne({ slug: slug })
       .populate('ownerId', 'name email phone');
 
     if (!salon) {

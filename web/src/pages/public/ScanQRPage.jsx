@@ -44,6 +44,18 @@ const ScanQRPage = () => {
       // Fetch salon by slug (preferred) or QR code (backward compatibility)
       let salonData
       if (slug) {
+        // Check if slug is actually a MongoDB ObjectId (24 hex characters)
+        // ObjectIds look like: 6918d02587d35fee7cf6167d (24 characters, hex)
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug)
+        
+        if (isObjectId) {
+          // This is an ID, not a slug - redirect to the correct route
+          console.warn('[ScanQRPage] Slug parameter appears to be a salon ID, redirecting to correct route')
+          navigate(`/salon/${slug}`, { replace: true })
+          return
+        }
+        
+        // Valid slug format - fetch by slug
         salonData = await salonService.getSalonBySlug(slug)
       } else if (qrCode) {
         salonData = await salonService.getSalonByQRCode(qrCode)
