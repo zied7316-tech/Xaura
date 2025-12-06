@@ -23,6 +23,7 @@ const RegisterSalonPage = () => {
     salonPhone: '',
     salonEmail: '',
     operatingMode: 'solo',
+    salonType: 'unisex',
     salonAddress: {
       street: '',
       city: '',
@@ -151,15 +152,31 @@ const RegisterSalonPage = () => {
                 />
               </div>
 
-              <Select
-                label="Operating Mode"
-                value={salonData.operatingMode}
-                onChange={(e) => setSalonData({ ...salonData, operatingMode: e.target.value })}
-                options={[
-                  { value: 'solo', label: 'Solo Mode - I work alone' },
-                  { value: 'team', label: 'Team Mode - I have workers' }
-                ]}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <Select
+                  label="Operating Mode"
+                  value={salonData.operatingMode}
+                  onChange={(e) => setSalonData({ ...salonData, operatingMode: e.target.value })}
+                  options={[
+                    { value: 'solo', label: 'Solo Mode - I work alone' },
+                    { value: 'team', label: 'Team Mode - I have workers' }
+                  ]}
+                />
+
+                <Select
+                  label="Business Type"
+                  value={salonData.salonType}
+                  onChange={(e) => setSalonData({ ...salonData, salonType: e.target.value })}
+                  options={[
+                    { value: 'men', label: 'Men\'s Salon / Barber' },
+                    { value: 'women', label: 'Women\'s Salon' },
+                    { value: 'nails', label: 'Nail Salon' },
+                    { value: 'massage', label: 'Massage Centre' },
+                    { value: 'spa', label: 'Spa / Wellness Center' },
+                    { value: 'unisex', label: 'Unisex / Mixed' }
+                  ]}
+                />
+              </div>
 
               <Input
                 label="Street Address"

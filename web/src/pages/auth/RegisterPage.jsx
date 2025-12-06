@@ -141,7 +141,7 @@ const RegisterPage = () => {
                 }
               })}
             />
-            <p className="text-xs text-gray-600 -mt-2 mb-2">
+            <p className="text-xs text-blue-600 -mt-2 mb-2">
               💬 Enter your 8-digit Tunisian phone number. We'll automatically add the country code (+216). 
               This number will be used for WhatsApp notifications about your appointments.
             </p>
@@ -172,7 +172,7 @@ const RegisterPage = () => {
                   }
                 })}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-purple-600 mt-1">
                 Optional: Share your birthday to receive special gifts and discounts from salons on your special day!
               </p>
             </div>

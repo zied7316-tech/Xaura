@@ -50,6 +50,7 @@ const createSalonAccount = async (req, res, next) => {
       salonAddress,
       workingHours,
       operatingMode,
+      salonType,
       
       // Owner/Admin Credentials (Secondary)
       ownerName,
@@ -125,6 +126,7 @@ const createSalonAccount = async (req, res, next) => {
         sunday: { open: '00:00', close: '00:00', isClosed: true }
       },
       operatingMode: operatingMode || 'solo',
+      salonType: salonType || 'unisex',
       qrCode: qrCodeString,
       slug: slug,
       ownerId: owner._id,
