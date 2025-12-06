@@ -29,6 +29,13 @@ const {
   markWhatsAppPaymentReceived,
   markPixelPaymentReceived
 } = require('../controllers/subscriptionController');
+const {
+  getFinancialOverview,
+  getAllTransactions,
+  getSalonsFinancialSummary,
+  getSalonFinancialHistory,
+  getRevenueTrends
+} = require('../controllers/financialDashboardController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 // All routes require SuperAdmin role
@@ -63,6 +70,13 @@ router.post('/subscriptions/:id/approve-pixel', protect, authorize('SuperAdmin')
 router.post('/subscriptions/:id/mark-upgrade-paid', protect, authorize('SuperAdmin'), markUpgradePaymentReceived);
 router.post('/subscriptions/:id/mark-whatsapp-paid', protect, authorize('SuperAdmin'), markWhatsAppPaymentReceived);
 router.post('/subscriptions/:id/mark-pixel-paid', protect, authorize('SuperAdmin'), markPixelPaymentReceived);
+
+// Financial Dashboard routes
+router.get('/finance/overview', protect, authorize('SuperAdmin'), getFinancialOverview);
+router.get('/finance/transactions', protect, authorize('SuperAdmin'), getAllTransactions);
+router.get('/finance/salons', protect, authorize('SuperAdmin'), getSalonsFinancialSummary);
+router.get('/finance/salons/:salonId/history', protect, authorize('SuperAdmin'), getSalonFinancialHistory);
+router.get('/finance/trends', protect, authorize('SuperAdmin'), getRevenueTrends);
 
 module.exports = router;
 

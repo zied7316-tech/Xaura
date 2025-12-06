@@ -22,6 +22,12 @@ export const SERVICE_CATEGORIES = [
   'Facial',
   'Massage',
   'Waxing',
+  'Therapy',
+  'Body Treatment',
+  'Aromatherapy',
+  'Hot Stone',
+  'Deep Tissue',
+  'Swedish Massage',
   'Other',
 ]
 

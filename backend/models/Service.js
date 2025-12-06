@@ -23,7 +23,7 @@ const serviceSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['Haircut', 'Coloring', 'Styling', 'Manicure', 'Pedicure', 'Facial', 'Massage', 'Waxing', 'Other'],
+    enum: ['Haircut', 'Coloring', 'Styling', 'Manicure', 'Pedicure', 'Facial', 'Massage', 'Waxing', 'Therapy', 'Body Treatment', 'Aromatherapy', 'Hot Stone', 'Deep Tissue', 'Swedish Massage', 'Other'],
     default: 'Other'
   },
   salonId: {

@@ -60,7 +60,7 @@ const salonSchema = new mongoose.Schema({
   // Salon Type (for inventory categorization)
   salonType: {
     type: String,
-    enum: ['men', 'women', 'nails', 'unisex'],
+    enum: ['men', 'women', 'nails', 'massage', 'spa', 'unisex'],
     default: 'unisex'
   },
   workingHours: {

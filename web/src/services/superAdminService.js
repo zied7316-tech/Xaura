@@ -125,5 +125,31 @@ export const superAdminService = {
   markPixelPaymentReceived: async (subscriptionId) => {
     const response = await api.post(`/super-admin/subscriptions/${subscriptionId}/mark-pixel-paid`)
     return response
+  },
+
+  // Financial Dashboard
+  getFinancialOverview: async (params = {}) => {
+    const response = await api.get('/super-admin/finance/overview', { params })
+    return response
+  },
+
+  getAllTransactions: async (params = {}) => {
+    const response = await api.get('/super-admin/finance/transactions', { params })
+    return response
+  },
+
+  getSalonsFinancialSummary: async (params = {}) => {
+    const response = await api.get('/super-admin/finance/salons', { params })
+    return response
+  },
+
+  getSalonFinancialHistory: async (salonId, params = {}) => {
+    const response = await api.get(`/super-admin/finance/salons/${salonId}/history`, { params })
+    return response
+  },
+
+  getRevenueTrends: async (params = {}) => {
+    const response = await api.get('/super-admin/finance/trends', { params })
+    return response
   }
 }

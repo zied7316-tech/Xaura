@@ -19,7 +19,8 @@ const serviceValidation = [
   body('salonId').notEmpty().withMessage('Salon ID is required'),
   body('category').optional().isIn([
     'Haircut', 'Coloring', 'Styling', 'Manicure', 'Pedicure', 
-    'Facial', 'Massage', 'Waxing', 'Other'
+    'Facial', 'Massage', 'Waxing', 'Therapy', 'Body Treatment', 
+    'Aromatherapy', 'Hot Stone', 'Deep Tissue', 'Swedish Massage', 'Other'
   ]).withMessage('Invalid category')
 ];
 
