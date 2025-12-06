@@ -5,31 +5,33 @@ import Button from '../../components/ui/Button'
 import ParticlesBackground from '../../components/background/ParticlesBackground'
 import Logo from '../../components/ui/Logo'
 import LanguageSwitcher from '../../components/layout/LanguageSwitcher'
+import { useLanguage } from '../../context/LanguageContext'
 
 const LandingPage = () => {
   // Landing page component
   const { user } = useAuth()
+  const { t } = useLanguage()
 
   const features = [
     {
       icon: Calendar,
-      title: 'Easy Booking',
-      description: 'Clients can book appointments with just a few clicks'
+      title: t('landing.easyBooking', 'Easy Booking'),
+      description: t('landing.easyBookingDesc', 'Clients can book appointments with just a few clicks')
     },
     {
       icon: QrCode,
-      title: 'QR Code Check-in',
-      description: 'Scan QR codes for instant salon access and booking'
+      title: t('landing.qrCodeCheckin', 'QR Code Check-in'),
+      description: t('landing.qrCodeCheckinDesc', 'Scan QR codes for instant salon access and booking')
     },
     {
       icon: Users,
-      title: 'Staff Management',
-      description: 'Manage your team and their schedules effortlessly'
+      title: t('landing.staffManagement', 'Staff Management'),
+      description: t('landing.staffManagementDesc', 'Manage your team and their schedules effortlessly')
     },
     {
       icon: TrendingUp,
-      title: 'Business Insights',
-      description: 'Track performance and grow your beauty business'
+      title: t('landing.businessInsights', 'Business Insights'),
+      description: t('landing.businessInsightsDesc', 'Track performance and grow your beauty business')
     }
   ]
 
@@ -78,19 +80,18 @@ const LandingPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Manage Your Beauty Business
-            <span className="block text-primary-600">All in One Place</span>
+            {t('landing.manageBeautyBusiness', 'Manage Your Beauty Business')}
+            <span className="block text-primary-600">{t('landing.allInOnePlace', 'All in One Place')}</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Complete salon management and booking system for barbershops, hair salons, 
-            nail studios, and beauty centers. Easy for owners, workers, and clients.
+            {t('landing.heroDescription', 'Complete salon management and booking system for barbershops, hair salons, nail studios, and beauty centers. Easy for owners, workers, and clients.')}
           </p>
           <div className="flex gap-4 justify-center">
             <Link to="/register-salon">
-              <Button size="lg" className="btn-confirm-booking">Create Business Account</Button>
+              <Button size="lg" className="btn-confirm-booking">{t('landing.createBusinessAccount', 'Create Business Account')}</Button>
             </Link>
             <Link to="/login">
-              <Button variant="outline" size="lg">Sign In</Button>
+              <Button variant="outline" size="lg">{t('landing.signIn', 'Sign In')}</Button>
             </Link>
           </div>
         </div>

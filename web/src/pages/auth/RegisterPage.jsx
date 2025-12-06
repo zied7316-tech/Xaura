@@ -10,10 +10,12 @@ import Logo from '../../components/ui/Logo'
 import { USER_ROLES } from '../../utils/constants'
 import toast from 'react-hot-toast'
 import LanguageSwitcher from '../../components/layout/LanguageSwitcher'
+import { useLanguage } from '../../context/LanguageContext'
 
 const RegisterPage = () => {
   const { register: registerUser } = useAuth()
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [userEmail, setUserEmail] = useState('')
@@ -28,9 +30,9 @@ const RegisterPage = () => {
   const selectedRole = watch('role')
 
   const roleOptions = [
-    { value: USER_ROLES.CLIENT, label: 'Client' },
-    { value: USER_ROLES.WORKER, label: 'Worker' },
-    { value: USER_ROLES.OWNER, label: 'Owner' },
+    { value: USER_ROLES.CLIENT, label: t('auth.client', 'Client') },
+    { value: USER_ROLES.WORKER, label: t('auth.worker', 'Worker') },
+    { value: USER_ROLES.OWNER, label: t('auth.owner', 'Owner') },
   ]
 
   const onSubmit = async (data) => {
@@ -91,8 +93,8 @@ const RegisterPage = () => {
           <div className="flex justify-center mb-4">
             <Logo size="xl" showText={true} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-600 mt-2">Join Xaura today</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('auth.createAccount', 'Create Account')}</h1>
+          <p className="text-gray-600 mt-2">{t('auth.joinXaura', 'Join Xaura today')}</p>
         </div>
 
         {/* Register Form */}
@@ -100,16 +102,16 @@ const RegisterPage = () => {
           {!emailSent ? (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <Select
-              label="I am a..."
+              label={t('auth.iam', 'I am a...')}
               options={roleOptions}
               error={errors.role?.message}
               {...register('role', { required: 'Please select your role' })}
             />
 
             <Input
-              label="Full Name"
+              label={t('auth.fullName', 'Full Name')}
               type="text"
-              placeholder="Enter your full name"
+              placeholder={t('auth.fullNamePlaceholder', 'Enter your full name')}
               error={errors.name?.message}
               {...register('name', { 
                 required: 'Name is required',
@@ -121,9 +123,9 @@ const RegisterPage = () => {
             />
 
             <Input
-              label="Email"
+              label={t('common.email', 'Email')}
               type="email"
-              placeholder="Enter your email"
+              placeholder={t('auth.emailPlaceholder', 'Enter your email')}
               error={errors.email?.message}
               {...register('email', { 
                 required: 'Email is required',
@@ -135,9 +137,9 @@ const RegisterPage = () => {
             />
 
             <Input
-              label="Phone Number (WhatsApp)"
+              label={t('auth.phoneWhatsApp', 'Phone Number (WhatsApp)')}
               type="tel"
-              placeholder="12345678"
+              placeholder={t('auth.phonePlaceholder', '12345678')}
               error={errors.phone?.message}
               {...register('phone', { 
                 required: 'WhatsApp phone number is required',
@@ -148,13 +150,12 @@ const RegisterPage = () => {
               })}
             />
             <p className="text-xs text-blue-600 -mt-2 mb-2">
-              💬 Enter your 8-digit Tunisian phone number. We'll automatically add the country code (+216). 
-              This number will be used for WhatsApp notifications about your appointments.
+              {t('auth.phoneExplanation', '💬 Enter your 8-digit Tunisian phone number. We\'ll automatically add the country code (+216). This number will be used for WhatsApp notifications about your appointments.')}
             </p>
 
             <div>
               <Input
-                label="Birthday (Optional)"
+                label={t('auth.birthday', 'Birthday (Optional)')}
                 type="date"
                 error={errors.birthday?.message}
                 {...register('birthday', { 
@@ -179,14 +180,14 @@ const RegisterPage = () => {
                 })}
               />
               <p className="text-xs text-purple-600 mt-1">
-                Optional: Share your birthday to receive special gifts and discounts from salons on your special day!
+                {t('auth.birthdayExplanation', 'Optional: Share your birthday to receive special gifts and discounts from salons on your special day!')}
               </p>
             </div>
 
             <Input
-              label="Password"
+              label={t('auth.password', 'Password')}
               type="password"
-              placeholder="Create a password"
+              placeholder={t('auth.passwordPlaceholderCreate', 'Create a password')}
               error={errors.password?.message}
               {...register('password', { 
                 required: 'Password is required',
@@ -199,7 +200,7 @@ const RegisterPage = () => {
 
             {selectedRole === USER_ROLES.OWNER && (
               <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-primary-800">
-                <strong>Salon Owners:</strong> After registration, you'll be able to create your salon profile and start managing your business.
+                <strong>{t('auth.salonOwnersNote', 'Salon Owners: After registration, you\'ll be able to create your salon profile and start managing your business.')}</strong>
               </div>
             )}
 
@@ -231,7 +232,7 @@ const RegisterPage = () => {
             )}
 
             <Button type="submit" fullWidth loading={loading}>
-              Create Account
+              {t('auth.createAccount', 'Create Account')}
             </Button>
           </form>
           ) : (
@@ -298,9 +299,9 @@ const RegisterPage = () => {
           {/* Divider */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
+              {t('auth.haveAccount', 'Already have an account?')}{' '}
               <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-                Sign in
+                {t('auth.signIn', 'Sign in')}
               </Link>
             </p>
           </div>

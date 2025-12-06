@@ -10,10 +10,12 @@ import Card from '../../components/ui/Card'
 import { Store, User, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import LanguageSwitcher from '../../components/layout/LanguageSwitcher'
+import { useLanguage } from '../../context/LanguageContext'
 
 const RegisterSalonPage = () => {
   const navigate = useNavigate()
   const { updateUser } = useAuth()
+  const { t } = useLanguage()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
 
@@ -99,14 +101,14 @@ const RegisterSalonPage = () => {
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200'}`}>
                 {step > 1 ? <Check size={20} /> : '1'}
               </div>
-              <span className="font-medium">Salon Details</span>
+              <span className="font-medium">{t('auth.salonDetails', 'Salon Details')}</span>
             </div>
             <div className="w-16 h-1 bg-gray-300"></div>
             <div className={`flex items-center gap-2 ${step >= 2 ? 'text-primary-600' : 'text-gray-400'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200'}`}>
                 2
               </div>
-              <span className="font-medium">Owner Account</span>
+              <span className="font-medium">{t('auth.ownerAccount', 'Owner Account')}</span>
             </div>
           </div>
         </div>
@@ -119,21 +121,21 @@ const RegisterSalonPage = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
                   <Store className="text-primary-600" size={32} />
                 </div>
-                <h2 className="text-2xl font-bold">Create Your Business Account</h2>
-                <p className="text-gray-600 mt-2">First, let's set up your salon business</p>
+                <h2 className="text-2xl font-bold">{t('auth.createYourBusinessAccount', 'Create Your Business Account')}</h2>
+                <p className="text-gray-600 mt-2">{t('auth.firstSetupSalon', 'First, let\'s set up your salon business')}</p>
               </div>
 
               <Input
-                label="Salon Name"
-                placeholder="Elegant Beauty Salon"
+                label={t('auth.salonName', 'Salon Name')}
+                placeholder={t('auth.salonNamePlaceholder', 'Elegant Beauty Salon')}
                 required
                 value={salonData.salonName}
                 onChange={(e) => setSalonData({ ...salonData, salonName: e.target.value })}
               />
 
               <Textarea
-                label="Description"
-                placeholder="Tell clients about your salon..."
+                label={t('auth.description', 'Description')}
+                placeholder={t('auth.descriptionPlaceholder', 'Tell clients about your salon...')}
                 rows={3}
                 value={salonData.salonDescription}
                 onChange={(e) => setSalonData({ ...salonData, salonDescription: e.target.value })}
@@ -141,7 +143,7 @@ const RegisterSalonPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <Input
-                  label="Salon Phone"
+                  label={t('auth.salonPhone', 'Salon Phone')}
                   type="tel"
                   placeholder="+1234567890"
                   required
@@ -150,7 +152,7 @@ const RegisterSalonPage = () => {
                 />
 
                 <Input
-                  label="Salon Email"
+                  label={t('auth.salonEmail', 'Salon Email')}
                   type="email"
                   placeholder="info@salon.com"
                   value={salonData.salonEmail}
@@ -160,32 +162,32 @@ const RegisterSalonPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <Select
-                  label="Operating Mode"
+                  label={t('auth.operatingMode', 'Operating Mode')}
                   value={salonData.operatingMode}
                   onChange={(e) => setSalonData({ ...salonData, operatingMode: e.target.value })}
                   options={[
-                    { value: 'solo', label: 'Solo Mode - I work alone' },
-                    { value: 'team', label: 'Team Mode - I have workers' }
+                    { value: 'solo', label: t('auth.soloMode', 'Solo Mode - I work alone') },
+                    { value: 'team', label: t('auth.teamMode', 'Team Mode - I have workers') }
                   ]}
                 />
 
                 <Select
-                  label="Business Type"
+                  label={t('auth.businessType', 'Business Type')}
                   value={salonData.salonType}
                   onChange={(e) => setSalonData({ ...salonData, salonType: e.target.value })}
                   options={[
-                    { value: 'men', label: 'Men\'s Salon / Barber' },
-                    { value: 'women', label: 'Women\'s Salon' },
-                    { value: 'nails', label: 'Nail Salon' },
-                    { value: 'massage', label: 'Massage Centre' },
-                    { value: 'spa', label: 'Spa / Wellness Center' },
-                    { value: 'unisex', label: 'Unisex / Mixed' }
+                    { value: 'men', label: t('auth.businessTypeMen', 'Men\'s Salon / Barber') },
+                    { value: 'women', label: t('auth.businessTypeWomen', 'Women\'s Salon') },
+                    { value: 'nails', label: t('auth.businessTypeNails', 'Nail Salon') },
+                    { value: 'massage', label: t('auth.businessTypeMassage', 'Massage Centre') },
+                    { value: 'spa', label: t('auth.businessTypeSpa', 'Spa / Wellness Center') },
+                    { value: 'unisex', label: t('auth.businessTypeUnisex', 'Unisex / Mixed') }
                   ]}
                 />
               </div>
 
               <Input
-                label="Street Address"
+                label={t('auth.streetAddress', 'Street Address')}
                 placeholder="123 Main St"
                 value={salonData.salonAddress.street}
                 onChange={(e) => setSalonData({
@@ -196,7 +198,7 @@ const RegisterSalonPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <Input
-                  label="City"
+                  label={t('auth.city', 'City')}
                   placeholder="New York"
                   value={salonData.salonAddress.city}
                   onChange={(e) => setSalonData({
@@ -206,7 +208,7 @@ const RegisterSalonPage = () => {
                 />
 
                 <Input
-                  label="State"
+                  label={t('auth.state', 'State')}
                   placeholder="NY"
                   value={salonData.salonAddress.state}
                   onChange={(e) => setSalonData({
@@ -217,7 +219,7 @@ const RegisterSalonPage = () => {
               </div>
 
               <Button onClick={handleNext} fullWidth>
-                Next: Owner Account
+                {t('auth.nextOwnerAccount', 'Next: Owner Account')}
                 <ArrowRight size={20} />
               </Button>
             </div>
@@ -230,19 +232,18 @@ const RegisterSalonPage = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
                   <User className="text-blue-600" size={32} />
                 </div>
-                <h2 className="text-2xl font-bold">Create Owner Account</h2>
+                <h2 className="text-2xl font-bold">{t('auth.createOwnerAccount', 'Create Owner Account')}</h2>
                 <p className="text-gray-600 mt-2">
-                  You'll manage <strong>{salonData.salonName}</strong> with this account
+                  {t('auth.youllManage', 'You\'ll manage')} <strong>{salonData.salonName}</strong> {t('auth.withThisAccount', 'with this account')}
                 </p>
               </div>
 
               <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-primary-800">
-                <strong>Note:</strong> This account will be the admin/manager of your salon business.
-                You'll have full control over all salon operations.
+                <strong>{t('auth.ownerNote', 'Note: This account will be the admin/manager of your salon business. You\'ll have full control over all salon operations.')}</strong>
               </div>
 
               <Input
-                label="Your Full Name"
+                label={t('auth.yourFullName', 'Your Full Name')}
                 placeholder="John Doe"
                 required
                 value={ownerData.ownerName}
@@ -250,7 +251,7 @@ const RegisterSalonPage = () => {
               />
 
               <Input
-                label="Your Email"
+                label={t('auth.yourEmail', 'Your Email')}
                 type="email"
                 placeholder="owner@example.com"
                 required
@@ -259,7 +260,7 @@ const RegisterSalonPage = () => {
               />
 
               <Input
-                label="Your Phone"
+                label={t('auth.yourPhone', 'Your Phone')}
                 type="tel"
                 placeholder="+1234567890"
                 required
@@ -268,9 +269,9 @@ const RegisterSalonPage = () => {
               />
 
               <Input
-                label="Password"
+                label={t('auth.password', 'Password')}
                 type="password"
-                placeholder="Create a secure password"
+                placeholder={t('auth.createSecurePassword', 'Create a secure password')}
                 required
                 value={ownerData.ownerPassword}
                 onChange={(e) => setOwnerData({ ...ownerData, ownerPassword: e.target.value })}
@@ -279,10 +280,10 @@ const RegisterSalonPage = () => {
               <div className="flex gap-3">
                 <Button variant="outline" onClick={handleBack} fullWidth>
                   <ArrowLeft size={20} />
-                  Back
+                  {t('common.back', 'Back')}
                 </Button>
                 <Button onClick={handleSubmit} fullWidth loading={loading}>
-                  Create Business Account
+                  {t('auth.createBusinessAccount', 'Create Business Account')}
                   <Check size={20} />
                 </Button>
               </div>
@@ -292,9 +293,9 @@ const RegisterSalonPage = () => {
 
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
-            Already have a business account?{' '}
+            {t('auth.alreadyHaveBusinessAccount', 'Already have a business account?')}{' '}
             <button onClick={() => navigate('/login')} className="text-primary-600 hover:text-primary-700 font-medium">
-              Sign in
+              {t('auth.signIn', 'Sign in')}
             </button>
           </p>
         </div>
