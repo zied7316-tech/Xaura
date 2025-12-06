@@ -77,7 +77,7 @@ const acceptAppointment = async (req, res, next) => {
     // Notify client that appointment was confirmed
     await createNotification({
       userId: appointment.clientId._id,
-      salonId: appointment.salonId._id,
+      salonId: appointment.salonId._id || appointment.salonId,
       type: 'appointment_confirmed',
       title: 'Appointment Confirmed!',
       message: `Your appointment for ${appointment.serviceId.name} with ${appointment.workerId.name} is confirmed`,
@@ -92,9 +92,20 @@ const acceptAppointment = async (req, res, next) => {
 
     // Send WhatsApp confirmation to client
     try {
-      const notificationService = require('../services/notificationService');
-      // Appointment is already populated with clientId, workerId, serviceId, salonId
-      await notificationService.sendAppointmentStatusUpdate(appointment);
+      // Re-populate appointment with all fields needed for WhatsApp notification
+      // (salonId needs 'name' field which wasn't populated initially)
+      const populatedAppointment = await Appointment.findById(appointment._id)
+        .populate('clientId', 'name email phone')
+        .populate('serviceId', 'name duration price')
+        .populate('workerId', 'name')
+        .populate('salonId', 'name');
+      
+      if (populatedAppointment && populatedAppointment.clientId && populatedAppointment.clientId.phone) {
+        const notificationService = require('../services/notificationService');
+        await notificationService.sendAppointmentStatusUpdate(populatedAppointment);
+      } else {
+        console.warn('[AppointmentManagementController] Cannot send WhatsApp - missing client or phone number');
+      }
     } catch (error) {
       console.error('[AppointmentManagementController] Failed to send WhatsApp confirmation:', error);
       // Don't fail appointment acceptance if WhatsApp fails - just log the error
