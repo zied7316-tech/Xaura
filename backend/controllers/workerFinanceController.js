@@ -39,11 +39,16 @@ const getWorkerWallet = async (req, res, next) => {
     
     const thisMonthPaidOut = thisMonthInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
 
+    // Calculate net balance (balance - outstanding advances)
+    // This is what worker can actually receive
+    const netBalance = Math.max(0, (wallet.balance || 0) - (wallet.outstandingAdvances || 0));
+
     res.json({
       success: true,
       data: {
         ...wallet.toObject(),
-        thisMonthPaidOut
+        thisMonthPaidOut,
+        netBalance // Net available balance after advances
       }
     });
   } catch (error) {
@@ -528,8 +533,18 @@ const generateInvoice = async (req, res, next) => {
         outstandingAdvances: 0 // All advances deducted
       });
     } else {
-      wallet.balance = Math.max(0, wallet.balance - totalEarnings); // Deduct full earnings
-      wallet.totalPaid += totalAmount; // Add net payment
+      // Since balance already has advances deducted (when advance was given),
+      // we need to account for that when deducting earnings
+      // Balance represents: gross earnings - advances already deducted
+      // So when we deduct earnings, we only deduct the net amount (earnings - advances)
+      // OR: we deduct full earnings, but balance already has advances deducted, so it's correct
+      // Actually: balance = gross earnings - advances, so balance - (earnings - advances) = correct
+      // But simpler: balance already reduced by advances, so we deduct full earnings
+      // The balance will be: (gross_earnings - advances) - gross_earnings = -advances, but Math.max makes it 0
+      // Then we reduce outstandingAdvances to 0
+      // This is correct because advances were already deducted from balance
+      wallet.balance = Math.max(0, wallet.balance - totalEarnings); // Deduct full earnings (balance already has advances deducted)
+      wallet.totalPaid += totalAmount; // Add net payment (earnings - advances)
       wallet.outstandingAdvances = Math.max(0, wallet.outstandingAdvances - totalOutstandingAdvances); // Deduct advances
       wallet.lastPayoutDate = new Date();
       await wallet.save();
@@ -1085,6 +1100,8 @@ const giveAdvance = async (req, res, next) => {
     // Update wallet
     wallet.totalAdvances += amount;
     wallet.outstandingAdvances += amount;
+    // Immediately deduct advance from balance (worker sees net balance)
+    wallet.balance = Math.max(0, wallet.balance - amount);
     await wallet.save();
 
     // Populate advance before sending

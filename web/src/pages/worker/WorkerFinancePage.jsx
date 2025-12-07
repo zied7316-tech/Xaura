@@ -84,23 +84,37 @@ const WorkerFinancePage = () => {
       </div>
 
       {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">💰 Paid Balance</p>
-                <p className="text-3xl font-bold mt-2">{formatCurrency(wallet?.balance || 0)}</p>
-                <p className="text-green-100 text-sm mt-1">
-                  From completed services
+                <p className="text-green-100 text-sm font-medium">💰 Net Available Balance</p>
+                <p className="text-3xl font-bold mt-2">
+                  {formatCurrency(wallet?.netBalance !== undefined ? wallet.netBalance : Math.max(0, (wallet?.balance || 0) - (wallet?.outstandingAdvances || 0)))}
                 </p>
-                {(wallet?.outstandingAdvances || 0) > 0 && (
-                  <p className="text-green-100 text-xs mt-2 opacity-90">
-                    Outstanding advances: {formatCurrency(wallet.outstandingAdvances)}
-                  </p>
-                )}
+                <p className="text-green-100 text-sm mt-1">
+                  After advances deducted
+                </p>
               </div>
               <CheckCircle size={48} className="text-green-200" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-sm font-medium">💳 Outstanding Advances</p>
+                <p className="text-3xl font-bold mt-2">
+                  {formatCurrency(wallet?.outstandingAdvances || 0)}
+                </p>
+                <p className="text-purple-100 text-sm mt-1">
+                  To be deducted from next payment
+                </p>
+              </div>
+              <DollarSign size={48} className="text-purple-200" />
             </div>
           </CardContent>
         </Card>
