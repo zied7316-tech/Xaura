@@ -533,17 +533,11 @@ const generateInvoice = async (req, res, next) => {
         outstandingAdvances: 0 // All advances deducted
       });
     } else {
-      // Since balance already has advances deducted (when advance was given),
-      // we need to account for that when deducting earnings
-      // Balance represents: gross earnings - advances already deducted
-      // So when we deduct earnings, we only deduct the net amount (earnings - advances)
-      // OR: we deduct full earnings, but balance already has advances deducted, so it's correct
-      // Actually: balance = gross earnings - advances, so balance - (earnings - advances) = correct
-      // But simpler: balance already reduced by advances, so we deduct full earnings
-      // The balance will be: (gross_earnings - advances) - gross_earnings = -advances, but Math.max makes it 0
-      // Then we reduce outstandingAdvances to 0
-      // This is correct because advances were already deducted from balance
-      wallet.balance = Math.max(0, wallet.balance - totalEarnings); // Deduct full earnings (balance already has advances deducted)
+      // Balance represents gross earnings (before advances are deducted)
+      // When generating invoice, we deduct the gross earnings from balance
+      // and deduct the advances from outstandingAdvances
+      // netBalance = balance - outstandingAdvances will correctly show available balance
+      wallet.balance = Math.max(0, wallet.balance - totalEarnings); // Deduct gross earnings
       wallet.totalPaid += totalAmount; // Add net payment (earnings - advances)
       wallet.outstandingAdvances = Math.max(0, wallet.outstandingAdvances - totalOutstandingAdvances); // Deduct advances
       wallet.lastPayoutDate = new Date();
@@ -1100,8 +1094,9 @@ const giveAdvance = async (req, res, next) => {
     // Update wallet
     wallet.totalAdvances += amount;
     wallet.outstandingAdvances += amount;
-    // Immediately deduct advance from balance (worker sees net balance)
-    wallet.balance = Math.max(0, wallet.balance - amount);
+    // DO NOT reduce balance here - balance represents gross earnings
+    // netBalance calculation (balance - outstandingAdvances) will handle the deduction
+    // This prevents double deduction: balance should stay as gross earnings
     await wallet.save();
 
     // Populate advance before sending

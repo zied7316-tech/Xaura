@@ -452,6 +452,10 @@ const createNotification = async (notificationData) => {
     try {
       const notification = await Notification.create(notificationData);
       
+      // Push notifications disabled - using WhatsApp messages instead
+      // Push notification code commented out to prevent sending push notifications
+      // for appointments and other events
+      /*
       // Send push notification if user has registered tokens
       try {
         const pushNotificationService = require('../services/pushNotificationService');
@@ -468,6 +472,7 @@ const createNotification = async (notificationData) => {
         // Don't fail notification creation if push fails
         console.log('Push notification not sent (may not be configured):', pushError.message);
       }
+      */
       
       return notification;
     } catch (createError) {
