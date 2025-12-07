@@ -147,9 +147,19 @@ const getAllWorkersWallets = async (req, res, next) => {
     const wallets = await WorkerWallet.find({ salonId: salon._id })
       .populate('workerId', 'name email avatar paymentModel');
 
+    // Calculate netBalance for each wallet (same as worker endpoint)
+    // netBalance = balance - outstandingAdvances (what worker can actually receive)
+    const walletsWithNetBalance = wallets.map(wallet => {
+      const netBalance = Math.max(0, (wallet.balance || 0) - (wallet.outstandingAdvances || 0));
+      return {
+        ...wallet.toObject(),
+        netBalance // Add netBalance to match worker view
+      };
+    });
+
     res.json({
       success: true,
-      data: wallets
+      data: walletsWithNetBalance
     });
   } catch (error) {
     next(error);

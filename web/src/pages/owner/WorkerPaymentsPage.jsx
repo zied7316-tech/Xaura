@@ -373,6 +373,7 @@ const WorkerPaymentsPage = () => {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Worker</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Payment Model</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Balance</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Net Balance</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Outstanding Advances</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Earned</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Paid</th>
@@ -402,6 +403,11 @@ const WorkerPaymentsPage = () => {
                       <td className="py-3 px-4 text-right">
                         <span className={`font-semibold ${wallet.balance > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
                           {formatCurrency(wallet.balance)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className={`font-semibold ${(wallet.netBalance !== undefined ? wallet.netBalance : Math.max(0, (wallet.balance || 0) - (wallet.outstandingAdvances || 0))) > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                          {formatCurrency(wallet.netBalance !== undefined ? wallet.netBalance : Math.max(0, (wallet.balance || 0) - (wallet.outstandingAdvances || 0)))}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
