@@ -13,6 +13,7 @@ const WorkerFinancePage = () => {
   const [unpaidEarnings, setUnpaidEarnings] = useState([])
   const [estimatedEarnings, setEstimatedEarnings] = useState(null)
   const [paymentHistory, setPaymentHistory] = useState([])
+  const [advances, setAdvances] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('paid')
   const [processing, setProcessing] = useState(false)
@@ -23,12 +24,13 @@ const WorkerFinancePage = () => {
 
   const loadFinancialData = async () => {
     try {
-      const [walletData, paidData, unpaidData, estimatedData, historyData] = await Promise.all([
+      const [walletData, paidData, unpaidData, estimatedData, historyData, advancesData] = await Promise.all([
         workerFinanceService.getWallet(),
         workerFinanceService.getPaidEarnings(),
         workerFinanceService.getUnpaidEarnings(),
         workerFinanceService.getEstimatedEarnings(),
-        workerFinanceService.getPaymentHistory()
+        workerFinanceService.getPaymentHistory(),
+        workerFinanceService.getWorkerAdvances()
       ])
       
       setWallet(walletData)
@@ -36,6 +38,7 @@ const WorkerFinancePage = () => {
       setUnpaidEarnings(unpaidData.earnings || [])
       setEstimatedEarnings(estimatedData)
       setPaymentHistory(historyData)
+      setAdvances(advancesData.advances || [])
     } catch (error) {
       console.error('Error loading financial data:', error)
       toast.error('Failed to load financial data')
@@ -91,6 +94,11 @@ const WorkerFinancePage = () => {
                 <p className="text-green-100 text-sm mt-1">
                   From completed services
                 </p>
+                {(wallet?.outstandingAdvances || 0) > 0 && (
+                  <p className="text-green-100 text-xs mt-2 opacity-90">
+                    Outstanding advances: {formatCurrency(wallet.outstandingAdvances)}
+                  </p>
+                )}
               </div>
               <CheckCircle size={48} className="text-green-200" />
             </div>
@@ -196,6 +204,17 @@ const WorkerFinancePage = () => {
             >
               <FileText className="inline mr-2" size={18} />
               Payment History ({paymentHistory.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('advances')}
+              className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'advances'
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <DollarSign className="inline mr-2" size={18} />
+              Advances ({advances.filter(a => a.status === 'approved').length})
             </button>
           </div>
         </div>
@@ -509,6 +528,90 @@ const WorkerFinancePage = () => {
                     </Card>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'advances' && (
+            <div className="space-y-4">
+              {advances.length === 0 ? (
+                <div className="text-center py-12">
+                  <DollarSign className="mx-auto text-gray-400 mb-4" size={48} />
+                  <p className="text-gray-600">No advances yet</p>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Advances given by the owner will appear here
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-purple-700 font-medium">Outstanding Advances</p>
+                        <p className="text-xs text-purple-600 mt-1">
+                          These will be deducted from your next payment
+                        </p>
+                      </div>
+                      <p className="text-3xl font-bold text-purple-600">
+                        {formatCurrency(advances.filter(a => a.status === 'approved').reduce((sum, a) => sum + a.amount, 0))}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Reason</th>
+                          <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Deducted From</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {advances.map((advance) => (
+                          <tr key={advance._id} className="border-b border-gray-100 hover:bg-purple-50">
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {formatDate(advance.givenAt)}
+                            </td>
+                            <td className="py-3 px-4 text-sm font-semibold text-purple-600">
+                              {formatCurrency(advance.amount)}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-900">
+                              {advance.reason || 'No reason provided'}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <Badge 
+                                variant={
+                                  advance.status === 'deducted' ? 'success' : 
+                                  advance.status === 'approved' ? 'warning' : 
+                                  'default'
+                                }
+                              >
+                                {advance.status === 'deducted' ? 'Deducted' : 
+                                 advance.status === 'approved' ? 'Outstanding' : 
+                                 'Pending'}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {advance.invoiceId?.invoiceNumber || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-purple-50">
+                          <td colSpan="1" className="py-3 px-4 text-sm font-semibold text-gray-900 text-right">
+                            Total Given:
+                          </td>
+                          <td className="py-3 px-4 text-lg font-bold text-purple-600">
+                            {formatCurrency(advances.reduce((sum, a) => sum + a.amount, 0))}
+                          </td>
+                          <td colSpan="3"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           )}

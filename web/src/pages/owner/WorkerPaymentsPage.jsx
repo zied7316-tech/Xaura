@@ -24,6 +24,7 @@ const WorkerPaymentsPage = () => {
   const [workerSummary, setWorkerSummary] = useState(null)
   const [paidEarnings, setPaidEarnings] = useState([])
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
 
@@ -31,6 +32,12 @@ const WorkerPaymentsPage = () => {
     periodStart: '',
     periodEnd: '',
     paymentMethod: 'cash',
+    notes: ''
+  })
+
+  const [advanceData, setAdvanceData] = useState({
+    amount: '',
+    reason: '',
     notes: ''
   })
 
@@ -80,6 +87,46 @@ const WorkerPaymentsPage = () => {
       paymentMethod: 'cash',
       notes: ''
     })
+  }
+
+  const handleGiveAdvance = async () => {
+    if (!selectedWorker || !advanceData.amount) {
+      toast.error('Please enter an advance amount')
+      return
+    }
+
+    const amount = parseFloat(advanceData.amount)
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount')
+      return
+    }
+
+    setGenerating(true)
+    try {
+      await workerFinanceService.giveAdvance({
+        workerId: selectedWorker.workerId._id,
+        amount,
+        reason: advanceData.reason || '',
+        notes: advanceData.notes || ''
+      })
+      
+      toast.success('Advance given successfully!')
+      setShowAdvanceModal(false)
+      setAdvanceData({ amount: '', reason: '', notes: '' })
+      setSelectedWorker(null)
+      loadWallets()
+    } catch (error) {
+      console.error('Error giving advance:', error)
+      toast.error(error.response?.data?.message || 'Failed to give advance')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const handleSelectWorkerForAdvance = (wallet) => {
+    setSelectedWorker(wallet)
+    setAdvanceData({ amount: '', reason: '', notes: '' })
+    setShowAdvanceModal(true)
   }
 
   const handleGenerateInvoice = async () => {
@@ -326,6 +373,7 @@ const WorkerPaymentsPage = () => {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Worker</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Payment Model</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Balance</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Outstanding Advances</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Earned</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Paid</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Last Payout</th>
@@ -356,6 +404,11 @@ const WorkerPaymentsPage = () => {
                           {formatCurrency(wallet.balance)}
                         </span>
                       </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className={`font-semibold ${(wallet.outstandingAdvances || 0) > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                          {formatCurrency(wallet.outstandingAdvances || 0)}
+                        </span>
+                      </td>
                       <td className="py-3 px-4 text-right text-gray-900 font-medium">
                         {formatCurrency(wallet.totalEarned)}
                       </td>
@@ -366,7 +419,7 @@ const WorkerPaymentsPage = () => {
                         {wallet.lastPayoutDate ? formatDate(wallet.lastPayoutDate) : 'Never'}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <div className="flex gap-2 justify-center">
+                        <div className="flex gap-2 justify-center flex-wrap">
                           <Button
                             variant="primary"
                             size="sm"
@@ -396,6 +449,16 @@ const WorkerPaymentsPage = () => {
                             title="Custom period"
                           >
                             📅 Custom
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSelectWorkerForAdvance(wallet)}
+                            disabled={generating}
+                            title="Give advance payment"
+                            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                          >
+                            💳 Advance
                           </Button>
                         </div>
                       </td>
@@ -540,6 +603,122 @@ const WorkerPaymentsPage = () => {
                 onClick={() => {
                   setShowInvoiceModal(false)
                   setSelectedWorker(null)
+                }}
+                fullWidth
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Give Advance Modal */}
+      <Modal
+        isOpen={showAdvanceModal}
+        onClose={() => {
+          setShowAdvanceModal(false)
+          setSelectedWorker(null)
+          setAdvanceData({ amount: '', reason: '', notes: '' })
+        }}
+        title="Give Advance Payment"
+        size="md"
+      >
+        {selectedWorker && (
+          <div className="space-y-6">
+            {/* Worker Info */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-2">Worker Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Name</p>
+                  <p className="text-gray-900 font-medium">{selectedWorker.workerId.name}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Current Balance</p>
+                  <p className="text-lg font-bold text-primary-600">
+                    {formatCurrency(selectedWorker.balance)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Outstanding Advances</p>
+                  <p className="text-lg font-bold text-red-600">
+                    {formatCurrency(selectedWorker.outstandingAdvances || 0)}
+                  </p>
+                </div>
+                {selectedWorker.advanceLimit && (
+                  <div>
+                    <p className="text-gray-600">Advance Limit</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {formatCurrency(selectedWorker.advanceLimit)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Advance Details */}
+            <div className="space-y-4">
+              <Input
+                label="Advance Amount *"
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="0.00"
+                value={advanceData.amount}
+                onChange={(e) => setAdvanceData({ ...advanceData, amount: e.target.value })}
+                required
+              />
+
+              <Input
+                label="Reason (Optional)"
+                placeholder="e.g., Emergency, Personal expense..."
+                value={advanceData.reason}
+                onChange={(e) => setAdvanceData({ ...advanceData, reason: e.target.value })}
+              />
+
+              <Input
+                label="Notes (Optional)"
+                placeholder="Add any additional notes..."
+                value={advanceData.notes}
+                onChange={(e) => setAdvanceData({ ...advanceData, notes: e.target.value })}
+              />
+            </div>
+
+            {/* Warning if limit exceeded */}
+            {selectedWorker.advanceLimit && advanceData.amount && (
+              (parseFloat(advanceData.amount) + (selectedWorker.outstandingAdvances || 0)) > selectedWorker.advanceLimit && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="text-red-600 mt-0.5" size={20} />
+                    <div>
+                      <p className="text-sm font-medium text-red-800">Advance Limit Warning</p>
+                      <p className="text-sm text-red-700 mt-1">
+                        This advance will exceed the limit. Current outstanding: {formatCurrency(selectedWorker.outstandingAdvances || 0)}, Limit: {formatCurrency(selectedWorker.advanceLimit)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4 border-t">
+              <Button
+                onClick={handleGiveAdvance}
+                loading={generating}
+                disabled={!advanceData.amount || parseFloat(advanceData.amount) <= 0}
+                fullWidth
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                💳 Give Advance
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAdvanceModal(false)
+                  setSelectedWorker(null)
+                  setAdvanceData({ amount: '', reason: '', notes: '' })
                 }}
                 fullWidth
               >

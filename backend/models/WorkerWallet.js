@@ -30,6 +30,22 @@ const workerWalletSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  // Advance tracking
+  totalAdvances: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  outstandingAdvances: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  advanceLimit: {
+    type: Number,
+    default: null, // null = no limit
+    min: 0
+  },
   // Payment schedule preference
   paymentSchedule: {
     type: String,

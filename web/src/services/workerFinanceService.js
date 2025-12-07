@@ -104,6 +104,24 @@ export const workerFinanceService = {
       getAuthHeader()
     )
     return response.data.data
+  },
+
+  // Advance endpoints
+  giveAdvance: async (data) => {
+    const response = await axios.post(
+      `${API_URL}/worker-finance/give-advance`,
+      data,
+      getAuthHeader()
+    )
+    return response.data.data
+  },
+
+  getWorkerAdvances: async (workerId = null) => {
+    const url = workerId 
+      ? `${API_URL}/worker-finance/advances/${workerId}`
+      : `${API_URL}/worker-finance/advances`
+    const response = await axios.get(url, getAuthHeader())
+    return response.data.data
   }
 }
 

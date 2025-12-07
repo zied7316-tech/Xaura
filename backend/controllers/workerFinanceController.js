@@ -1,6 +1,7 @@
 const WorkerWallet = require('../models/WorkerWallet');
 const WorkerInvoice = require('../models/WorkerInvoice');
 const WorkerEarning = require('../models/WorkerEarning');
+const WorkerAdvance = require('../models/WorkerAdvance');
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const Salon = require('../models/Salon');
@@ -434,8 +435,20 @@ const generateInvoice = async (req, res, next) => {
       });
     }
 
-    // Calculate total
-    const totalAmount = earnings.reduce((sum, e) => sum + e.workerEarning, 0);
+    // Calculate total earnings
+    const totalEarnings = earnings.reduce((sum, e) => sum + e.workerEarning, 0);
+
+    // Get outstanding advances for this worker
+    const outstandingAdvances = await WorkerAdvance.find({
+      workerId: workerIdStr,
+      salonId: salon._id,
+      status: 'approved' // Only approved advances that haven't been deducted
+    });
+
+    const totalOutstandingAdvances = outstandingAdvances.reduce((sum, a) => sum + a.amount, 0);
+
+    // Calculate net payment amount (earnings - advances)
+    const totalAmount = Math.max(0, totalEarnings - totalOutstandingAdvances);
 
     // Generate invoice number
     const invoiceNumber = await WorkerInvoice.generateInvoiceNumber();
@@ -454,14 +467,19 @@ const generateInvoice = async (req, res, next) => {
       invoicePeriodEnd = sortedEarnings[sortedEarnings.length - 1]?.serviceDate || new Date();
     }
 
-    // Create invoice
+    // Create invoice with advance deduction info
+    const invoiceNotes = notes || '';
+    const advanceNote = totalOutstandingAdvances > 0 
+      ? `\n\nAdvances deducted: ${totalOutstandingAdvances.toFixed(2)} (Gross earnings: ${totalEarnings.toFixed(2)})`
+      : '';
+    
     const invoice = await WorkerInvoice.create({
       invoiceNumber,
       workerId: workerIdStr,
       salonId: salon._id,
       periodStart: invoicePeriodStart,
       periodEnd: invoicePeriodEnd,
-      totalAmount,
+      totalAmount, // Net amount after advance deduction
       appointmentsCount: earnings.length,
       breakdown: earnings.map(e => ({
         appointmentId: e.appointmentId,
@@ -474,9 +492,21 @@ const generateInvoice = async (req, res, next) => {
       status: 'paid',
       paidDate: new Date(),
       paymentMethod: paymentMethod || 'cash',
-      notes: notes || '',
+      notes: invoiceNotes + advanceNote,
       generatedBy: req.user.id
     });
+
+    // Mark advances as deducted
+    if (outstandingAdvances.length > 0) {
+      await WorkerAdvance.updateMany(
+        { _id: { $in: outstandingAdvances.map(a => a._id) } },
+        {
+          status: 'deducted',
+          deductedAt: new Date(),
+          invoiceId: invoice._id
+        }
+      );
+    }
 
     // Mark earnings as invoiced (link to invoice)
     await WorkerEarning.updateMany(
@@ -493,12 +523,14 @@ const generateInvoice = async (req, res, next) => {
         workerId: workerIdStr,
         salonId: salon._id,
         balance: 0,
-        totalEarned: totalAmount,
-        totalPaid: totalAmount
+        totalEarned: totalEarnings, // Total earnings before advance deduction
+        totalPaid: totalAmount, // Net amount paid after advance deduction
+        outstandingAdvances: 0 // All advances deducted
       });
     } else {
-      wallet.balance = Math.max(0, wallet.balance - totalAmount);
-      wallet.totalPaid += totalAmount;
+      wallet.balance = Math.max(0, wallet.balance - totalEarnings); // Deduct full earnings
+      wallet.totalPaid += totalAmount; // Add net payment
+      wallet.outstandingAdvances = Math.max(0, wallet.outstandingAdvances - totalOutstandingAdvances); // Deduct advances
       wallet.lastPayoutDate = new Date();
       await wallet.save();
     }
@@ -963,6 +995,208 @@ const recalculateWalletBalance = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Give advance to worker (Owner only)
+ * @route   POST /api/worker-finance/give-advance
+ * @access  Private (Owner)
+ */
+const giveAdvance = async (req, res, next) => {
+  try {
+    const { workerId, amount, reason, notes } = req.body;
+
+    // Validate required fields
+    if (!workerId || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Worker ID and amount are required'
+      });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Advance amount must be greater than 0'
+      });
+    }
+
+    // SECURITY: Verify user is Owner
+    if (req.user.role !== 'Owner') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only salon owners can give advances to workers'
+      });
+    }
+
+    // Verify owner owns a salon
+    const salon = await Salon.findOne({ ownerId: req.user.id });
+    if (!salon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    // Verify worker exists and belongs to salon
+    const worker = await User.findOne({
+      _id: workerId,
+      salonId: salon._id,
+      role: 'Worker'
+    });
+
+    if (!worker) {
+      return res.status(404).json({
+        success: false,
+        message: 'Worker not found or does not belong to your salon'
+      });
+    }
+
+    // Check advance limit if set
+    let wallet = await WorkerWallet.findOne({ workerId });
+    if (!wallet) {
+      wallet = await WorkerWallet.create({
+        workerId,
+        salonId: salon._id,
+        balance: 0,
+        totalEarned: 0,
+        totalPaid: 0,
+        totalAdvances: 0,
+        outstandingAdvances: 0
+      });
+    }
+
+    if (wallet.advanceLimit && (wallet.outstandingAdvances + amount) > wallet.advanceLimit) {
+      return res.status(400).json({
+        success: false,
+        message: `Advance limit exceeded. Current outstanding: ${wallet.outstandingAdvances}, Limit: ${wallet.advanceLimit}`
+      });
+    }
+
+    // Create advance record
+    const advance = await WorkerAdvance.create({
+      workerId,
+      salonId: salon._id,
+      amount,
+      reason: reason || '',
+      status: 'approved',
+      givenBy: req.user.id,
+      notes: notes || ''
+    });
+
+    // Update wallet
+    wallet.totalAdvances += amount;
+    wallet.outstandingAdvances += amount;
+    await wallet.save();
+
+    // Populate advance before sending
+    const populatedAdvance = await WorkerAdvance.findById(advance._id)
+      .populate('workerId', 'name email')
+      .populate('givenBy', 'name email');
+
+    res.status(201).json({
+      success: true,
+      message: 'Advance given successfully',
+      data: populatedAdvance
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get worker advances (Owner - all workers, Worker - own advances)
+ * @route   GET /api/worker-finance/advances/:workerId?
+ * @access  Private (Owner, Worker)
+ */
+const getWorkerAdvances = async (req, res, next) => {
+  try {
+    const { workerId } = req.params;
+    const { status } = req.query;
+
+    // If workerId provided, owner can view any worker's advances
+    if (workerId) {
+      if (req.user.role !== 'Owner') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only owners can view other workers\' advances'
+        });
+      }
+
+      // Verify owner owns a salon
+      const salon = await Salon.findOne({ ownerId: req.user.id });
+      if (!salon) {
+        return res.status(404).json({
+          success: false,
+          message: 'Salon not found'
+        });
+      }
+
+      const filter = {
+        workerId,
+        salonId: salon._id
+      };
+
+      if (status) {
+        filter.status = status;
+      }
+
+      const advances = await WorkerAdvance.find(filter)
+        .populate('workerId', 'name email')
+        .populate('givenBy', 'name email')
+        .populate('invoiceId', 'invoiceNumber')
+        .sort({ createdAt: -1 });
+
+      const totalOutstanding = advances
+        .filter(a => a.status === 'approved')
+        .reduce((sum, a) => sum + a.amount, 0);
+
+      res.json({
+        success: true,
+        data: {
+          advances,
+          totalOutstanding,
+          totalGiven: advances.reduce((sum, a) => sum + a.amount, 0)
+        }
+      });
+    } else {
+      // Worker viewing own advances
+      if (req.user.role !== 'Worker') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only workers can view their own advances'
+        });
+      }
+
+      const filter = {
+        workerId: req.user.id
+      };
+
+      if (status) {
+        filter.status = status;
+      }
+
+      const advances = await WorkerAdvance.find(filter)
+        .populate('givenBy', 'name email')
+        .populate('invoiceId', 'invoiceNumber')
+        .sort({ createdAt: -1 });
+
+      const totalOutstanding = advances
+        .filter(a => a.status === 'approved')
+        .reduce((sum, a) => sum + a.amount, 0);
+
+      res.json({
+        success: true,
+        data: {
+          advances,
+          totalOutstanding,
+          totalGiven: advances.reduce((sum, a) => sum + a.amount, 0)
+        }
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getWorkerWallet,
   getUnpaidEarnings,
@@ -976,6 +1210,8 @@ module.exports = {
   recordEarning,
   getWorkerFinancialSummary,
   getEstimatedEarnings,
-  recalculateWalletBalance
+  recalculateWalletBalance,
+  giveAdvance,
+  getWorkerAdvances
 };
 
