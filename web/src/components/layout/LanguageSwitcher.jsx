@@ -35,11 +35,11 @@ const LanguageSwitcher = () => {
       {/* Language Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-gray-100 transition-colors min-w-[36px] sm:min-w-auto"
         title="Change Language"
       >
-        <Globe className="w-5 h-5 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">
+        <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
+        <span className="text-xs sm:text-sm font-medium text-gray-700 hidden sm:inline">
           {currentLanguage?.flag} {currentLanguage?.code.toUpperCase()}
         </span>
       </button>

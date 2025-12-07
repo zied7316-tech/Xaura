@@ -55,19 +55,24 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Logo size="lg" showText={true} linkTo="/" />
-            <div className="flex items-center gap-4">
-              <LanguageSwitcher />
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="hidden sm:block">
+                <LanguageSwitcher />
+              </div>
               {user ? (
                 <Link to={`/${user.role.toLowerCase()}/dashboard`}>
-                  <Button>Dashboard</Button>
+                  <Button size="sm" className="text-sm">Dashboard</Button>
                 </Link>
               ) : (
                 <>
+                  <div className="sm:hidden">
+                    <LanguageSwitcher />
+                  </div>
                   <Link to="/login">
-                    <Button variant="ghost">Login</Button>
+                    <Button variant="ghost" size="sm" className="text-sm hidden sm:inline-flex">Login</Button>
                   </Link>
                   <Link to="/register">
-                    <Button className="btn-confirm-booking">Get Started</Button>
+                    <Button className="btn-confirm-booking text-sm" size="sm">Get Started</Button>
                   </Link>
                 </>
               )}
