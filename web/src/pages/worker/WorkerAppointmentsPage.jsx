@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { formatDate, formatTime, formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
+import { playWorkerNotificationSound } from '../../utils/soundNotification'
 
 const WorkerAppointmentsPage = () => {
   const [pendingAppointments, setPendingAppointments] = useState([])
@@ -129,6 +130,9 @@ const WorkerAppointmentsPage = () => {
       } else {
         toast.success('✅ Service completed, payment pending')
       }
+      
+      // Play notification sound for worker
+      playWorkerNotificationSound()
       
       setShowPaymentModal(false)
       setSelectedAppointment(null)

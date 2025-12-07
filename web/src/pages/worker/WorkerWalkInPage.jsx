@@ -9,6 +9,7 @@ import Select from '../../components/ui/Select'
 import toast from 'react-hot-toast'
 import { UserPlus, DollarSign, Calendar } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
+import { playWorkerNotificationSound } from '../../utils/soundNotification'
 
 const WorkerWalkInPage = () => {
   const navigate = useNavigate()
@@ -79,6 +80,10 @@ const WorkerWalkInPage = () => {
 
       if (result && result.success) {
         toast.success('Walk-in client added successfully!')
+        
+        // Play notification sound for worker
+        playWorkerNotificationSound()
+        
         // Reset form
         setFormData({
           serviceId: '',
