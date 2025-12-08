@@ -239,13 +239,13 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
 
       {/* Printable Poster */}
       <div className="bg-white rounded-3xl shadow-2xl overflow-hidden print:shadow-none print:rounded-none print:bg-white border-2 border-gray-200" id="qr-poster">
-        {/* Header Section - Enhanced with more shine */}
-        <div className="relative bg-gradient-to-r from-primary-600 via-purple-600 via-pink-600 to-orange-500 p-8 text-white print:p-6 print:bg-primary-600 overflow-hidden">
+        {/* Header Section - Smaller banner, same text size */}
+        <div className="relative bg-gradient-to-r from-primary-600 via-purple-600 via-pink-600 to-orange-500 p-4 text-white print:p-3 print:bg-primary-600 overflow-hidden">
           {/* Shine effect overlay - Hidden in print */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none print:hidden"></div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none print:hidden"></div>
           
-          <div className="relative flex items-center justify-between mb-6">
+          <div className="relative flex items-center justify-between mb-3 print:mb-2">
             <div className="flex-1">
               <h1 className="text-5xl font-extrabold mb-3 print:text-3xl drop-shadow-lg tracking-tight">
                 {salon?.name || (isFrench ? 'Notre Salon' : 'Our Salon')}
@@ -282,25 +282,10 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="p-8 print:p-6 bg-gradient-to-b from-white to-gray-50 print:bg-white">
-          {/* Call to Action - Enhanced */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-primary-50 via-purple-50 to-pink-50 px-8 py-4 rounded-2xl mb-4 print:bg-gray-100 print:border-2 print:border-primary-300 shadow-lg border-2 border-primary-100">
-              <div className="p-2 bg-gradient-to-br from-primary-500 to-purple-500 rounded-xl shadow-md print:bg-primary-600 print:shadow-none">
-                <Smartphone className="text-white" size={28} />
-              </div>
-              <h2 className="text-4xl font-extrabold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent print:text-2xl print:bg-none print:text-gray-900 print:font-bold">
-                {translations.scanToBook}
-              </h2>
-            </div>
-            <p className="text-xl text-gray-700 print:text-lg font-medium">
-              {translations.noAppRequired}
-            </p>
-          </div>
-
+        {/* Main Content - Start directly under banner, no gap */}
+        <div className="p-8 print:p-6 print:pt-4 bg-gradient-to-b from-white to-gray-50 print:bg-white">
           {/* QR Code Section - Enhanced */}
-          <div className="flex flex-col md:flex-row items-center justify-center gap-10 mb-10 print:flex-col print:gap-6">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-10 mb-10 print:flex-col print:gap-6 print:mt-0">
             {/* QR Code - More beautiful */}
             <div className="relative">
               {/* Glow effect - Hidden in print */}
@@ -584,11 +569,18 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
           #qr-poster > div:first-child {
             background: #6366f1 !important;
             background-image: none !important;
+            border-bottom: none !important;
           }
           
           /* Simplify header overlays */
           #qr-poster > div:first-child > div[class*="absolute"] {
             display: none !important;
+          }
+          
+          /* Remove border and gap between header and content */
+          #qr-poster > div:nth-child(2) {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
           }
           
           /* Ensure text is readable in print */
