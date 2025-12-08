@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { financialService } from '../../services/financialService'
+import { useLanguage } from '../../context/LanguageContext'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -11,6 +12,7 @@ import { formatCurrency, formatDate, formatDateTime } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const FinancesPage = () => {
+  const { t } = useLanguage()
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState('today')
@@ -433,8 +435,8 @@ const FinancesPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Finance Dashboard</h1>
-          <p className="text-gray-600 mt-1">Track your salon's financial performance</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('finance.title', 'Finance Dashboard')}</h1>
+          <p className="text-gray-600 mt-1">{t('finance.subtitle', 'Track your salon\'s financial performance')}</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -443,7 +445,7 @@ const FinancesPage = () => {
             className="flex items-center gap-2"
           >
             <Plus size={18} />
-            Add Expense
+            {t('finance.addExpense', 'Add Expense')}
           </Button>
           <Button
             variant="outline"
@@ -457,7 +459,7 @@ const FinancesPage = () => {
             className="flex items-center gap-2"
           >
             <History size={18} />
-            {showHistory ? 'Hide History' : 'View History'}
+            {showHistory ? t('finance.hideHistory', 'Hide History') : t('finance.viewHistory', 'View History')}
           </Button>
           {dateRange === 'today' && !todayClosure && !checkingClosure && (
             <Button
@@ -466,13 +468,13 @@ const FinancesPage = () => {
               className="flex items-center gap-2"
             >
               <Lock size={18} />
-              Close Day
+              {t('finance.closeDay', 'Close Day')}
             </Button>
           )}
           {dateRange === 'today' && todayClosure && (
             <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
               <CheckCircle className="text-green-600" size={18} />
-              <span className="text-sm font-medium text-green-700">Day Closed</span>
+              <span className="text-sm font-medium text-green-700">{t('finance.dayClosed', 'Day Closed')}</span>
             </div>
           )}
         </div>
@@ -484,7 +486,7 @@ const FinancesPage = () => {
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <Calendar className="text-gray-500" size={20} />
-              <span className="text-sm font-medium text-gray-700">Date Range:</span>
+              <span className="text-sm font-medium text-gray-700">{t('finance.dateRange', 'Date Range')}:</span>
             </div>
             <div className="flex gap-2">
               <Button
@@ -493,7 +495,7 @@ const FinancesPage = () => {
                 onClick={() => handleDateRangeChange('today')}
                 disabled={loading}
               >
-                Today
+                {t('finance.today', 'Today')}
               </Button>
               <Button
                 variant={dateRange === 'yesterday' ? 'primary' : 'outline'}
@@ -501,7 +503,7 @@ const FinancesPage = () => {
                 onClick={() => handleDateRangeChange('yesterday')}
                 disabled={loading}
               >
-                Yesterday
+                {t('finance.yesterday', 'Yesterday')}
               </Button>
               <Button
                 variant={dateRange === 'custom' ? 'primary' : 'outline'}
@@ -509,7 +511,7 @@ const FinancesPage = () => {
                 onClick={() => handleDateRangeChange('custom')}
                 disabled={loading}
               >
-                Custom Range
+                {t('finance.customRange', 'Custom Range')}
               </Button>
             </div>
             {dateRange === 'custom' && (
@@ -521,7 +523,7 @@ const FinancesPage = () => {
                   className="w-40"
                   disabled={loading}
                 />
-                <span className="text-gray-500">to</span>
+                <span className="text-gray-500">{t('common.to', 'to')}</span>
                 <Input
                   type="date"
                   value={customEndDate}
@@ -534,9 +536,9 @@ const FinancesPage = () => {
             {dashboardData && displayStartDate && displayEndDate && (
               <div className="ml-auto text-sm text-gray-600">
                 {dateRange === 'today' || dateRange === 'yesterday' ? (
-                  `Showing: ${formatDate(displayStartDate)}`
+                  `${t('finance.showing', 'Showing')}: ${formatDate(displayStartDate)}`
                 ) : (
-                  `Showing: ${formatDate(displayStartDate)} to ${formatDate(displayEndDate)}`
+                  `${t('finance.showing', 'Showing')}: ${formatDate(displayStartDate)} ${t('common.to', 'to')} ${formatDate(displayEndDate)}`
                 )}
               </div>
             )}
@@ -549,12 +551,12 @@ const FinancesPage = () => {
         <Card>
           <div className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+              <p className="text-sm text-gray-600 mb-1">{t('finance.totalRevenue', 'Total Revenue')}</p>
               <p className="text-2xl font-bold text-green-600">
                 {formatCurrency(summary.totalRevenue || 0)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {summary.paymentCount || 0} payments
+                {summary.paymentCount || 0} {t('finance.payments', 'payments')}
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -566,12 +568,12 @@ const FinancesPage = () => {
         <Card>
           <div className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Worker Earnings</p>
+              <p className="text-sm text-gray-600 mb-1">{t('finance.workerEarnings', 'Worker Earnings')}</p>
               <p className="text-2xl font-bold text-blue-600">
                 {formatCurrency(summary.totalWorkerEarnings || 0)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Commissions paid
+                {t('finance.commissionsPaid', 'Commissions paid')}
               </p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -583,12 +585,12 @@ const FinancesPage = () => {
         <Card>
           <div className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Salon Revenue</p>
+              <p className="text-sm text-gray-600 mb-1">{t('finance.salonRevenue', 'Salon Revenue')}</p>
               <p className="text-2xl font-bold text-primary-600">
                 {formatCurrency(summary.totalSalonRevenue || 0)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                After commissions
+                {t('finance.afterCommissions', 'After commissions')}
               </p>
             </div>
             <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
@@ -600,12 +602,12 @@ const FinancesPage = () => {
         <Card>
           <div className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Expenses</p>
+              <p className="text-sm text-gray-600 mb-1">{t('finance.totalExpenses', 'Total Expenses')}</p>
               <p className="text-2xl font-bold text-red-600">
                 {formatCurrency(totalExpenses)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''}
+                {filteredExpenses.length} {filteredExpenses.length !== 1 ? t('finance.expenses', 'expenses') : t('finance.expense', 'expense')}
               </p>
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -618,20 +620,20 @@ const FinancesPage = () => {
       {/* Worker Breakdown Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Worker Breakdown</CardTitle>
+          <CardTitle>{t('finance.workerBreakdown', 'Worker Breakdown')}</CardTitle>
         </CardHeader>
         <CardContent>
           {workerBreakdown.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No worker earnings for this period</p>
+            <p className="text-gray-500 text-center py-8">{t('finance.noWorkerEarnings', 'No worker earnings for this period')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Worker</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Services</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Earnings</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Details</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.worker', 'Worker')}</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.services', 'Services')}</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.totalEarnings', 'Total Earnings')}</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('common.details', 'Details')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -654,7 +656,7 @@ const FinancesPage = () => {
                       <td className="py-3 px-4 text-center">
                         <details className="cursor-pointer">
                           <summary className="text-sm text-primary-600 hover:text-primary-700">
-                            View Details
+                            {t('finance.viewDetails', 'View Details')}
                           </summary>
                           <div className="mt-2 p-3 bg-gray-50 rounded-lg">
                             <div className="space-y-2">
@@ -693,13 +695,13 @@ const FinancesPage = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Expenses</CardTitle>
+            <CardTitle>{t('finance.expenses', 'Expenses')}</CardTitle>
             <div className="flex items-center gap-2">
               <Select
                 value={expenseCategoryFilter}
                 onChange={(e) => setExpenseCategoryFilter(e.target.value)}
                 options={[
-                  { value: '', label: 'All Categories' },
+                  { value: '', label: t('finance.allCategories', 'All Categories') },
                   ...expenseCategories
                 ]}
                 className="w-48"
@@ -714,10 +716,10 @@ const FinancesPage = () => {
             </div>
           ) : filteredExpenses.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No expenses for this period</p>
+              <p className="text-gray-500 mb-4">{t('finance.noExpenses', 'No expenses for this period')}</p>
               <Button variant="outline" onClick={handleAddExpense} className="flex items-center gap-2 mx-auto">
                 <Plus size={16} />
-                Add First Expense
+                {t('finance.addFirstExpense', 'Add First Expense')}
               </Button>
             </div>
           ) : (
@@ -742,14 +744,14 @@ const FinancesPage = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Category</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Description</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Vendor</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Payment Method</th>
-                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Recurring</th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('common.date', 'Date')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.category', 'Category')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('common.description', 'Description')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.vendor', 'Vendor')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.paymentMethod', 'Payment Method')}</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('common.amount', 'Amount')}</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.recurring', 'Recurring')}</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('common.actions', 'Actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -766,7 +768,7 @@ const FinancesPage = () => {
                         <td className="py-3 px-4">
                           <p className="text-sm font-medium text-gray-900">{expense.description}</p>
                           {expense.receiptNumber && (
-                            <p className="text-xs text-gray-500">Receipt: {expense.receiptNumber}</p>
+                            <p className="text-xs text-gray-500">{t('finance.receipt', 'Receipt')}: {expense.receiptNumber}</p>
                           )}
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-600">
@@ -792,14 +794,14 @@ const FinancesPage = () => {
                             <button
                               onClick={() => handleEditExpense(expense)}
                               className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
-                              title="Edit expense"
+                              title={t('finance.editExpense', 'Edit expense')}
                             >
                               <Edit size={16} />
                             </button>
                             <button
                               onClick={() => handleDeleteExpense(expense._id)}
                               className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                              title="Delete expense"
+                              title={t('finance.deleteExpense', 'Delete expense')}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -818,21 +820,21 @@ const FinancesPage = () => {
       {/* Detailed Transactions List */}
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Transactions</CardTitle>
+          <CardTitle>{t('finance.detailedTransactions', 'Detailed Transactions')}</CardTitle>
         </CardHeader>
         <CardContent>
           {transactions.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No transactions for this period</p>
+            <p className="text-gray-500 text-center py-8">{t('finance.noTransactions', 'No transactions for this period')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Type</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Description</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Worker</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('common.date', 'Date')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('common.status', 'Type')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('common.description', 'Description')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.worker', 'Worker')}</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('common.amount', 'Amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -852,7 +854,7 @@ const FinancesPage = () => {
                           ) : (
                             <ArrowDownRight size={12} />
                           )}
-                          {transaction.type === 'payment' ? 'Payment' : 'Expense'}
+                          {transaction.type === 'payment' ? t('finance.payment', 'Payment') : t('finance.expense', 'Expense')}
                         </span>
                       </td>
                       <td className="py-3 px-4">
@@ -860,7 +862,7 @@ const FinancesPage = () => {
                           <p className="text-sm font-medium text-gray-900">{transaction.description}</p>
                           {transaction.type === 'payment' && (
                             <p className="text-xs text-gray-500">
-                              {transaction.paymentMethod} • Commission: {formatCurrency(transaction.workerCommission || 0)}
+                              {transaction.paymentMethod} • {t('finance.commission', 'Commission')}: {formatCurrency(transaction.workerCommission || 0)}
                             </p>
                           )}
                           {transaction.type === 'expense' && transaction.category && (
@@ -894,7 +896,7 @@ const FinancesPage = () => {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <History size={20} />
-                Day Closure History
+                {t('finance.dayClosureHistory', 'Day Closure History')}
               </CardTitle>
               <div className="flex gap-2">
                 <Button
@@ -902,28 +904,28 @@ const FinancesPage = () => {
                   size="sm"
                   onClick={() => setHistoryFilter('all')}
                 >
-                  All
+                  {t('common.all', 'All')}
                 </Button>
                 <Button
                   variant={historyFilter === 'day' ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => setHistoryFilter('day')}
                 >
-                  Last 7 Days
+                  {t('finance.last7Days', 'Last 7 Days')}
                 </Button>
                 <Button
                   variant={historyFilter === 'week' ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => setHistoryFilter('week')}
                 >
-                  Last 30 Days
+                  {t('finance.last30Days', 'Last 30 Days')}
                 </Button>
                 <Button
                   variant={historyFilter === 'month' ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => setHistoryFilter('month')}
                 >
-                  Last 90 Days
+                  {t('finance.last90Days', 'Last 90 Days')}
                 </Button>
               </div>
             </div>
@@ -934,19 +936,19 @@ const FinancesPage = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
               </div>
             ) : getFilteredHistory().length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No day closures found</p>
+              <p className="text-gray-500 text-center py-8">{t('finance.noDayClosures', 'No day closures found')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Revenue</th>
-                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Expenses</th>
-                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Net Profit</th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Appointments</th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Payments</th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('common.date', 'Date')}</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.revenue', 'Revenue')}</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.expenses', 'Expenses')}</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.netProfit', 'Net Profit')}</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.appointments', 'Appointments')}</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('finance.payments', 'Payments')}</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('common.actions', 'Actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -956,7 +958,7 @@ const FinancesPage = () => {
                           <div>
                             <p className="font-medium text-gray-900">{formatDate(closure.date)}</p>
                             <p className="text-xs text-gray-500">
-                              Closed at {formatDateTime(closure.closedAt)}
+                              {t('finance.closedAt', 'Closed at')} {formatDateTime(closure.closedAt)}
                             </p>
                           </div>
                         </td>
@@ -977,14 +979,14 @@ const FinancesPage = () => {
                             {formatCurrency(closure.summary?.netProfit || 0)}
                           </span>
                           <p className="text-xs text-gray-500">
-                            {closure.summary?.profitMargin || 0}% margin
+                            {closure.summary?.profitMargin || 0}% {t('finance.margin', 'margin')}
                           </p>
                         </td>
                         <td className="py-3 px-4 text-center">
                           <div className="text-sm">
-                            <p className="font-medium">{closure.appointments?.completed || 0} completed</p>
+                            <p className="font-medium">{closure.appointments?.completed || 0} {t('finance.completed', 'completed')}</p>
                             <p className="text-xs text-gray-500">
-                              {closure.appointments?.total || 0} total
+                              {closure.appointments?.total || 0} {t('common.total', 'total')}
                             </p>
                           </div>
                         </td>
@@ -994,11 +996,11 @@ const FinancesPage = () => {
                             {closure.payments?.cash && (
                               typeof closure.payments.cash === 'object' && closure.payments.cash.count > 0 ? (
                                 <p className="text-xs text-gray-500">
-                                  {closure.payments.cash.count} cash
+                                  {closure.payments.cash.count} {t('finance.cash', 'cash')}
                                 </p>
                               ) : closure.payments.cash > 0 ? (
                                 <p className="text-xs text-gray-500">
-                                  Cash payments
+                                  {t('finance.cashPayments', 'Cash payments')}
                                 </p>
                               ) : null
                             )}
@@ -1012,7 +1014,7 @@ const FinancesPage = () => {
                             className="flex items-center gap-1"
                           >
                             <Eye size={16} />
-                            View
+                            {t('common.view', 'View')}
                           </Button>
                         </td>
                       </tr>
@@ -1033,41 +1035,41 @@ const FinancesPage = () => {
           setActualCash('')
           setClosureNotes('')
         }}
-        title="Close the Day"
+        title={t('finance.closeTheDay', 'Close the Day')}
         size="lg"
       >
         <div className="p-6 space-y-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
-              <strong>Closing:</strong> {formatDate(new Date())}
+              <strong>{t('finance.closing', 'Closing')}:</strong> {formatDate(new Date())}
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              This will finalize all transactions for today and create a permanent record.
+              {t('finance.closeDayDescription', 'This will finalize all transactions for today and create a permanent record.')}
             </p>
           </div>
 
           {dashboardData && (
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Total Revenue</p>
+                <p className="text-sm text-gray-600">{t('finance.totalRevenue', 'Total Revenue')}</p>
                 <p className="text-xl font-bold text-green-600">
                   {formatCurrency(summary.totalRevenue || 0)}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Total Expenses</p>
+                <p className="text-sm text-gray-600">{t('finance.totalExpenses', 'Total Expenses')}</p>
                 <p className="text-xl font-bold text-red-600">
                   {formatCurrency(summary.totalExpenses || 0)}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Net Profit</p>
+                <p className="text-sm text-gray-600">{t('finance.netProfit', 'Net Profit')}</p>
                 <p className="text-xl font-bold text-primary-600">
                   {formatCurrency(summary.netProfit || 0)}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Payments</p>
+                <p className="text-sm text-gray-600">{t('finance.payments', 'Payments')}</p>
                 <p className="text-xl font-bold text-gray-900">
                   {summary.paymentCount || 0}
                 </p>
@@ -1077,29 +1079,29 @@ const FinancesPage = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Actual Cash Amount <span className="text-gray-500">(optional)</span>
+              {t('finance.actualCashAmount', 'Actual Cash Amount')} <span className="text-gray-500">({t('common.optional', 'optional')})</span>
             </label>
             <Input
               type="number"
               step="0.001"
               value={actualCash}
               onChange={(e) => setActualCash(e.target.value)}
-              placeholder="Enter actual cash count"
+              placeholder={t('finance.enterActualCash', 'Enter actual cash count')}
               className="w-full"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Enter the actual cash amount to verify against calculated cash
+              {t('finance.actualCashDescription', 'Enter the actual cash amount to verify against calculated cash')}
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes <span className="text-gray-500">(optional)</span>
+              {t('common.notes', 'Notes')} <span className="text-gray-500">({t('common.optional', 'optional')})</span>
             </label>
             <textarea
               value={closureNotes}
               onChange={(e) => setClosureNotes(e.target.value)}
-              placeholder="Add any notes about the day..."
+              placeholder={t('finance.addNotesAboutDay', 'Add any notes about the day...')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               rows={3}
             />
@@ -1113,7 +1115,7 @@ const FinancesPage = () => {
               fullWidth
             >
               <Lock size={18} className="mr-2" />
-              Close Day
+              {t('finance.closeDay', 'Close Day')}
             </Button>
             <Button
               variant="outline"
@@ -1124,7 +1126,7 @@ const FinancesPage = () => {
               }}
               fullWidth
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
           </div>
         </div>
@@ -1137,32 +1139,32 @@ const FinancesPage = () => {
           setShowClosureDetails(false)
           setSelectedClosure(null)
         }}
-        title={`Day Closure - ${selectedClosure ? formatDate(selectedClosure.date) : ''}`}
+        title={`${t('finance.dayClosure', 'Day Closure')} - ${selectedClosure ? formatDate(selectedClosure.date) : ''}`}
         size="xl"
       >
         {selectedClosure && (
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-4 gap-4">
               <div className="bg-green-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Revenue</p>
+                <p className="text-sm text-gray-600">{t('finance.revenue', 'Revenue')}</p>
                 <p className="text-xl font-bold text-green-600">
                   {formatCurrency(selectedClosure.summary?.totalRevenue || 0)}
                 </p>
               </div>
               <div className="bg-red-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Expenses</p>
+                <p className="text-sm text-gray-600">{t('finance.expenses', 'Expenses')}</p>
                 <p className="text-xl font-bold text-red-600">
                   {formatCurrency(selectedClosure.summary?.totalExpenses || 0)}
                 </p>
               </div>
               <div className="bg-primary-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Net Profit</p>
+                <p className="text-sm text-gray-600">{t('finance.netProfit', 'Net Profit')}</p>
                 <p className="text-xl font-bold text-primary-600">
                   {formatCurrency(selectedClosure.summary?.netProfit || 0)}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Margin</p>
+                <p className="text-sm text-gray-600">{t('finance.margin', 'Margin')}</p>
                 <p className="text-xl font-bold text-gray-900">
                   {selectedClosure.summary?.profitMargin || 0}%
                 </p>
@@ -1170,49 +1172,49 @@ const FinancesPage = () => {
             </div>
 
             <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Appointments</h4>
+              <h4 className="font-semibold text-gray-900 mb-3">{t('finance.appointments', 'Appointments')}</h4>
               <div className="grid grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <p className="text-2xl font-bold text-gray-900">
                     {selectedClosure.appointments?.total || 0}
                   </p>
-                  <p className="text-xs text-gray-600">Total</p>
+                  <p className="text-xs text-gray-600">{t('common.total', 'Total')}</p>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
                   <p className="text-2xl font-bold text-green-600">
                     {selectedClosure.appointments?.completed || 0}
                   </p>
-                  <p className="text-xs text-gray-600">Completed</p>
+                  <p className="text-xs text-gray-600">{t('finance.completed', 'Completed')}</p>
                 </div>
                 <div className="text-center p-3 bg-yellow-50 rounded-lg">
                   <p className="text-2xl font-bold text-yellow-600">
                     {selectedClosure.appointments?.cancelled || 0}
                   </p>
-                  <p className="text-xs text-gray-600">Cancelled</p>
+                  <p className="text-xs text-gray-600">{t('finance.cancelled', 'Cancelled')}</p>
                 </div>
                 <div className="text-center p-3 bg-red-50 rounded-lg">
                   <p className="text-2xl font-bold text-red-600">
                     {selectedClosure.appointments?.noShow || 0}
                   </p>
-                  <p className="text-xs text-gray-600">No Show</p>
+                  <p className="text-xs text-gray-600">{t('finance.noShow', 'No Show')}</p>
                 </div>
               </div>
             </div>
 
             {selectedClosure.payments && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Payment Methods</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">{t('finance.paymentMethods', 'Payment Methods')}</h4>
                 <div className="grid grid-cols-3 gap-4">
                   {selectedClosure.payments.cash && (
                     (typeof selectedClosure.payments.cash === 'object' && selectedClosure.payments.cash.count > 0) ||
                     (typeof selectedClosure.payments.cash === 'number' && selectedClosure.payments.cash > 0)
                   ) && (
                     <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="font-medium text-gray-900">Cash</p>
+                      <p className="font-medium text-gray-900">{t('finance.cash', 'Cash')}</p>
                       {typeof selectedClosure.payments.cash === 'object' ? (
                         <>
                           <p className="text-sm text-gray-600">
-                            {selectedClosure.payments.cash.count} payments
+                            {selectedClosure.payments.cash.count} {t('finance.payments', 'payments')}
                           </p>
                           <p className="text-lg font-bold text-green-600">
                             {formatCurrency(selectedClosure.payments.cash.amount || 0)}
@@ -1230,11 +1232,11 @@ const FinancesPage = () => {
                     (typeof selectedClosure.payments.card === 'number' && selectedClosure.payments.card > 0)
                   ) && (
                     <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="font-medium text-gray-900">Card</p>
+                      <p className="font-medium text-gray-900">{t('finance.card', 'Card')}</p>
                       {typeof selectedClosure.payments.card === 'object' ? (
                         <>
                           <p className="text-sm text-gray-600">
-                            {selectedClosure.payments.card.count} payments
+                            {selectedClosure.payments.card.count} {t('finance.payments', 'payments')}
                           </p>
                           <p className="text-lg font-bold text-green-600">
                             {formatCurrency(selectedClosure.payments.card.amount || 0)}
@@ -1252,11 +1254,11 @@ const FinancesPage = () => {
                     (typeof selectedClosure.payments.online === 'number' && selectedClosure.payments.online > 0)
                   ) && (
                     <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="font-medium text-gray-900">Online</p>
+                      <p className="font-medium text-gray-900">{t('finance.online', 'Online')}</p>
                       {typeof selectedClosure.payments.online === 'object' ? (
                         <>
                           <p className="text-sm text-gray-600">
-                            {selectedClosure.payments.online.count} payments
+                            {selectedClosure.payments.online.count} {t('finance.payments', 'payments')}
                           </p>
                           <p className="text-lg font-bold text-green-600">
                             {formatCurrency(selectedClosure.payments.online.amount || 0)}
@@ -1275,11 +1277,11 @@ const FinancesPage = () => {
 
             {selectedClosure.cashVerification && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Cash Verification</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">{t('finance.cashVerification', 'Cash Verification')}</h4>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600">Calculated Cash</p>
+                      <p className="text-sm text-gray-600">{t('finance.calculatedCash', 'Calculated Cash')}</p>
                       <p className="text-lg font-bold text-gray-900">
                         {formatCurrency(selectedClosure.cashVerification.calculatedCash || 0)}
                       </p>
@@ -1287,13 +1289,13 @@ const FinancesPage = () => {
                     {selectedClosure.cashVerification.actualCash !== null && (
                       <>
                         <div>
-                          <p className="text-sm text-gray-600">Actual Cash</p>
+                          <p className="text-sm text-gray-600">{t('finance.actualCash', 'Actual Cash')}</p>
                           <p className="text-lg font-bold text-gray-900">
                             {formatCurrency(selectedClosure.cashVerification.actualCash || 0)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Discrepancy</p>
+                          <p className="text-sm text-gray-600">{t('finance.discrepancy', 'Discrepancy')}</p>
                           <p className={`text-lg font-bold ${
                             (selectedClosure.cashVerification.discrepancy || 0) === 0
                               ? 'text-green-600'
@@ -1313,15 +1315,15 @@ const FinancesPage = () => {
 
             {selectedClosure.workerPerformance && selectedClosure.workerPerformance.length > 0 && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Worker Performance</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">{t('finance.workerPerformance', 'Worker Performance')}</h4>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">Worker</th>
-                        <th className="text-right py-2 px-3 text-sm font-semibold text-gray-700">Appointments</th>
-                        <th className="text-right py-2 px-3 text-sm font-semibold text-gray-700">Revenue</th>
-                        <th className="text-right py-2 px-3 text-sm font-semibold text-gray-700">Commission</th>
+                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('finance.worker', 'Worker')}</th>
+                        <th className="text-right py-2 px-3 text-sm font-semibold text-gray-700">{t('finance.appointments', 'Appointments')}</th>
+                        <th className="text-right py-2 px-3 text-sm font-semibold text-gray-700">{t('finance.revenue', 'Revenue')}</th>
+                        <th className="text-right py-2 px-3 text-sm font-semibold text-gray-700">{t('finance.commission', 'Commission')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1341,13 +1343,13 @@ const FinancesPage = () => {
 
             {selectedClosure.topServices && selectedClosure.topServices.length > 0 && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Top Services</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">{t('finance.topServices', 'Top Services')}</h4>
                 <div className="space-y-2">
                   {selectedClosure.topServices.map((service, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900">{service.serviceName}</p>
-                        <p className="text-sm text-gray-600">{service.count} appointments</p>
+                        <p className="text-sm text-gray-600">{service.count} {t('finance.appointments', 'appointments')}</p>
                       </div>
                       <p className="font-bold text-green-600">{formatCurrency(service.revenue || 0)}</p>
                     </div>
@@ -1358,7 +1360,7 @@ const FinancesPage = () => {
 
             {selectedClosure.notes && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Notes</h4>
+                <h4 className="font-semibold text-gray-900 mb-2">{t('common.notes', 'Notes')}</h4>
                 <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
                   {selectedClosure.notes}
                 </p>
@@ -1374,7 +1376,7 @@ const FinancesPage = () => {
                 }}
                 fullWidth
               >
-                View Finance Data for This Day
+                {t('finance.viewFinanceDataForThisDay', 'View Finance Data for This Day')}
               </Button>
               <Button
                 variant="outline"
@@ -1384,7 +1386,7 @@ const FinancesPage = () => {
                 }}
                 fullWidth
               >
-                Close
+                {t('common.close', 'Close')}
               </Button>
             </div>
           </div>
@@ -1395,20 +1397,20 @@ const FinancesPage = () => {
       <Modal
         isOpen={showExpenseModal}
         onClose={() => setShowExpenseModal(false)}
-        title={editingExpense ? 'Edit Expense' : 'Add Expense'}
+        title={editingExpense ? t('finance.editExpense', 'Edit Expense') : t('finance.addExpense', 'Add Expense')}
         size="lg"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Select
-              label="Category"
+              label={t('finance.category', 'Category')}
               value={expenseForm.category}
               onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
               options={expenseCategories}
               required
             />
             <Input
-              label="Amount"
+              label={t('common.amount', 'Amount')}
               type="number"
               step="0.01"
               min="0"
@@ -1419,7 +1421,7 @@ const FinancesPage = () => {
           </div>
           
           <Input
-            label="Description"
+            label={t('common.description', 'Description')}
             value={expenseForm.description}
             onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
             required
@@ -1427,34 +1429,34 @@ const FinancesPage = () => {
           
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Vendor"
+              label={t('finance.vendor', 'Vendor')}
               value={expenseForm.vendor}
               onChange={(e) => setExpenseForm({ ...expenseForm, vendor: e.target.value })}
-              placeholder="Optional"
+              placeholder={t('common.optional', 'Optional')}
             />
             <Input
-              label="Receipt Number"
+              label={t('finance.receiptNumber', 'Receipt Number')}
               value={expenseForm.receiptNumber}
               onChange={(e) => setExpenseForm({ ...expenseForm, receiptNumber: e.target.value })}
-              placeholder="Optional"
+              placeholder={t('common.optional', 'Optional')}
             />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <Select
-              label="Payment Method"
+              label={t('finance.paymentMethod', 'Payment Method')}
               value={expenseForm.paymentMethod}
               onChange={(e) => setExpenseForm({ ...expenseForm, paymentMethod: e.target.value })}
               options={[
-                { value: 'cash', label: 'Cash' },
-                { value: 'card', label: 'Card' },
-                { value: 'bank_transfer', label: 'Bank Transfer' },
-                { value: 'check', label: 'Check' },
-                { value: 'other', label: 'Other' }
+                { value: 'cash', label: t('finance.cash', 'Cash') },
+                { value: 'card', label: t('finance.card', 'Card') },
+                { value: 'bank_transfer', label: t('finance.bankTransfer', 'Bank Transfer') },
+                { value: 'check', label: t('finance.check', 'Check') },
+                { value: 'other', label: t('common.other', 'Other') }
               ]}
             />
             <Input
-              label="Date"
+              label={t('common.date', 'Date')}
               type="date"
               value={expenseForm.date}
               onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
@@ -1471,29 +1473,29 @@ const FinancesPage = () => {
               className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
             />
             <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700">
-              This is a recurring expense
+              {t('finance.recurringExpense', 'This is a recurring expense')}
             </label>
           </div>
           
           {expenseForm.isRecurring && (
             <Select
-              label="Recurring Frequency"
+              label={t('finance.recurringFrequency', 'Recurring Frequency')}
               value={expenseForm.recurringFrequency}
               onChange={(e) => setExpenseForm({ ...expenseForm, recurringFrequency: e.target.value })}
               options={[
-                { value: 'daily', label: 'Daily' },
-                { value: 'weekly', label: 'Weekly' },
-                { value: 'monthly', label: 'Monthly' },
-                { value: 'yearly', label: 'Yearly' }
+                { value: 'daily', label: t('finance.daily', 'Daily') },
+                { value: 'weekly', label: t('finance.weekly', 'Weekly') },
+                { value: 'monthly', label: t('finance.monthly', 'Monthly') },
+                { value: 'yearly', label: t('finance.yearly', 'Yearly') }
               ]}
             />
           )}
           
           <Textarea
-            label="Notes"
+            label={t('common.notes', 'Notes')}
             value={expenseForm.notes}
             onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
-            placeholder="Additional notes (optional)"
+            placeholder={t('finance.additionalNotesOptional', 'Additional notes (optional)')}
             rows={3}
           />
           
@@ -1502,13 +1504,13 @@ const FinancesPage = () => {
               variant="outline"
               onClick={() => setShowExpenseModal(false)}
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
             <Button
               variant="primary"
               onClick={handleSaveExpense}
             >
-              {editingExpense ? 'Update Expense' : 'Add Expense'}
+              {editingExpense ? t('finance.updateExpense', 'Update Expense') : t('finance.addExpense', 'Add Expense')}
             </Button>
           </div>
         </div>
