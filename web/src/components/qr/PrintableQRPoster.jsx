@@ -9,7 +9,24 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
   const { language, t } = useLanguage()
   const isFrench = language === 'fr'
   const handlePrint = () => {
+    // Mark all parent containers of the poster as printable
+    const posterElement = document.getElementById('qr-poster')
+    if (posterElement) {
+      let current = posterElement.parentElement
+      while (current && current !== document.body) {
+        current.classList.add('print-visible')
+        current = current.parentElement
+      }
+    }
+    
     window.print()
+    
+    // Clean up after print
+    setTimeout(() => {
+      const printVisibleElements = document.querySelectorAll('.print-visible')
+      printVisibleElements.forEach(el => el.classList.remove('print-visible'))
+    }, 1000)
+    
     if (onPrint) onPrint()
     toast.success(isFrench ? 'Préparation de l\'impression...' : 'Preparing for print...')
   }
@@ -462,8 +479,33 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
             color-adjust: exact;
           }
           
-          /* Hide everything except the QR poster */
-          body > *:not(#qr-poster) {
+          /* Hide everything EXCEPT elements marked as print-visible */
+          body > *:not(.print-visible) {
+            display: none !important;
+          }
+          
+          /* Show all print-visible containers and their children */
+          .print-visible {
+            display: block !important;
+            visibility: visible !important;
+            position: relative !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          
+          /* Ensure all children of print-visible are visible */
+          .print-visible * {
+            visibility: visible !important;
+          }
+          
+          /* Hide the back button when printing */
+          .print-visible > button:first-child,
+          .space-y-6 > button:first-child {
             display: none !important;
           }
           
