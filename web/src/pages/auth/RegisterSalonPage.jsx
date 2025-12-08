@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { salonAccountService } from '../../services/salonAccountService'
 import { useAuth } from '../../context/AuthContext'
@@ -11,6 +11,7 @@ import { Store, User, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import LanguageSwitcher from '../../components/layout/LanguageSwitcher'
 import { useLanguage } from '../../context/LanguageContext'
+import CongratulationsModal from '../../components/ui/CongratulationsModal'
 
 const RegisterSalonPage = () => {
   const navigate = useNavigate()
@@ -18,6 +19,10 @@ const RegisterSalonPage = () => {
   const { t } = useLanguage()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [showCongratulations, setShowCongratulations] = useState(false)
+  const [salonName, setSalonName] = useState('')
+  const [ownerEmail, setOwnerEmail] = useState('')
+  const [redirectCountdown, setRedirectCountdown] = useState(2)
 
   // Salon Details (Step 1)
   const [salonData, setSalonData] = useState({
@@ -75,9 +80,28 @@ const RegisterSalonPage = () => {
       })
 
       if (result.success) {
-        updateUser(result.owner)
-        toast.success(`Welcome to Xaura! ${result.salon.name} is now live!`)
-        navigate('/owner/dashboard')
+        setSalonName(result.salon.name)
+        setOwnerEmail(ownerData.ownerEmail)
+        
+        // Log out the user (since they were auto-logged in)
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        
+        // Show congratulations modal
+        setShowCongratulations(true)
+        
+        // Countdown timer before redirect
+        let countdown = 2
+        setRedirectCountdown(countdown)
+        const countdownInterval = setInterval(() => {
+          countdown--
+          setRedirectCountdown(countdown)
+          if (countdown <= 0) {
+            clearInterval(countdownInterval)
+            setShowCongratulations(false)
+            navigate('/login?registered=true&salon=' + encodeURIComponent(result.salon.name) + '&email=' + encodeURIComponent(ownerData.ownerEmail))
+          }
+        }, 1000)
       }
     } catch (error) {
       toast.error(error.message || 'Failed to create salon account')
@@ -88,6 +112,24 @@ const RegisterSalonPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-purple-50 flex items-center justify-center p-4">
+      {/* Congratulations Modal */}
+      <CongratulationsModal
+        isOpen={showCongratulations}
+        onClose={() => {
+          setShowCongratulations(false)
+          navigate('/login?registered=true&salon=' + encodeURIComponent(salonName) + '&email=' + encodeURIComponent(ownerEmail))
+        }}
+        title="🎉 Congratulations!"
+        message={`Your salon "${salonName}" has been created successfully!`}
+        subtitle="Please log in to start managing your salon business."
+        countdown={redirectCountdown}
+        onCountdownComplete={() => {
+          setShowCongratulations(false)
+          navigate('/login?registered=true&salon=' + encodeURIComponent(salonName) + '&email=' + encodeURIComponent(ownerEmail))
+        }}
+        showCloseButton={true}
+      />
+
       <div className="w-full max-w-2xl">
         {/* Language Switcher - Top Right */}
         <div className="flex justify-end mb-4">

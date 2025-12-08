@@ -1,17 +1,40 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useForm } from 'react-hook-form'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Logo from '../../components/ui/Logo'
+import toast from 'react-hot-toast'
+import CongratulationsModal from '../../components/ui/CongratulationsModal'
 
 const LoginPage = () => {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [loading, setLoading] = useState(false)
+  const [showCongratulations, setShowCongratulations] = useState(false)
+  const [congratulationsData, setCongratulationsData] = useState(null)
   
   const { register, handleSubmit, formState: { errors } } = useForm()
+
+  // Check for registration success message
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search)
+    const registered = searchParams.get('registered')
+    const registeredEmail = searchParams.get('email')
+    const registeredSalon = searchParams.get('salon')
+
+    if (registered === 'true') {
+      setCongratulationsData({
+        salon: registeredSalon,
+        email: registeredEmail
+      })
+      setShowCongratulations(true)
+      // Clear URL params after showing message
+      window.history.replaceState({}, '', '/login')
+    }
+  }, [location.search])
 
   const onSubmit = async (data) => {
     setLoading(true)
@@ -33,6 +56,24 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-purple-50 flex items-center justify-center p-4">
+      {/* Congratulations Modal */}
+      {congratulationsData && (
+        <CongratulationsModal
+          isOpen={showCongratulations}
+          onClose={() => setShowCongratulations(false)}
+          title="🎉 Congratulations!"
+          message={congratulationsData.salon 
+            ? `Your salon "${congratulationsData.salon}" has been created successfully!`
+            : "Your account has been created successfully!"
+          }
+          subtitle={congratulationsData.salon
+            ? "Please log in to start managing your salon business."
+            : `Please check your email (${congratulationsData.email || ''}) to verify your account, then log in.`
+          }
+          showCloseButton={true}
+        />
+      )}
+
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
