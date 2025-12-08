@@ -3,8 +3,10 @@ import { financialService } from '../../services/financialService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import Select from '../../components/ui/Select'
+import Textarea from '../../components/ui/Textarea'
 import Modal from '../../components/ui/Modal'
-import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, ArrowUpRight, ArrowDownRight, Lock, CheckCircle, History, Eye, X } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, ArrowUpRight, ArrowDownRight, Lock, CheckCircle, History, Eye, X, Plus, Edit, Trash2, Filter } from 'lucide-react'
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
@@ -30,6 +32,26 @@ const FinancesPage = () => {
   const [historyFilter, setHistoryFilter] = useState('all') // all, day, week, month
   const [selectedClosure, setSelectedClosure] = useState(null)
   const [showClosureDetails, setShowClosureDetails] = useState(false)
+  
+  // Expense Management states
+  const [expenses, setExpenses] = useState([])
+  const [loadingExpenses, setLoadingExpenses] = useState(false)
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
+  const [editingExpense, setEditingExpense] = useState(null)
+  const [expenseFilter, setExpenseFilter] = useState('all') // all, category
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('')
+  const [expenseForm, setExpenseForm] = useState({
+    category: '',
+    amount: '',
+    description: '',
+    vendor: '',
+    paymentMethod: 'cash',
+    receiptNumber: '',
+    date: new Date().toISOString().split('T')[0],
+    isRecurring: false,
+    recurringFrequency: 'none',
+    notes: ''
+  })
 
   const getDateRange = () => {
     const today = new Date()
@@ -105,7 +127,32 @@ const FinancesPage = () => {
 
   useEffect(() => {
     fetchDashboardData()
+    fetchExpenses()
   }, [dateRange, customStartDate, customEndDate])
+  
+  // Fetch expenses for current date range
+  const fetchExpenses = async () => {
+    setLoadingExpenses(true)
+    try {
+      const dates = getDateRange()
+      if (!dates) {
+        setLoadingExpenses(false)
+        return
+      }
+      
+      const expenseData = await financialService.getExpenses({
+        startDate: dates.startDate,
+        endDate: dates.endDate
+      })
+      setExpenses(expenseData?.data?.expenses || [])
+    } catch (error) {
+      console.error('Error fetching expenses:', error)
+      toast.error('Failed to load expenses')
+      setExpenses([])
+    } finally {
+      setLoadingExpenses(false)
+    }
+  }
 
   // Check if today is closed
   useEffect(() => {
@@ -248,6 +295,120 @@ const FinancesPage = () => {
   const summary = dashboardData?.summary || {}
   const workerBreakdown = dashboardData?.workerBreakdown || []
   const transactions = dashboardData?.transactions || []
+  
+  // Expense management functions
+  const handleAddExpense = () => {
+    setEditingExpense(null)
+    setExpenseForm({
+      category: '',
+      amount: '',
+      description: '',
+      vendor: '',
+      paymentMethod: 'cash',
+      receiptNumber: '',
+      date: new Date().toISOString().split('T')[0],
+      isRecurring: false,
+      recurringFrequency: 'none',
+      notes: ''
+    })
+    setShowExpenseModal(true)
+  }
+  
+  const handleEditExpense = (expense) => {
+    setEditingExpense(expense)
+    setExpenseForm({
+      category: expense.category,
+      amount: expense.amount.toString(),
+      description: expense.description,
+      vendor: expense.vendor || '',
+      paymentMethod: expense.paymentMethod || 'cash',
+      receiptNumber: expense.receiptNumber || '',
+      date: new Date(expense.date).toISOString().split('T')[0],
+      isRecurring: expense.isRecurring || false,
+      recurringFrequency: expense.recurringFrequency || 'none',
+      notes: expense.notes || ''
+    })
+    setShowExpenseModal(true)
+  }
+  
+  const handleDeleteExpense = async (expenseId) => {
+    if (!confirm('Are you sure you want to delete this expense?')) {
+      return
+    }
+    
+    try {
+      await financialService.deleteExpense(expenseId)
+      toast.success('Expense deleted successfully')
+      fetchExpenses()
+      fetchDashboardData() // Refresh dashboard to update totals
+    } catch (error) {
+      console.error('Error deleting expense:', error)
+      toast.error('Failed to delete expense')
+    }
+  }
+  
+  const handleSaveExpense = async () => {
+    if (!expenseForm.category || !expenseForm.amount || !expenseForm.description) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+    
+    try {
+      const expenseData = {
+        ...expenseForm,
+        amount: parseFloat(expenseForm.amount),
+        isRecurring: expenseForm.isRecurring,
+        recurringFrequency: expenseForm.isRecurring ? expenseForm.recurringFrequency : 'none'
+      }
+      
+      if (editingExpense) {
+        await financialService.updateExpense(editingExpense._id, expenseData)
+        toast.success('Expense updated successfully')
+      } else {
+        await financialService.createExpense(expenseData)
+        toast.success('Expense added successfully')
+      }
+      
+      setShowExpenseModal(false)
+      fetchExpenses()
+      fetchDashboardData() // Refresh dashboard to update totals
+    } catch (error) {
+      console.error('Error saving expense:', error)
+      toast.error(error.response?.data?.message || 'Failed to save expense')
+    }
+  }
+  
+  // Expense categories
+  const expenseCategories = [
+    { value: 'rent', label: 'Rent/Lease' },
+    { value: 'utilities', label: 'Utilities (Electricity, Water, Gas)' },
+    { value: 'supplies', label: 'Supplies/Materials' },
+    { value: 'salary', label: 'Salary/Wages' },
+    { value: 'marketing', label: 'Marketing/Advertising' },
+    { value: 'maintenance', label: 'Maintenance/Repairs' },
+    { value: 'equipment', label: 'Equipment' },
+    { value: 'other', label: 'Other' }
+  ]
+  
+  // Filter expenses
+  const getFilteredExpenses = () => {
+    let filtered = expenses
+    
+    if (expenseCategoryFilter) {
+      filtered = filtered.filter(exp => exp.category === expenseCategoryFilter)
+    }
+    
+    return filtered
+  }
+  
+  const filteredExpenses = getFilteredExpenses()
+  const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+  
+  // Get expenses by category for breakdown
+  const expensesByCategory = filteredExpenses.reduce((acc, exp) => {
+    acc[exp.category] = (acc[exp.category] || 0) + exp.amount
+    return acc
+  }, {})
 
   // Get current date range for display
   const currentDateRange = getDateRange()
@@ -276,6 +437,14 @@ const FinancesPage = () => {
           <p className="text-gray-600 mt-1">Track your salon's financial performance</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="primary"
+            onClick={handleAddExpense}
+            className="flex items-center gap-2"
+          >
+            <Plus size={18} />
+            Add Expense
+          </Button>
           <Button
             variant="outline"
             onClick={() => {
@@ -431,20 +600,16 @@ const FinancesPage = () => {
         <Card>
           <div className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Net Profit</p>
-              <p className={`text-2xl font-bold ${(summary.netProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(summary.netProfit || 0)}
+              <p className="text-sm text-gray-600 mb-1">Total Expenses</p>
+              <p className="text-2xl font-bold text-red-600">
+                {formatCurrency(totalExpenses)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Margin: {summary.profitMargin || 0}%
+                {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${(summary.netProfit || 0) >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-              {(summary.netProfit || 0) >= 0 ? (
-                <TrendingUp className="text-green-600" size={24} />
-              ) : (
-                <TrendingDown className="text-red-600" size={24} />
-              )}
+            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+              <TrendingDown className="text-red-600" size={24} />
             </div>
           </div>
         </Card>
@@ -519,6 +684,132 @@ const FinancesPage = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Expenses Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Expenses</CardTitle>
+            <div className="flex items-center gap-2">
+              <Select
+                value={expenseCategoryFilter}
+                onChange={(e) => setExpenseCategoryFilter(e.target.value)}
+                options={[
+                  { value: '', label: 'All Categories' },
+                  ...expenseCategories
+                ]}
+                className="w-48"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingExpenses ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : filteredExpenses.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">No expenses for this period</p>
+              <Button variant="outline" onClick={handleAddExpense} className="flex items-center gap-2 mx-auto">
+                <Plus size={16} />
+                Add First Expense
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Category Breakdown */}
+              {Object.keys(expensesByCategory).length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  {Object.entries(expensesByCategory).map(([category, amount]) => {
+                    const categoryLabel = expenseCategories.find(c => c.value === category)?.label || category
+                    return (
+                      <div key={category} className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-xs text-gray-600 mb-1">{categoryLabel}</p>
+                        <p className="text-lg font-semibold text-red-600">{formatCurrency(amount)}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              
+              {/* Expenses List */}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Category</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Description</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Vendor</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Payment Method</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Recurring</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredExpenses.map((expense) => (
+                      <tr key={expense._id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          {formatDate(expense.date)}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            {expenseCategories.find(c => c.value === expense.category)?.label || expense.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="text-sm font-medium text-gray-900">{expense.description}</p>
+                          {expense.receiptNumber && (
+                            <p className="text-xs text-gray-500">Receipt: {expense.receiptNumber}</p>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          {expense.vendor || '-'}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600 capitalize">
+                          {expense.paymentMethod?.replace('_', ' ') || 'cash'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-semibold text-red-600">
+                          {formatCurrency(expense.amount)}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {expense.isRecurring ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              {expense.recurringFrequency}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleEditExpense(expense)}
+                              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                              title="Edit expense"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExpense(expense._id)}
+                              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                              title="Delete expense"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </CardContent>
@@ -1098,6 +1389,129 @@ const FinancesPage = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Add/Edit Expense Modal */}
+      <Modal
+        isOpen={showExpenseModal}
+        onClose={() => setShowExpenseModal(false)}
+        title={editingExpense ? 'Edit Expense' : 'Add Expense'}
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Category"
+              value={expenseForm.category}
+              onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+              options={expenseCategories}
+              required
+            />
+            <Input
+              label="Amount"
+              type="number"
+              step="0.01"
+              min="0"
+              value={expenseForm.amount}
+              onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+              required
+            />
+          </div>
+          
+          <Input
+            label="Description"
+            value={expenseForm.description}
+            onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+            required
+          />
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Vendor"
+              value={expenseForm.vendor}
+              onChange={(e) => setExpenseForm({ ...expenseForm, vendor: e.target.value })}
+              placeholder="Optional"
+            />
+            <Input
+              label="Receipt Number"
+              value={expenseForm.receiptNumber}
+              onChange={(e) => setExpenseForm({ ...expenseForm, receiptNumber: e.target.value })}
+              placeholder="Optional"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Payment Method"
+              value={expenseForm.paymentMethod}
+              onChange={(e) => setExpenseForm({ ...expenseForm, paymentMethod: e.target.value })}
+              options={[
+                { value: 'cash', label: 'Cash' },
+                { value: 'card', label: 'Card' },
+                { value: 'bank_transfer', label: 'Bank Transfer' },
+                { value: 'check', label: 'Check' },
+                { value: 'other', label: 'Other' }
+              ]}
+            />
+            <Input
+              label="Date"
+              type="date"
+              value={expenseForm.date}
+              onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+              required
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isRecurring"
+              checked={expenseForm.isRecurring}
+              onChange={(e) => setExpenseForm({ ...expenseForm, isRecurring: e.target.checked })}
+              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+            />
+            <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700">
+              This is a recurring expense
+            </label>
+          </div>
+          
+          {expenseForm.isRecurring && (
+            <Select
+              label="Recurring Frequency"
+              value={expenseForm.recurringFrequency}
+              onChange={(e) => setExpenseForm({ ...expenseForm, recurringFrequency: e.target.value })}
+              options={[
+                { value: 'daily', label: 'Daily' },
+                { value: 'weekly', label: 'Weekly' },
+                { value: 'monthly', label: 'Monthly' },
+                { value: 'yearly', label: 'Yearly' }
+              ]}
+            />
+          )}
+          
+          <Textarea
+            label="Notes"
+            value={expenseForm.notes}
+            onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
+            placeholder="Additional notes (optional)"
+            rows={3}
+          />
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowExpenseModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveExpense}
+            >
+              {editingExpense ? 'Update Expense' : 'Add Expense'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
