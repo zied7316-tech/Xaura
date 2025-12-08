@@ -33,43 +33,50 @@ const FinancesPage = () => {
 
   const getDateRange = () => {
     const today = new Date()
+    // Get local date components to avoid timezone issues
+    const year = today.getFullYear()
+    const month = today.getMonth()
+    const day = today.getDate()
+    
     let start, end
 
     switch (dateRange) {
       case 'today':
-        start = new Date(today)
-        start.setHours(0, 0, 0, 0)
-        end = new Date(today)
-        end.setHours(23, 59, 59, 999)
+        start = new Date(year, month, day, 0, 0, 0, 0)
+        end = new Date(year, month, day, 23, 59, 59, 999)
         break
       case 'yesterday':
-        const yesterday = new Date(today)
-        yesterday.setDate(yesterday.getDate() - 1)
+        const yesterday = new Date(year, month, day - 1, 0, 0, 0, 0)
         start = new Date(yesterday)
-        start.setHours(0, 0, 0, 0)
-        end = new Date(yesterday)
-        end.setHours(23, 59, 59, 999)
+        end = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
         break
       case 'custom':
         if (!customStartDate || !customEndDate) {
           toast.error('Please select both start and end dates')
           return null
         }
-        start = new Date(customStartDate)
-        start.setHours(0, 0, 0, 0)
-        end = new Date(customEndDate)
-        end.setHours(23, 59, 59, 999)
+        // Parse custom dates in local timezone
+        const startParts = customStartDate.split('-').map(Number)
+        const endParts = customEndDate.split('-').map(Number)
+        start = new Date(startParts[0], startParts[1] - 1, startParts[2], 0, 0, 0, 0)
+        end = new Date(endParts[0], endParts[1] - 1, endParts[2], 23, 59, 59, 999)
         break
       default:
-        start = new Date(today)
-        start.setHours(0, 0, 0, 0)
-        end = new Date(today)
-        end.setHours(23, 59, 59, 999)
+        start = new Date(year, month, day, 0, 0, 0, 0)
+        end = new Date(year, month, day, 23, 59, 59, 999)
+    }
+
+    // Format dates as YYYY-MM-DD in local timezone
+    const formatDateLocal = (date) => {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      return `${y}-${m}-${d}`
     }
 
     return {
-      startDate: start.toISOString().split('T')[0],
-      endDate: end.toISOString().split('T')[0]
+      startDate: formatDateLocal(start),
+      endDate: formatDateLocal(end)
     }
   }
 
@@ -204,6 +211,11 @@ const FinancesPage = () => {
   }
 
   const handleDateRangeChange = (range) => {
+    // Don't clear data if clicking the same button
+    if (dateRange === range && range !== 'custom') {
+      return
+    }
+    
     setDateRange(range)
     // Reset custom dates when switching to non-custom range
     if (range !== 'custom') {
@@ -230,8 +242,14 @@ const FinancesPage = () => {
 
   // Get current date range for display
   const currentDateRange = getDateRange()
-  const displayStartDate = currentDateRange ? new Date(currentDateRange.startDate) : null
-  const displayEndDate = currentDateRange ? new Date(currentDateRange.endDate) : null
+  // Parse dates in local timezone to avoid timezone conversion issues
+  const parseDateLocal = (dateString) => {
+    if (!dateString) return null
+    const parts = dateString.split('-').map(Number)
+    return new Date(parts[0], parts[1] - 1, parts[2])
+  }
+  const displayStartDate = currentDateRange ? parseDateLocal(currentDateRange.startDate) : null
+  const displayEndDate = currentDateRange ? parseDateLocal(currentDateRange.endDate) : null
 
   if (loading && !dashboardData) {
     return (

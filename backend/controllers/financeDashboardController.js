@@ -25,17 +25,19 @@ const getFinanceDashboard = async (req, res, next) => {
     // Parse dates - default to today if not provided
     let start, end;
     if (startDate && endDate) {
-      start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
+      // Parse date strings (YYYY-MM-DD) in local timezone to avoid UTC conversion issues
+      const startParts = startDate.split('-').map(Number);
+      const endParts = endDate.split('-').map(Number);
+      start = new Date(startParts[0], startParts[1] - 1, startParts[2], 0, 0, 0, 0);
+      end = new Date(endParts[0], endParts[1] - 1, endParts[2], 23, 59, 59, 999);
     } else {
-      // Default to today
+      // Default to today in local timezone
       const today = new Date();
-      start = new Date(today);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(today);
-      end.setHours(23, 59, 59, 999);
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const day = today.getDate();
+      start = new Date(year, month, day, 0, 0, 0, 0);
+      end = new Date(year, month, day, 23, 59, 59, 999);
     }
 
     // Build date filter
