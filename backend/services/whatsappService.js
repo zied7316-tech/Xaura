@@ -131,6 +131,14 @@ class WhatsAppService {
         errorMessage = 'TWILIO_WHATSAPP_NUMBER is not configured correctly. Check your Twilio Console -> Messaging -> Try it out -> Send a WhatsApp message for the correct number format.';
       } else if (error.code === 20003) {
         errorMessage = 'Twilio authentication failed. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.';
+      } else if (error.code === 63015) {
+        // Recipient hasn't joined the Sandbox
+        isTwilioLimitError = true; // Don't deduct credits for this
+        errorMessage = 'Recipient phone number has not joined the WhatsApp Sandbox. The recipient must send the join keyword to your Sandbox number first. Check your Twilio Console for the join phrase.';
+      } else if (error.code === 63016) {
+        // Outside 24-hour conversation window - need to use templates
+        isTwilioLimitError = true; // Don't deduct credits for this
+        errorMessage = 'Cannot send freeform message outside 24-hour window. Please use a pre-approved WhatsApp message template. The recipient has not interacted with your WhatsApp number in the last 24 hours.';
       } else if (error.code === 63038 || error.message.includes('exceeded') || error.message.includes('daily messages limit')) {
         // Twilio account daily limit reached (sandbox: 50/day, production: based on account)
         isTwilioLimitError = true;

@@ -148,32 +148,34 @@ const OwnerDashboard = () => {
         </Card>
       )}
 
-      {/* Quick Action: Walk-in Client */}
-      <Card className="bg-gradient-to-r from-primary-50 to-purple-50 border-2 border-primary-200">
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
-              <UserPlus className="text-white" size={32} />
+      {/* Quick Action: Walk-in Client - Only show if owner has worksAsWorker enabled */}
+      {user?.worksAsWorker && (
+        <Card className="bg-gradient-to-r from-primary-50 to-purple-50 border-2 border-primary-200">
+          <div className="p-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
+                <UserPlus className="text-white" size={32} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {t('worker.walkInClients', 'Walk-in Client')}
+                </h3>
+                <p className="text-gray-600">
+                  {t('worker.walkInDescription', 'Client came without booking? Add them here')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">
-                {t('worker.walkInClients', 'Walk-in Client')}
-              </h3>
-              <p className="text-gray-600">
-                {t('worker.walkInDescription', 'Client came without booking? Add them here')}
-              </p>
-            </div>
+            <Button
+              onClick={() => navigate('/worker/walk-in')}
+              size="lg"
+              className="bg-primary-600 hover:bg-primary-700"
+            >
+              <UserPlus size={20} />
+              {t('worker.addWalkInClient', 'Add Walk-in Client')}
+            </Button>
           </div>
-          <Button
-            onClick={() => navigate('/worker/walk-in')}
-            size="lg"
-            className="bg-primary-600 hover:bg-primary-700"
-          >
-            <UserPlus size={20} />
-            {t('worker.addWalkInClient', 'Add Walk-in Client')}
-          </Button>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Stats Grid - ENHANCED with Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

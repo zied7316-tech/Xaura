@@ -70,6 +70,15 @@ const ProfilePage = () => {
       const updatedUser = await profileService.updateProfile(formData)
       updateUser(updatedUser)
       
+      // Refresh user data from server to ensure we have the latest state
+      try {
+        const refreshedUser = await profileService.getProfile()
+        updateUser(refreshedUser)
+      } catch (refreshError) {
+        console.error('Error refreshing profile after update:', refreshError)
+        // Continue anyway - we already have the updated user
+      }
+      
       toast.success('Profile updated successfully!')
       setIsEditing(false)
       setSelectedAvatar(null)

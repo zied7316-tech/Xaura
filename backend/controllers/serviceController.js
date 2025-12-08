@@ -185,27 +185,53 @@ const getAllServices = async (req, res, next) => {
 };
 
 /**
- * @desc    Get services for the current worker's salon
+ * @desc    Get services for the current worker's salon or owner's salon (if worksAsWorker)
  * @route   GET /api/services/my-services
- * @access  Private (Worker)
+ * @access  Private (Worker or Owner with worksAsWorker)
  */
 const getMyServices = async (req, res, next) => {
   try {
     const User = require('../models/User');
-    // Add timeout to prevent hanging
-    const worker = await User.findById(req.user.id).select('salonId').maxTimeMS(3000);
+    let salonId = null;
     
-    if (!worker || !worker.salonId) {
-      return res.json({
-        success: true,
-        count: 0,
-        data: { services: [] }
+    // Check if user is a worker
+    if (req.user.role === 'Worker') {
+      // Add timeout to prevent hanging
+      const worker = await User.findById(req.user.id).select('salonId').maxTimeMS(3000);
+      
+      if (!worker || !worker.salonId) {
+        return res.json({
+          success: true,
+          count: 0,
+          data: { services: [] }
+        });
+      }
+      
+      salonId = worker.salonId;
+    } else if (req.user.role === 'Owner' && req.user.worksAsWorker) {
+      // Owner working as worker - get salon from ownerId
+      const salon = await Salon.findOne({ ownerId: req.user.id }).select('_id').maxTimeMS(3000);
+      
+      if (!salon) {
+        return res.json({
+          success: true,
+          count: 0,
+          data: { services: [] }
+        });
+      }
+      
+      salonId = salon._id;
+    } else {
+      // Owner without worksAsWorker flag - not authorized
+      return res.status(403).json({
+        success: false,
+        message: 'You must enable "Work as Worker" in your profile to access this feature'
       });
     }
 
     // Add timeout to service query
     const services = await Service.find({
-      salonId: worker.salonId,
+      salonId: salonId,
       isActive: true
     })
       .select('name description image category duration price')
