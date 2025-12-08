@@ -209,24 +209,50 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
       {/* Print Styles */}
       <style jsx global>{`
         @media print {
+          /* Hide everything by default */
+          body * {
+            visibility: hidden;
+          }
+          
+          /* Show only the QR poster */
+          #qr-poster,
+          #qr-poster * {
+            visibility: visible;
+          }
+          
+          /* Hide layout elements */
+          nav,
+          aside,
+          header,
+          .sidebar,
+          .navbar,
+          .mobile-bottom-nav,
+          .print\\:hidden {
+            display: none !important;
+            visibility: hidden !important;
+          }
+          
+          /* Reset body styles */
           body {
             margin: 0;
             padding: 0;
             background: white;
+            overflow: visible;
           }
           
+          /* QR Poster styling */
           #qr-poster {
             page-break-inside: avoid;
             width: 100%;
             max-width: 100%;
             margin: 0;
             padding: 0;
+            position: absolute;
+            left: 0;
+            top: 0;
           }
           
-          .print\\:hidden {
-            display: none !important;
-          }
-          
+          /* Page settings */
           @page {
             size: A4;
             margin: 0.5cm;
