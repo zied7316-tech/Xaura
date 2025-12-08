@@ -59,27 +59,67 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
       // Show loading toast
       const loadingToastId = toast.loading(isFrench ? 'Génération du PDF...' : 'Generating PDF...')
 
+      // Store original styles to restore later
+      const originalDisplay = posterElement.style.display
+      const originalVisibility = posterElement.style.visibility
+      const originalPosition = posterElement.style.position
+      const originalZIndex = posterElement.style.zIndex
+
+      // Ensure element is visible and in viewport
+      posterElement.style.display = 'block'
+      posterElement.style.visibility = 'visible'
+      posterElement.style.position = 'relative'
+      posterElement.style.zIndex = '9999'
+
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       // Wait for all images to load
       const images = posterElement.querySelectorAll('img')
-      await Promise.all(
-        Array.from(images).map(img => {
-          if (img.complete) return Promise.resolve()
-          return new Promise((resolve, reject) => {
-            img.onload = resolve
-            img.onerror = resolve // Continue even if image fails
-            setTimeout(resolve, 2000) // Timeout after 2 seconds
-          })
+      const imagePromises = Array.from(images).map(img => {
+        if (img.complete && img.naturalHeight > 0) {
+          return Promise.resolve()
+        }
+        return new Promise((resolve) => {
+          const timeout = setTimeout(() => resolve(), 5000)
+          img.onload = () => {
+            clearTimeout(timeout)
+            resolve()
+          }
+          img.onerror = () => {
+            clearTimeout(timeout)
+            resolve() // Continue even if image fails
+          }
         })
-      )
+      })
+      await Promise.all(imagePromises)
 
-      // Wait a bit more to ensure all content is rendered
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Wait for SVG rendering
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-      // Scroll element into view to ensure it's rendered
+      // Scroll element into view
       posterElement.scrollIntoView({ behavior: 'instant', block: 'start' })
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise(resolve => setTimeout(resolve, 800))
 
-      // Configure PDF options
+      // Get actual dimensions
+      const rect = posterElement.getBoundingClientRect()
+      const width = Math.max(rect.width || 0, posterElement.offsetWidth || 0, posterElement.scrollWidth || 0, 800)
+      const height = Math.max(rect.height || 0, posterElement.offsetHeight || 0, posterElement.scrollHeight || 0, 1000)
+
+      console.log('PDF Generation Debug:', {
+        elementFound: !!posterElement,
+        dimensions: { width, height },
+        rect: rect,
+        offsetWidth: posterElement.offsetWidth,
+        offsetHeight: posterElement.offsetHeight,
+        scrollWidth: posterElement.scrollWidth,
+        scrollHeight: posterElement.scrollHeight,
+        isVisible: posterElement.offsetParent !== null,
+        display: window.getComputedStyle(posterElement).display,
+        visibility: window.getComputedStyle(posterElement).visibility
+      })
+
+      // Configure PDF with minimal options for better compatibility
       const opt = {
         margin: [0, 0, 0, 0],
         filename: `${salon?.name || 'QR-Poster'}-${new Date().toISOString().split('T')[0]}.pdf`,
@@ -87,12 +127,13 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
         html2canvas: { 
           scale: 2,
           useCORS: true,
+          allowTaint: true,
           logging: false,
           backgroundColor: '#ffffff',
-          width: posterElement.scrollWidth || posterElement.offsetWidth,
-          height: posterElement.scrollHeight || posterElement.offsetHeight,
-          windowWidth: posterElement.scrollWidth || posterElement.offsetWidth,
-          windowHeight: posterElement.scrollHeight || posterElement.offsetHeight,
+          width: width,
+          height: height,
+          windowWidth: width,
+          windowHeight: height,
           x: 0,
           y: 0,
           scrollX: 0,
@@ -103,31 +144,52 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
           format: 'a4', 
           orientation: 'portrait',
           compress: true
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        }
       }
 
-      // Generate PDF using promise-based approach
-      const pdf = await html2pdf().set(opt).from(posterElement).outputPdf('blob')
-      
-      // Create download link
-      const url = URL.createObjectURL(pdf)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = opt.filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      
-      toast.success(isFrench ? 'PDF téléchargé avec succès!' : 'PDF downloaded successfully!', { id: loadingToastId })
-      
-      if (onDownload) {
-        onDownload()
+      // Generate PDF using promise chain
+      try {
+        const worker = html2pdf().set(opt).from(posterElement)
+        await worker.save()
+        
+        // Restore original styles
+        posterElement.style.display = originalDisplay
+        posterElement.style.visibility = originalVisibility
+        posterElement.style.position = originalPosition
+        posterElement.style.zIndex = originalZIndex
+        
+        toast.success(isFrench ? 'PDF téléchargé avec succès!' : 'PDF downloaded successfully!', { id: loadingToastId })
+        
+        if (onDownload) {
+          onDownload()
+        }
+      } catch (pdfError) {
+        console.error('PDF generation error:', pdfError)
+        throw pdfError
       }
     } catch (error) {
       console.error('Error generating PDF:', error)
-      toast.error(isFrench ? 'Erreur lors de la génération du PDF' : 'Error generating PDF')
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      })
+      
+      // Restore styles on error
+      const posterElement = document.getElementById('qr-poster')
+      if (posterElement) {
+        posterElement.style.display = ''
+        posterElement.style.visibility = ''
+        posterElement.style.position = ''
+        posterElement.style.zIndex = ''
+      }
+      
+      toast.error(
+        isFrench 
+          ? 'Erreur lors de la génération du PDF. Utilisez le bouton Imprimer et sélectionnez "Enregistrer au format PDF".' 
+          : 'Error generating PDF. Use the Print button and select "Save as PDF".',
+        { duration: 5000 }
+      )
     }
   }
 
