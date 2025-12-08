@@ -185,7 +185,11 @@ const FinancesPage = () => {
             )}
             {dashboardData && displayStartDate && displayEndDate && (
               <div className="ml-auto text-sm text-gray-600">
-                Showing: {formatDate(displayStartDate)} to {formatDate(displayEndDate)}
+                {dateRange === 'today' || dateRange === 'yesterday' ? (
+                  `Showing: ${formatDate(displayStartDate)}`
+                ) : (
+                  `Showing: ${formatDate(displayStartDate)} to ${formatDate(displayEndDate)}`
+                )}
               </div>
             )}
           </div>
