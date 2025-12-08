@@ -148,6 +148,7 @@ const FinancesPage = () => {
     if (showHistory) {
       loadClosureHistory()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showHistory])
 
   // Close the day
@@ -170,6 +171,10 @@ const FinancesPage = () => {
       setTodayClosure(closure)
       // Refresh dashboard data
       fetchDashboardData()
+      // Refresh closure history if it's already loaded
+      if (showHistory) {
+        await loadClosureHistory()
+      }
     } catch (error) {
       console.error('Error closing day:', error)
       const errorMessage = error.response?.data?.message || 'Failed to close day'
@@ -270,8 +275,9 @@ const FinancesPage = () => {
           <Button
             variant="outline"
             onClick={() => {
-              setShowHistory(!showHistory)
-              if (!showHistory) {
+              const newShowHistory = !showHistory
+              setShowHistory(newShowHistory)
+              if (newShowHistory) {
                 loadClosureHistory()
               }
             }}

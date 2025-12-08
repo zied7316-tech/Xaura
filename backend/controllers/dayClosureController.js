@@ -227,6 +227,7 @@ const getDayClosureHistory = async (req, res, next) => {
     }
 
     const closures = await DayClosure.find({ salonId: salon._id })
+      .populate('closedBy', 'name email')
       .sort({ date: -1 })
       .limit(parseInt(limit));
 
