@@ -87,7 +87,9 @@ export const financialService = {
     if (endDate) params.append('endDate', endDate)
     const queryString = params.toString()
     const response = await api.get(`/finance/dashboard${queryString ? `?${queryString}` : ''}`)
-    return response.data
+    // API interceptor unwraps response.data, so response is { success: true, data: {...} }
+    // Return the inner data object
+    return response.data || response
   },
 
   // Daily Closing

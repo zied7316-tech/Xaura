@@ -66,7 +66,11 @@ const FinancesPage = () => {
       }
 
       const data = await financialService.getFinanceDashboard(dates.startDate, dates.endDate)
-      setDashboardData(data)
+      // Ensure we're accessing the correct data structure
+      // Backend returns: { success: true, data: { summary, workerBreakdown, transactions } }
+      // After interceptor: { success: true, data: { summary, workerBreakdown, transactions } }
+      // Service should return: data object
+      setDashboardData(data?.data || data)
     } catch (error) {
       console.error('Error fetching finance dashboard:', error)
       toast.error('Failed to load finance dashboard data')
@@ -86,10 +90,8 @@ const FinancesPage = () => {
       setCustomStartDate('')
       setCustomEndDate('')
     }
-    // Auto-fetch data when switching date ranges (today/yesterday)
-    if (range !== 'custom') {
-      // fetchDashboardData will be called by useEffect
-    }
+    // Clear existing data when changing date range to show loading state
+    setDashboardData(null)
   }
 
   const handleCustomDateChange = (type, value) => {
@@ -98,11 +100,18 @@ const FinancesPage = () => {
     } else {
       setCustomEndDate(value)
     }
-    // Auto-fetch when both dates are selected
-    if (type === 'end' && value && customStartDate) {
-      // fetchDashboardData will be called by useEffect
-    }
+    // Clear existing data when changing custom dates
+    setDashboardData(null)
   }
+
+  const summary = dashboardData?.summary || {}
+  const workerBreakdown = dashboardData?.workerBreakdown || []
+  const transactions = dashboardData?.transactions || []
+
+  // Get current date range for display
+  const currentDateRange = getDateRange()
+  const displayStartDate = currentDateRange ? new Date(currentDateRange.startDate) : null
+  const displayEndDate = currentDateRange ? new Date(currentDateRange.endDate) : null
 
   if (loading && !dashboardData) {
     return (
@@ -111,10 +120,6 @@ const FinancesPage = () => {
       </div>
     )
   }
-
-  const summary = dashboardData?.summary || {}
-  const workerBreakdown = dashboardData?.workerBreakdown || []
-  const transactions = dashboardData?.transactions || []
 
   return (
     <div className="space-y-6">
@@ -138,6 +143,7 @@ const FinancesPage = () => {
                 variant={dateRange === 'today' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => handleDateRangeChange('today')}
+                disabled={loading}
               >
                 Today
               </Button>
@@ -145,6 +151,7 @@ const FinancesPage = () => {
                 variant={dateRange === 'yesterday' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => handleDateRangeChange('yesterday')}
+                disabled={loading}
               >
                 Yesterday
               </Button>
@@ -152,6 +159,7 @@ const FinancesPage = () => {
                 variant={dateRange === 'custom' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => handleDateRangeChange('custom')}
+                disabled={loading}
               >
                 Custom Range
               </Button>
@@ -163,6 +171,7 @@ const FinancesPage = () => {
                   value={customStartDate}
                   onChange={(e) => handleCustomDateChange('start', e.target.value)}
                   className="w-40"
+                  disabled={loading}
                 />
                 <span className="text-gray-500">to</span>
                 <Input
@@ -170,7 +179,13 @@ const FinancesPage = () => {
                   value={customEndDate}
                   onChange={(e) => handleCustomDateChange('end', e.target.value)}
                   className="w-40"
+                  disabled={loading}
                 />
+              </div>
+            )}
+            {dashboardData && displayStartDate && displayEndDate && (
+              <div className="ml-auto text-sm text-gray-600">
+                Showing: {formatDate(displayStartDate)} to {formatDate(displayEndDate)}
               </div>
             )}
           </div>
