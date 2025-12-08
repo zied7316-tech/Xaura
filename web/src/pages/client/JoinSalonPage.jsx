@@ -61,9 +61,29 @@ const JoinSalonPage = () => {
       }
       
       // Redirect to salon details after 3 seconds
-      setTimeout(() => {
-        navigate(`/salon/${result.data.salon.id}`)
-      }, 3000)
+      // Use slug if available (better URL), otherwise use ID (ensure it's a string)
+      const salon = result.data?.salon
+      if (salon) {
+        console.log('Salon data from join response:', salon)
+        setTimeout(() => {
+          // Prefer slug for better URLs, fallback to ID
+          if (salon.slug) {
+            console.log('Redirecting to salon via slug:', salon.slug)
+            navigate(`/SALON/${salon.slug}`)
+          } else {
+            // Ensure ID is converted to string
+            const salonId = String(salon.id || salon._id)
+            console.log('Redirecting to salon via ID:', salonId)
+            navigate(`/salon/${salonId}`)
+          }
+        }, 3000)
+      } else {
+        console.error('Salon data not found in response:', result)
+        toast.error('Salon information not found. Redirecting to salon search...')
+        setTimeout(() => {
+          navigate('/search-salons')
+        }, 2000)
+      }
     } catch (error) {
       console.error('Error:', error)
       toast.error(error.response?.data?.message || 'Failed to join salon')

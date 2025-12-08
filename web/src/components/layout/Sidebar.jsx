@@ -80,7 +80,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const clientLinks = [
     { to: '/client/dashboard', icon: LayoutDashboard, label: t('common.dashboard', 'Dashboard') },
-    { to: '/search-salons', icon: Store, label: t('client.findSalons', 'Find Salons'), badge: 'NEW' },
+    // { to: '/search-salons', icon: Store, label: t('client.findSalons', 'Find Salons'), badge: 'NEW' }, // Hidden until we reach 500 salons and 5k+ users
     { to: '/join-salon', icon: QrCode, label: 'Join via QR', badge: 'NEW' },
     { to: '/appointments', icon: Calendar, label: t('client.myAppointments', 'My Appointments') },
     { to: '/messages', icon: MessageSquare, label: t('chat.messages', 'Messages'), badge: 'NEW' },

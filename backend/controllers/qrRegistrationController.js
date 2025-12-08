@@ -156,6 +156,7 @@ const joinSalonViaQR = async (req, res, next) => {
         data: {
           salon: {
             id: salon._id,
+            slug: salon.slug,
             name: salon.name,
             description: salon.description,
             logo: salon.logo,
@@ -183,6 +184,7 @@ const joinSalonViaQR = async (req, res, next) => {
       data: {
         salon: {
           id: salon._id,
+          slug: salon.slug,
           name: salon.name,
           description: salon.description,
           logo: salon.logo,

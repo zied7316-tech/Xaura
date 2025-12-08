@@ -300,7 +300,8 @@ const ClientDashboard = () => {
           </Card>
         </Link>
 
-        <Link to="/search-salons">
+        {/* Hidden until we reach 500 salons and 5k+ users */}
+        {/* <Link to="/search-salons">
           <Card className="p-6 text-center hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-primary-200">
             <Store className="mx-auto text-purple-600 mb-3" size={48} />
             <h3 className="text-lg font-semibold mb-2">
@@ -310,7 +311,7 @@ const ClientDashboard = () => {
               {t('client.findMoreSalonsDescription', 'Discover and explore new salons near you')}
             </p>
           </Card>
-        </Link>
+        </Link> */}
       </div>
 
       {/* QR Code Share Modal */}

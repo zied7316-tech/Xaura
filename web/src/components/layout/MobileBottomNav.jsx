@@ -48,7 +48,7 @@ const MobileBottomNav = () => {
 
   const clientNav = [
     { to: '/client/dashboard', icon: LayoutDashboard, label: t('common.dashboard', 'Dashboard') },
-    { to: '/search-salons', icon: Store, label: t('client.findSalons', 'Find') },
+    // { to: '/search-salons', icon: Store, label: t('client.findSalons', 'Find') }, // Hidden until we reach 500 salons and 5k+ users
     { to: '/appointments', icon: Calendar, label: t('client.myAppointments', 'Appointments') },
     { to: '/messages', icon: MessageSquare, label: t('chat.messages', 'Messages') },
   ]

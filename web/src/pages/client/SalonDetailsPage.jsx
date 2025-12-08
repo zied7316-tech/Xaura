@@ -52,7 +52,18 @@ const SalonDetailsPage = () => {
     }
     
     try {
-      const data = await salonSearchService.getSalonDetails(salonId)
+      // Ensure salonId is a valid string
+      const salonIdString = String(salonId).trim()
+      if (!salonIdString || salonIdString === 'undefined' || salonIdString === 'null') {
+        throw new Error('Invalid salon ID')
+      }
+      
+      const data = await salonSearchService.getSalonDetails(salonIdString)
+      
+      if (!data || !data.salon) {
+        throw new Error('Salon not found')
+      }
+      
       setSalonData(data)
       
       // Load reviews for all workers
@@ -61,8 +72,12 @@ const SalonDetailsPage = () => {
       }
     } catch (error) {
       console.error('Error loading salon details:', error)
-      toast.error('Failed to load salon details')
-      navigate('/search-salons')
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load salon details'
+      toast.error(errorMessage)
+      // Redirect to search salons after a short delay
+      setTimeout(() => {
+        navigate('/search-salons')
+      }, 2000)
     } finally {
       setLoading(false)
     }
