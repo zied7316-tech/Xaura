@@ -313,13 +313,8 @@ const generateInvoice = async (req, res, next) => {
       });
     }
 
-    // SECURITY: Prevent workers from generating invoices for themselves
-    if (workerIdStr && workerIdStr.toString() === req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Workers cannot generate invoices for themselves. Only salon owners can generate invoices.'
-      });
-    }
+    // Note: Owners can generate invoices for any worker, including themselves if they work as workers.
+    // The route middleware already ensures only owners can access this endpoint.
 
     // Get PAID earnings (where client already paid) that haven't been invoiced yet
     // Note: isPaid: true means client paid, but invoiceId is null (not yet invoiced)
