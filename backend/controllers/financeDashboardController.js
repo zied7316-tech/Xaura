@@ -144,7 +144,28 @@ const getFinanceDashboard = async (req, res, next) => {
       }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // 7. Additional metrics
+    // 7. Payment method breakdown
+    const paymentMethodBreakdown = {
+      cash: { count: 0, amount: 0 },
+      card: { count: 0, amount: 0 },
+      bank_transfer: { count: 0, amount: 0 },
+      online: { count: 0, amount: 0 },
+      wallet: { count: 0, amount: 0 },
+      other: { count: 0, amount: 0 }
+    };
+
+    payments.forEach(payment => {
+      const method = payment.paymentMethod || 'other';
+      if (paymentMethodBreakdown[method]) {
+        paymentMethodBreakdown[method].count += 1;
+        paymentMethodBreakdown[method].amount += payment.amount;
+      } else {
+        paymentMethodBreakdown.other.count += 1;
+        paymentMethodBreakdown.other.amount += payment.amount;
+      }
+    });
+
+    // 8. Additional metrics
     const paymentCount = payments.length;
     const expenseCount = expenses.length;
     const averageTransaction = paymentCount > 0 ? totalRevenue / paymentCount : 0;
@@ -168,6 +189,7 @@ const getFinanceDashboard = async (req, res, next) => {
           expenseCount,
           averageTransaction: parseFloat(averageTransaction.toFixed(2))
         },
+        paymentMethodBreakdown,
         workerBreakdown,
         transactions,
         payments: payments.map(p => ({

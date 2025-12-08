@@ -89,5 +89,25 @@ export const financialService = {
     const response = await api.get(`/finance/dashboard${queryString ? `?${queryString}` : ''}`)
     return response.data
   },
+
+  // Daily Closing
+  getDayClosure: async (date) => {
+    const response = await api.get(`/day-closure/${date}`)
+    return response.data?.data?.closure || null
+  },
+
+  closeDay: async (date, actualCash, notes) => {
+    const response = await api.post('/day-closure/close', {
+      date,
+      actualCash: actualCash !== null && actualCash !== undefined ? parseFloat(actualCash) : null,
+      notes
+    })
+    return response.data
+  },
+
+  getDayClosureHistory: async (limit = 30) => {
+    const response = await api.get(`/day-closure/history?limit=${limit}`)
+    return response.data?.data?.closures || []
+  },
 }
 

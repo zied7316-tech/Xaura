@@ -29,7 +29,17 @@ const dayClosureSchema = new mongoose.Schema({
     total: { type: Number, default: 0 },
     cash: { type: Number, default: 0 },
     card: { type: Number, default: 0 },
-    online: { type: Number, default: 0 }
+    bank_transfer: { type: Number, default: 0 },
+    online: { type: Number, default: 0 },
+    wallet: { type: Number, default: 0 },
+    other: { type: Number, default: 0 }
+  },
+  // Cash Verification
+  cashVerification: {
+    calculatedCash: { type: Number, default: 0 }, // Cash from app calculations
+    actualCash: { type: Number, default: null }, // Actual cash count entered by owner
+    discrepancy: { type: Number, default: 0 }, // Difference (actual - calculated)
+    verified: { type: Boolean, default: false } // Whether cash was verified
   },
   // Worker Performance
   workerPerformance: [{

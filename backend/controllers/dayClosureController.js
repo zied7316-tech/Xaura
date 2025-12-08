@@ -11,7 +11,7 @@ const Expense = require('../models/Expense');
  */
 const closeTheDay = async (req, res, next) => {
   try {
-    const { date, notes } = req.body;
+    const { date, notes, actualCash } = req.body;
     const closureDate = date ? new Date(date) : new Date();
     closureDate.setHours(0, 0, 0, 0);
     
@@ -73,13 +73,30 @@ const closeTheDay = async (req, res, next) => {
       noShow: appointments.filter(a => a.status === 'pending').length // Pending = no-show
     };
 
-    // Payment summary
+    // Payment summary with amounts
     const paymentSummary = {
       total: payments.length,
-      cash: payments.filter(p => p.paymentMethod === 'cash').length,
-      card: payments.filter(p => p.paymentMethod === 'card').length,
-      online: payments.filter(p => p.paymentMethod === 'online').length
+      cash: { count: 0, amount: 0 },
+      card: { count: 0, amount: 0 },
+      bank_transfer: { count: 0, amount: 0 },
+      online: { count: 0, amount: 0 },
+      wallet: { count: 0, amount: 0 },
+      other: { count: 0, amount: 0 }
     };
+
+    payments.forEach(payment => {
+      const method = payment.paymentMethod || 'other';
+      if (paymentSummary[method]) {
+        paymentSummary[method].count += 1;
+        paymentSummary[method].amount += payment.amount;
+      } else {
+        paymentSummary.other.count += 1;
+        paymentSummary.other.amount += payment.amount;
+      }
+    });
+
+    // Calculate cash total from payments
+    const calculatedCash = paymentSummary.cash.amount;
 
     // Worker performance
     const workerStats = {};
@@ -131,6 +148,16 @@ const closeTheDay = async (req, res, next) => {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
+    // Calculate cash verification
+    const cashVerification = {
+      calculatedCash: calculatedCash,
+      actualCash: actualCash !== undefined && actualCash !== null ? parseFloat(actualCash) : null,
+      discrepancy: actualCash !== undefined && actualCash !== null 
+        ? parseFloat(actualCash) - calculatedCash 
+        : 0,
+      verified: actualCash !== undefined && actualCash !== null
+    };
+
     // Create day closure record
     const dayClosure = await DayClosure.create({
       salonId: salon._id,
@@ -143,6 +170,7 @@ const closeTheDay = async (req, res, next) => {
       },
       appointments: appointmentSummary,
       payments: paymentSummary,
+      cashVerification,
       workerPerformance,
       topServices,
       notes: notes || '',

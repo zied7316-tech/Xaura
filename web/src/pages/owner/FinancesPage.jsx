@@ -86,11 +86,21 @@ const FinancesPage = () => {
       setCustomStartDate('')
       setCustomEndDate('')
     }
+    // Auto-fetch data when switching date ranges (today/yesterday)
+    if (range !== 'custom') {
+      // fetchDashboardData will be called by useEffect
+    }
   }
 
-  const handleCustomDateApply = () => {
-    if (dateRange === 'custom') {
-      fetchDashboardData()
+  const handleCustomDateChange = (type, value) => {
+    if (type === 'start') {
+      setCustomStartDate(value)
+    } else {
+      setCustomEndDate(value)
+    }
+    // Auto-fetch when both dates are selected
+    if (type === 'end' && value && customStartDate) {
+      // fetchDashboardData will be called by useEffect
     }
   }
 
@@ -151,24 +161,16 @@ const FinancesPage = () => {
                 <Input
                   type="date"
                   value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  onChange={(e) => handleCustomDateChange('start', e.target.value)}
                   className="w-40"
                 />
                 <span className="text-gray-500">to</span>
                 <Input
                   type="date"
                   value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  onChange={(e) => handleCustomDateChange('end', e.target.value)}
                   className="w-40"
                 />
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleCustomDateApply}
-                  disabled={!customStartDate || !customEndDate}
-                >
-                  Apply
-                </Button>
               </div>
             )}
           </div>
