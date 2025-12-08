@@ -90,11 +90,11 @@ const CongratulationsModal = ({
               exit={{ opacity: 0, scale: 0.8, y: 20 }}
               transition={{ 
                 type: 'spring',
-                stiffness: 300,
-                damping: 30,
-                duration: 0.6
+                stiffness: 400,
+                damping: 25,
+                duration: 0.3
               }}
-              className="relative bg-gradient-to-br from-white via-purple-50 to-pink-50 rounded-3xl shadow-2xl max-w-md w-full p-8 pointer-events-auto border-2 border-purple-200"
+              className="relative bg-gradient-to-br from-white via-purple-50 to-pink-50 rounded-2xl shadow-2xl max-w-sm w-full p-6 pointer-events-auto border-2 border-purple-200"
             >
               {/* Sparkle Effects */}
               <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
@@ -128,59 +128,27 @@ const CongratulationsModal = ({
 
               {/* Content */}
               <div className="relative z-10 text-center">
-                {/* Animated Checkmark Circle */}
+                {/* Animated Checkmark Icon (without green background) */}
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ 
                     type: 'spring',
-                    stiffness: 200,
-                    damping: 15,
-                    delay: 0.2
+                    stiffness: 300,
+                    damping: 20,
+                    delay: 0.05
                   }}
-                  className="inline-flex items-center justify-center w-24 h-24 mb-6"
+                  className="inline-flex items-center justify-center mb-4"
                 >
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
-                    className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full shadow-lg"
-                  />
-                  <motion.div
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 0.5 }}
-                    className="relative z-10"
-                  >
-                    <CheckCircle className="w-16 h-16 text-white" strokeWidth={3} />
-                  </motion.div>
-                  
-                  {/* Pulsing rings */}
-                  {[1, 2, 3].map((ring) => (
-                    <motion.div
-                      key={ring}
-                      initial={{ scale: 0.8, opacity: 0.8 }}
-                      animate={{ 
-                        scale: [1, 1.5, 1.5],
-                        opacity: [0.8, 0, 0]
-                      }}
-                      transition={{
-                        duration: 2,
-                        delay: 0.5 + ring * 0.2,
-                        repeat: Infinity,
-                        ease: 'easeOut'
-                      }}
-                      className="absolute inset-0 border-4 border-green-400 rounded-full"
-                    />
-                  ))}
+                  <CheckCircle className="w-12 h-12 text-purple-600" strokeWidth={2.5} />
                 </motion.div>
 
                 {/* Title with animation */}
                 <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-3xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-3"
+                  transition={{ delay: 0.1 }}
+                  className="text-2xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-2"
                 >
                   {title}
                 </motion.h2>
@@ -190,8 +158,8 @@ const CongratulationsModal = ({
                   <motion.p
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="text-lg text-gray-700 mb-2 font-medium"
+                    transition={{ delay: 0.15 }}
+                    className="text-base text-gray-700 mb-2 font-medium"
                   >
                     {message}
                   </motion.p>
@@ -202,8 +170,8 @@ const CongratulationsModal = ({
                   <motion.p
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
-                    className="text-sm text-gray-600 mb-6"
+                    transition={{ delay: 0.2 }}
+                    className="text-sm text-gray-600 mb-4"
                   >
                     {subtitle}
                   </motion.p>
@@ -214,12 +182,12 @@ const CongratulationsModal = ({
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.9 }}
-                    className="mb-6"
+                    transition={{ delay: 0.25 }}
+                    className="mb-4"
                   >
-                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full border-2 border-purple-300">
-                      <PartyPopper className="text-purple-600" size={18} />
-                      <span className="text-sm font-semibold text-purple-700">
+                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-pink-100 px-3 py-1.5 rounded-full border-2 border-purple-300">
+                      <PartyPopper className="text-purple-600" size={16} />
+                      <span className="text-xs font-semibold text-purple-700">
                         Redirecting in {countdown} second{countdown !== 1 ? 's' : ''}...
                       </span>
                     </div>
@@ -230,8 +198,8 @@ const CongratulationsModal = ({
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                  className="flex flex-col gap-3"
+                  transition={{ delay: 0.25 }}
+                  className="flex flex-col gap-2"
                 >
                   {onCountdownComplete && (
                     <Button 
@@ -258,14 +226,14 @@ const CongratulationsModal = ({
               <motion.div
                 initial={{ opacity: 0, rotate: -180 }}
                 animate={{ opacity: 1, rotate: 0 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-                className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full opacity-20 blur-xl"
+                transition={{ delay: 0.1, duration: 0.5 }}
+                className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full opacity-20 blur-xl"
               />
               <motion.div
                 initial={{ opacity: 0, rotate: 180 }}
                 animate={{ opacity: 1, rotate: 0 }}
-                transition={{ delay: 0.6, duration: 0.8 }}
-                className="absolute -bottom-4 -left-4 w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full opacity-20 blur-xl"
+                transition={{ delay: 0.15, duration: 0.5 }}
+                className="absolute -bottom-3 -left-3 w-14 h-14 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full opacity-20 blur-xl"
               />
             </motion.div>
           </div>
