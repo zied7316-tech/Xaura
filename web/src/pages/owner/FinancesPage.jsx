@@ -134,7 +134,11 @@ const FinancesPage = () => {
     setLoadingHistory(true)
     try {
       const closures = await financialService.getDayClosureHistory(365) // Get last year
+      console.log('Loaded closure history:', closures)
       setClosureHistory(closures || [])
+      if (closures && closures.length === 0) {
+        console.warn('No closures found in history')
+      }
     } catch (error) {
       console.error('Error loading closure history:', error)
       toast.error('Failed to load closure history')

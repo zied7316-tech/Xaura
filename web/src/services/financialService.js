@@ -109,7 +109,11 @@ export const financialService = {
 
   getDayClosureHistory: async (limit = 30) => {
     const response = await api.get(`/day-closure/history?limit=${limit}`)
-    return response.data?.data?.closures || []
+    // API interceptor unwraps response.data, so response is { success: true, count: X, data: { closures: [...] } }
+    // Return closures array
+    const closures = response?.data?.closures || response?.closures || []
+    console.log('Day Closure History Response:', { response, closuresCount: closures.length })
+    return closures
   },
 }
 
