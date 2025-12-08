@@ -3,6 +3,7 @@ import { Printer, Download, Smartphone, Calendar, Clock, Sparkles, Star, Zap, Sh
 import Button from '../ui/Button'
 import toast from 'react-hot-toast'
 import { useLanguage } from '../../context/LanguageContext'
+import html2pdf from 'html2pdf.js'
 
 const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) => {
   const { language, t } = useLanguage()
@@ -47,10 +48,86 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
     manualCode: isFrench ? 'Code Manuel :' : 'Manual Code:'
   }
 
-  const handleDownloadPDF = () => {
-    // This will be handled by the parent component to generate PDF
-    if (onDownload) {
-      onDownload()
+  const handleDownloadPDF = async () => {
+    try {
+      const posterElement = document.getElementById('qr-poster')
+      if (!posterElement) {
+        toast.error(isFrench ? 'Élément de l\'affiche introuvable' : 'Poster element not found')
+        return
+      }
+
+      // Show loading toast
+      const loadingToastId = toast.loading(isFrench ? 'Génération du PDF...' : 'Generating PDF...')
+
+      // Wait for all images to load
+      const images = posterElement.querySelectorAll('img')
+      await Promise.all(
+        Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve()
+          return new Promise((resolve, reject) => {
+            img.onload = resolve
+            img.onerror = resolve // Continue even if image fails
+            setTimeout(resolve, 2000) // Timeout after 2 seconds
+          })
+        })
+      )
+
+      // Wait a bit more to ensure all content is rendered
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Scroll element into view to ensure it's rendered
+      posterElement.scrollIntoView({ behavior: 'instant', block: 'start' })
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // Configure PDF options
+      const opt = {
+        margin: [0, 0, 0, 0],
+        filename: `${salon?.name || 'QR-Poster'}-${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          width: posterElement.scrollWidth || posterElement.offsetWidth,
+          height: posterElement.scrollHeight || posterElement.offsetHeight,
+          windowWidth: posterElement.scrollWidth || posterElement.offsetWidth,
+          windowHeight: posterElement.scrollHeight || posterElement.offsetHeight,
+          x: 0,
+          y: 0,
+          scrollX: 0,
+          scrollY: 0
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait',
+          compress: true
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      }
+
+      // Generate PDF using promise-based approach
+      const pdf = await html2pdf().set(opt).from(posterElement).outputPdf('blob')
+      
+      // Create download link
+      const url = URL.createObjectURL(pdf)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = opt.filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      toast.success(isFrench ? 'PDF téléchargé avec succès!' : 'PDF downloaded successfully!', { id: loadingToastId })
+      
+      if (onDownload) {
+        onDownload()
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      toast.error(isFrench ? 'Erreur lors de la génération du PDF' : 'Error generating PDF')
     }
   }
 
