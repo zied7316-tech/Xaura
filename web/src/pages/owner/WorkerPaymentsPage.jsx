@@ -8,7 +8,7 @@ import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
-import { Wallet, FileText, DollarSign, Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { Wallet, FileText, DollarSign, Calendar, Clock, CheckCircle, AlertCircle, Printer, Eye } from 'lucide-react'
 import { formatCurrency, formatDate } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
@@ -246,14 +246,20 @@ const WorkerPaymentsPage = () => {
     try {
       // Don't set period - get ALL paid earnings that haven't been invoiced
       // Omit periodStart and periodEnd instead of sending null
-      await workerFinanceService.generateInvoice({
+      const invoice = await workerFinanceService.generateInvoice({
         workerId: wallet.workerId._id,
         // periodStart and periodEnd omitted = Pay All Balance
         paymentMethod: 'cash',
         notes: `Full balance payment`
       })
       
-      toast.success('Full balance invoice generated!')
+      toast.success('Full balance invoice generated!', {
+        duration: 5000,
+        action: invoice?._id ? {
+          label: 'View Invoice',
+          onClick: () => window.open(`/owner/invoice/${invoice._id}`, '_blank')
+        } : undefined
+      })
       loadWallets()
     } catch (error) {
       console.error('Error generating invoice:', error)

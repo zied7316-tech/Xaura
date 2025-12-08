@@ -28,6 +28,7 @@ import ProductsForSalePage from './pages/owner/ProductsForSalePage'
 import ProductsForUsePage from './pages/owner/ProductsForUsePage'
 import OwnerReportsPage from './pages/owner/ReportsPage'
 import WorkerPaymentsPage from './pages/owner/WorkerPaymentsPage'
+import InvoiceViewPage from './pages/owner/InvoiceViewPage'
 import WorkerAnalyticsPage from './pages/owner/WorkerAnalyticsPage'
 import SalonClientsPage from './pages/owner/SalonClientsPage'
 import ReminderSettingsPage from './pages/owner/ReminderSettingsPage'
@@ -148,6 +149,7 @@ function App() {
             <Route path="/owner/products-for-use" element={<ProtectedRoute roles={['Owner']}><ProductsForUsePage /></ProtectedRoute>} />
             <Route path="/owner/reports" element={<ProtectedRoute roles={['Owner']}><OwnerReportsPage /></ProtectedRoute>} />
             <Route path="/owner/worker-payments" element={<ProtectedRoute roles={['Owner']}><WorkerPaymentsPage /></ProtectedRoute>} />
+            <Route path="/owner/invoice/:invoiceId" element={<ProtectedRoute roles={['Owner']}><InvoiceViewPage /></ProtectedRoute>} />
             <Route path="/owner/worker-analytics" element={<ProtectedRoute roles={['Owner']}><WorkerAnalyticsPage /></ProtectedRoute>} />
             <Route path="/owner/salon-clients" element={<ProtectedRoute roles={['Owner']}><SalonClientsPage /></ProtectedRoute>} />
             <Route path="/owner/reminders" element={<ProtectedRoute roles={['Owner']}><ReminderSettingsPage /></ProtectedRoute>} />

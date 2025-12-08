@@ -10,6 +10,7 @@ const {
   getWorkerUnpaidEarnings,
   getWorkerPaidEarnings,
   generateInvoice,
+  getInvoice,
   recordEarning,
   getWorkerFinancialSummary,
   getEstimatedEarnings,
@@ -34,6 +35,7 @@ router.get('/unpaid-earnings/:workerId', protect, authorize('Owner'), checkSubsc
 router.get('/paid-earnings/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getWorkerPaidEarnings);
 router.get('/summary/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getWorkerFinancialSummary);
 router.post('/generate-invoice', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), generateInvoice);
+router.get('/invoice/:invoiceId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), getInvoice);
 router.post('/record-earning', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), recordEarning);
 router.post('/recalculate-balance/:workerId', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), recalculateWalletBalance);
 router.post('/give-advance', protect, authorize('Owner'), checkSubscriptionFeature('fullFinanceSystem'), giveAdvance);

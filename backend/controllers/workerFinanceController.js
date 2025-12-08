@@ -570,6 +570,62 @@ const generateInvoice = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get invoice by ID (Owner only)
+ * @route   GET /api/worker-finance/invoice/:invoiceId
+ * @access  Private (Owner)
+ */
+const getInvoice = async (req, res, next) => {
+  try {
+    const { invoiceId } = req.params;
+
+    // SECURITY: Verify user is Owner
+    if (req.user.role !== 'Owner') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only salon owners can view invoices'
+      });
+    }
+
+    // Verify owner owns a salon
+    const salon = await Salon.findOne({ ownerId: req.user.id });
+    if (!salon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salon not found'
+      });
+    }
+
+    // Get invoice and verify it belongs to owner's salon
+    const invoice = await WorkerInvoice.findById(invoiceId)
+      .populate('workerId', 'name email phone')
+      .populate('salonId', 'name phone email address')
+      .populate('generatedBy', 'name email');
+
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    // SECURITY: Verify invoice belongs to owner's salon
+    if (invoice.salonId._id.toString() !== salon._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to view this invoice'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: invoice
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Record worker earning from appointment
  * @route   POST /api/worker-finance/record-earning
  * @access  Private (Owner/System)
@@ -1229,6 +1285,7 @@ module.exports = {
   getWorkerUnpaidEarnings,
   getWorkerPaidEarnings,
   generateInvoice,
+  getInvoice,
   recordEarning,
   getWorkerFinancialSummary,
   getEstimatedEarnings,
