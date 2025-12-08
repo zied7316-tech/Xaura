@@ -10,9 +10,11 @@ import ImageUpload from '../../components/ui/ImageUpload'
 import PushNotificationSetup from '../../components/notifications/PushNotificationSetup'
 import { User, Mail, Phone, Briefcase, Edit2, Save, X, Trash2, Hash } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useLanguage } from '../../context/LanguageContext'
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuth()
+  const { t } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedAvatar, setSelectedAvatar] = useState(null)
@@ -55,13 +57,13 @@ const ProfilePage = () => {
           console.log('📤 Uploading user avatar for:', user._id, 'Role:', user.role)
           const uploadResult = await uploadService.uploadUserImage(user._id, selectedAvatar)
           console.log('✅ Avatar upload result:', uploadResult)
-          toast.success('Profile picture updated!')
+          toast.success(t('profile.pictureUpdated', 'Profile picture updated!'))
           // Refresh user data immediately after upload
           const refreshedUser = await profileService.getProfile()
           updateUser(refreshedUser)
         } catch (error) {
           console.error('❌ Avatar upload failed:', error)
-          toast.error('Failed to upload profile picture: ' + (error.response?.data?.message || error.message))
+          toast.error(t('profile.failedToUploadPicture', 'Failed to upload profile picture: ') + (error.response?.data?.message || error.message))
           return // Stop here if upload fails
         }
       }
@@ -79,31 +81,31 @@ const ProfilePage = () => {
         // Continue anyway - we already have the updated user
       }
       
-      toast.success('Profile updated successfully!')
+      toast.success(t('profile.updatedSuccessfully', 'Profile updated successfully!'))
       setIsEditing(false)
       setSelectedAvatar(null)
     } catch (error) {
       console.error('❌ Profile update failed:', error)
-      toast.error(error.response?.data?.message || 'Failed to update profile')
+      toast.error(error.response?.data?.message || t('profile.failedToUpdate', 'Failed to update profile'))
     } finally {
       setLoading(false)
     }
   }
 
   const handleDeleteAvatar = async () => {
-    if (!confirm('Are you sure you want to delete your profile picture?')) return
+    if (!confirm(t('profile.confirmDeletePicture', 'Are you sure you want to delete your profile picture?'))) return
     
     try {
       console.log('🗑️ Deleting user avatar for:', user._id)
       await uploadService.deleteUserImage(user._id)
-      toast.success('Profile picture deleted!')
+      toast.success(t('profile.pictureDeleted', 'Profile picture deleted!'))
       setSelectedAvatar(null)
       // Refresh user data
       const refreshedUser = await profileService.getProfile()
       updateUser(refreshedUser)
     } catch (error) {
       console.error('❌ Delete avatar failed:', error)
-      toast.error('Failed to delete profile picture: ' + (error.response?.data?.message || error.message))
+      toast.error(t('profile.failedToDeletePicture', 'Failed to delete profile picture: ') + (error.response?.data?.message || error.message))
     }
   }
 
@@ -148,13 +150,13 @@ const ProfilePage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          <p className="text-gray-600 mt-1">Manage your account information</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('common.profile', 'Profile')}</h1>
+          <p className="text-gray-600 mt-1">{t('profile.manageAccount', 'Manage your account information')}</p>
         </div>
         {!isEditing && (
           <Button onClick={() => setIsEditing(true)}>
             <Edit2 size={18} />
-            Edit Profile
+            {t('profile.editProfile', 'Edit Profile')}
           </Button>
         )}
       </div>
@@ -167,7 +169,7 @@ const ProfilePage = () => {
               {isEditing ? (
                 <div className="flex-1 space-y-2">
                   <ImageUpload
-                    label="Profile Picture"
+                    label={t('profile.profilePicture', 'Profile Picture')}
                     currentImage={user?.avatar ? uploadService.getImageUrl(user.avatar) : null}
                     onImageSelect={setSelectedAvatar}
                     accept="image/*"
@@ -181,7 +183,7 @@ const ProfilePage = () => {
                       className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 size={16} />
-                      Delete Current Picture
+                      {t('profile.deleteCurrentPicture', 'Delete Current Picture')}
                     </Button>
                   )}
                 </div>
@@ -201,7 +203,7 @@ const ProfilePage = () => {
               <div className="flex-1">
                 {isEditing ? (
                   <Input
-                    label="Name"
+                    label={t('common.name', 'Name')}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
@@ -222,7 +224,7 @@ const ProfilePage = () => {
               </div>
               {isEditing ? (
                 <Input
-                  label="Phone"
+                  label={t('common.phone', 'Phone')}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
@@ -239,13 +241,13 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Hash size={20} className="text-gray-500" />
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.userID', 'User ID')}</label>
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-mono font-semibold text-primary-600">
-                      {user?.userID || 'Not assigned'}
+                      {user?.userID || t('profile.notAssigned', 'Not assigned')}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Your unique 4-digit identifier</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('profile.uniqueIdentifier', 'Your unique 4-digit identifier')}</p>
                 </div>
               </div>
             </div>
@@ -256,10 +258,10 @@ const ProfilePage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Work as Worker
+                      {t('profile.workAsWorker', 'Work as Worker')}
                     </label>
                     <p className="text-xs text-gray-500">
-                      Enable this to work as a barber and receive appointments. You'll appear in the workers list and can create walk-in appointments.
+                      {t('profile.workAsWorkerDescription', 'Enable this to work as a barber and receive appointments. You\'ll appear in the workers list and can create walk-in appointments.')}
                     </p>
                   </div>
                   {isEditing ? (
@@ -278,7 +280,7 @@ const ProfilePage = () => {
                         ? 'bg-green-100 text-green-700' 
                         : 'bg-gray-100 text-gray-600'
                     }`}>
-                      {user?.worksAsWorker ? 'Enabled' : 'Disabled'}
+                      {user?.worksAsWorker ? t('profile.enabled', 'Enabled') : t('profile.disabled', 'Disabled')}
                     </span>
                   )}
                 </div>
@@ -291,8 +293,8 @@ const ProfilePage = () => {
                 {/* Bio */}
                 {isEditing ? (
                   <Textarea
-                    label="Bio"
-                    placeholder="Tell us about yourself..."
+                    label={t('profile.bio', 'Bio')}
+                    placeholder={t('profile.bioPlaceholder', 'Tell us about yourself...')}
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                     rows={4}
@@ -300,7 +302,7 @@ const ProfilePage = () => {
                 ) : (
                   formData.bio && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('profile.bio', 'Bio')}</label>
                       <p className="text-gray-700">{formData.bio}</p>
                     </div>
                   )
@@ -308,17 +310,17 @@ const ProfilePage = () => {
 
                 {/* Skills */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Skills</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('profile.skills', 'Skills')}</label>
                   {isEditing ? (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Input
                           value={newSkill}
                           onChange={(e) => setNewSkill(e.target.value)}
-                          placeholder="Add a skill"
+                          placeholder={t('profile.addSkill', 'Add a skill')}
                           onKeyPress={(e) => e.key === 'Enter' && addSkill()}
                         />
-                        <Button type="button" onClick={addSkill}>Add</Button>
+                        <Button type="button" onClick={addSkill}>{t('common.add', 'Add')}</Button>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {formData.skills.map((skill, index) => (
@@ -350,7 +352,7 @@ const ProfilePage = () => {
                           </span>
                         ))
                       ) : (
-                        <p className="text-gray-500 text-sm">No skills added</p>
+                        <p className="text-gray-500 text-sm">{t('profile.noSkills', 'No skills added')}</p>
                       )}
                     </div>
                   )}
@@ -359,8 +361,8 @@ const ProfilePage = () => {
                 {/* Experience */}
                 {isEditing ? (
                   <Textarea
-                    label="Experience"
-                    placeholder="Describe your work experience..."
+                    label={t('profile.experience', 'Experience')}
+                    placeholder={t('profile.experiencePlaceholder', 'Describe your work experience...')}
                     value={formData.experience}
                     onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
                     rows={3}
@@ -368,7 +370,7 @@ const ProfilePage = () => {
                 ) : (
                   formData.experience && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Experience</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('profile.experience', 'Experience')}</label>
                       <p className="text-gray-700 whitespace-pre-line">{formData.experience}</p>
                     </div>
                   )
@@ -377,8 +379,8 @@ const ProfilePage = () => {
                 {/* Education */}
                 {isEditing ? (
                   <Textarea
-                    label="Education"
-                    placeholder="Your educational background..."
+                    label={t('profile.education', 'Education')}
+                    placeholder={t('profile.educationPlaceholder', 'Your educational background...')}
                     value={formData.education}
                     onChange={(e) => setFormData({ ...formData, education: e.target.value })}
                     rows={2}
@@ -386,7 +388,7 @@ const ProfilePage = () => {
                 ) : (
                   formData.education && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Education</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('profile.education', 'Education')}</label>
                       <p className="text-gray-700">{formData.education}</p>
                     </div>
                   )
@@ -394,17 +396,17 @@ const ProfilePage = () => {
 
                 {/* Certifications */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Certifications</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('profile.certifications', 'Certifications')}</label>
                   {isEditing ? (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Input
                           value={newCertification}
                           onChange={(e) => setNewCertification(e.target.value)}
-                          placeholder="Add a certification"
+                          placeholder={t('profile.addCertification', 'Add a certification')}
                           onKeyPress={(e) => e.key === 'Enter' && addCertification()}
                         />
-                        <Button type="button" onClick={addCertification}>Add</Button>
+                        <Button type="button" onClick={addCertification}>{t('common.add', 'Add')}</Button>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {formData.certifications.map((cert, index) => (
@@ -436,7 +438,7 @@ const ProfilePage = () => {
                           </span>
                         ))
                       ) : (
-                        <p className="text-gray-500 text-sm">No certifications added</p>
+                        <p className="text-gray-500 text-sm">{t('profile.noCertifications', 'No certifications added')}</p>
                       )}
                     </div>
                   )}
@@ -449,7 +451,7 @@ const ProfilePage = () => {
               <div className="flex gap-3 pt-4 border-t">
                 <Button onClick={handleSave} loading={loading} fullWidth>
                   <Save size={18} />
-                  Save Changes
+                  {t('common.saveChanges', 'Save Changes')}
                 </Button>
                 <Button
                   variant="outline"
@@ -473,7 +475,7 @@ const ProfilePage = () => {
                   fullWidth
                 >
                   <X size={18} />
-                  Cancel
+                  {t('common.cancel', 'Cancel')}
                 </Button>
               </div>
             )}
@@ -483,7 +485,7 @@ const ProfilePage = () => {
         {/* Push Notifications Setup */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Push Notifications</CardTitle>
+            <CardTitle>{t('profile.pushNotifications', 'Push Notifications')}</CardTitle>
           </CardHeader>
           <CardContent>
             <PushNotificationSetup />
