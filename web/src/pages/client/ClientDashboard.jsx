@@ -137,11 +137,11 @@ const ClientDashboard = () => {
         </Card>
       )}
 
-      {/* My Barbershops Section */}
+      {/* My Salons Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900">
-            {t('client.myBarbershops', 'My Barbershops')}
+            {t('client.mySalons', 'My Salons')}
           </h2>
           <Link to="/join-salon">
               <Button variant="outline" size="sm">
