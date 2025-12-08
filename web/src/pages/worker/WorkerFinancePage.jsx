@@ -6,8 +6,10 @@ import { Wallet, Clock, CheckCircle, DollarSign, FileText, Calendar, User } from
 import Button from '../../components/ui/Button'
 import { formatCurrency, formatDate } from '../../utils/helpers'
 import toast from 'react-hot-toast'
+import { useLanguage } from '../../context/LanguageContext'
 
 const WorkerFinancePage = () => {
+  const { t } = useLanguage()
   const [wallet, setWallet] = useState(null)
   const [paidEarnings, setPaidEarnings] = useState([])
   const [unpaidEarnings, setUnpaidEarnings] = useState([])
@@ -41,7 +43,7 @@ const WorkerFinancePage = () => {
       setAdvances(advancesData.advances || [])
     } catch (error) {
       console.error('Error loading financial data:', error)
-      toast.error('Failed to load financial data')
+      toast.error(t('worker.failedToLoad', 'Failed to load financial data'))
     } finally {
       setLoading(false)
     }
@@ -56,31 +58,31 @@ const WorkerFinancePage = () => {
   }
 
   const handleMarkAsPaid = async (earningId) => {
-    if (!confirm('Did the client pay for this service?')) return
+    if (!confirm(t('worker.didClientPay', 'Did the client pay for this service?'))) return
 
     setProcessing(true)
     try {
       await workerFinanceService.markEarningAsPaid(earningId, 'cash')
-      toast.success('✅ Payment recorded! Moved to Paid Balance.')
+      toast.success(t('worker.paymentRecorded', '✅ Payment recorded! Moved to Paid Balance.'))
       loadFinancialData()
     } catch (error) {
-      toast.error(error.message || 'Failed to update payment')
+      toast.error(error.message || t('worker.failedToUpdate', 'Failed to update payment'))
     } finally {
       setProcessing(false)
     }
   }
 
   const paymentScheduleLabels = {
-    daily: 'Daily',
-    weekly: 'Weekly',
-    monthly: 'Monthly'
+    daily: t('worker.daily', 'Daily'),
+    weekly: t('worker.weekly', 'Weekly'),
+    monthly: t('worker.monthly', 'Monthly')
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">My Finances</h1>
-        <p className="text-gray-600 mt-1">Track your earnings and payment history</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('worker.myFinances', 'My Finances')}</h1>
+        <p className="text-gray-600 mt-1">{t('worker.trackEarnings', 'Track your earnings and payment history')}</p>
       </div>
 
       {/* Financial Summary */}
@@ -89,12 +91,12 @@ const WorkerFinancePage = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">💰 Net Available Balance</p>
+                <p className="text-green-100 text-sm font-medium">{t('worker.netAvailableBalance', '💰 Net Available Balance')}</p>
                 <p className="text-3xl font-bold mt-2">
                   {formatCurrency(wallet?.netBalance !== undefined ? wallet.netBalance : Math.max(0, (wallet?.balance || 0) - (wallet?.outstandingAdvances || 0)))}
                 </p>
                 <p className="text-green-100 text-sm mt-1">
-                  After advances deducted
+                  {t('worker.afterAdvancesDeducted', 'After advances deducted')}
                 </p>
               </div>
               <CheckCircle size={48} className="text-green-200" />
@@ -106,12 +108,12 @@ const WorkerFinancePage = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">💳 Outstanding Advances</p>
+                <p className="text-purple-100 text-sm font-medium">{t('worker.outstandingAdvances', '💳 Outstanding Advances')}</p>
                 <p className="text-3xl font-bold mt-2">
                   {formatCurrency(wallet?.outstandingAdvances || 0)}
                 </p>
                 <p className="text-purple-100 text-sm mt-1">
-                  To be deducted from next payment
+                  {t('worker.toBeDeducted', 'To be deducted from next payment')}
                 </p>
               </div>
               <DollarSign size={48} className="text-purple-200" />
@@ -123,12 +125,12 @@ const WorkerFinancePage = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-100 text-sm font-medium">⏳ Unpaid Earnings</p>
+                <p className="text-orange-100 text-sm font-medium">{t('worker.unpaidEarnings', '⏳ Unpaid Earnings')}</p>
                 <p className="text-3xl font-bold mt-2">
                   {formatCurrency(unpaidEarnings.reduce((sum, e) => sum + e.workerEarning, 0))}
                 </p>
                 <p className="text-orange-100 text-sm mt-1">
-                  {unpaidEarnings.length} clients didn't pay
+                  {unpaidEarnings.length} {t('worker.clientsDidntPay', 'clients didn\'t pay')}
                 </p>
               </div>
               <Clock size={48} className="text-orange-200" />
@@ -140,12 +142,12 @@ const WorkerFinancePage = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">📅 Estimated This Week</p>
+                <p className="text-blue-100 text-sm font-medium">{t('worker.estimatedThisWeek', '📅 Estimated This Week')}</p>
                 <p className="text-3xl font-bold mt-2">
                   {formatCurrency(estimatedEarnings?.thisWeekEstimated || 0)}
                 </p>
                 <p className="text-blue-100 text-sm mt-1">
-                  {estimatedEarnings?.appointmentsCount || 0} confirmed bookings
+                  {estimatedEarnings?.appointmentsCount || 0} {t('worker.confirmedBookings', 'confirmed bookings')}
                 </p>
               </div>
               <Calendar size={48} className="text-blue-200" />
@@ -157,7 +159,7 @@ const WorkerFinancePage = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">💜 Paid Out This Month</p>
+                <p className="text-gray-600 text-sm font-medium">{t('worker.paidOutThisMonth', '💜 Paid Out This Month')}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {formatCurrency(wallet?.thisMonthPaidOut || 0)}
                 </p>
@@ -184,7 +186,7 @@ const WorkerFinancePage = () => {
               }`}
             >
               <CheckCircle className="inline mr-2" size={18} />
-              Paid Earnings ({paidEarnings.length})
+              {t('worker.paidEarnings', 'Paid Earnings')} ({paidEarnings.length})
             </button>
             <button
               onClick={() => setActiveTab('unpaid')}
@@ -195,7 +197,7 @@ const WorkerFinancePage = () => {
               }`}
             >
               <Clock className="inline mr-2" size={18} />
-              Unpaid Earnings ({unpaidEarnings.length})
+              {t('worker.unpaidEarningsTab', 'Unpaid Earnings')} ({unpaidEarnings.length})
             </button>
             <button
               onClick={() => setActiveTab('estimated')}
@@ -206,7 +208,7 @@ const WorkerFinancePage = () => {
               }`}
             >
               <Calendar className="inline mr-2" size={18} />
-              Estimated This Week ({estimatedEarnings?.appointmentsCount || 0})
+              {t('worker.estimatedThisWeekTab', 'Estimated This Week')} ({estimatedEarnings?.appointmentsCount || 0})
             </button>
             <button
               onClick={() => setActiveTab('history')}
@@ -217,7 +219,7 @@ const WorkerFinancePage = () => {
               }`}
             >
               <FileText className="inline mr-2" size={18} />
-              Payment History ({paymentHistory.length})
+              {t('worker.paymentHistory', 'Payment History')} ({paymentHistory.length})
             </button>
             <button
               onClick={() => setActiveTab('advances')}
@@ -228,7 +230,7 @@ const WorkerFinancePage = () => {
               }`}
             >
               <DollarSign className="inline mr-2" size={18} />
-              Advances ({advances.filter(a => a.status === 'approved').length})
+              {t('worker.advances', 'Advances')} ({advances.filter(a => a.status === 'approved').length})
             </button>
           </div>
         </div>
@@ -239,9 +241,9 @@ const WorkerFinancePage = () => {
               {paidEarnings.length === 0 ? (
                 <div className="text-center py-12">
                   <CheckCircle className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p className="text-gray-600">No paid earnings yet</p>
+                  <p className="text-gray-600">{t('worker.noPaidEarnings', 'No paid earnings yet')}</p>
                   <p className="text-gray-500 text-sm mt-1">
-                    Complete services and get paid to see earnings here
+                    {t('worker.completeServices', 'Complete services and get paid to see earnings here')}
                   </p>
                 </div>
               ) : (
@@ -249,12 +251,12 @@ const WorkerFinancePage = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Client</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Service</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Price</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Your Earning</th>
-                        <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Payment</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.client', 'Client')}</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.date', 'Date')}</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.service', 'Service')}</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.price', 'Price')}</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.yourEarning', 'Your Earning')}</th>
+                        <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.payment', 'Payment')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -267,10 +269,10 @@ const WorkerFinancePage = () => {
                               </div>
                               <div>
                                 <p className="text-sm font-semibold text-gray-900">
-                                  {earning.appointmentId?.clientId?.name || 'Unknown Client'}
+                                  {earning.appointmentId?.clientId?.name || t('worker.unknownClient', 'Unknown Client')}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {earning.appointmentId?.clientId?.phone || 'No phone'}
+                                  {earning.appointmentId?.clientId?.phone || t('worker.noPhone', 'No phone')}
                                 </p>
                               </div>
                             </div>
@@ -279,7 +281,7 @@ const WorkerFinancePage = () => {
                             {formatDate(earning.serviceDate)}
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-900">
-                            {earning.serviceId?.name || 'Service'}
+                            {earning.serviceId?.name || t('worker.service', 'Service')}
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-600 text-right">
                             {formatCurrency(earning.servicePrice)}
@@ -288,13 +290,13 @@ const WorkerFinancePage = () => {
                             {formatCurrency(earning.workerEarning)}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <Badge variant="success">✅ Paid</Badge>
+                            <Badge variant="success">{t('worker.paid', '✅ Paid')}</Badge>
                           </td>
                         </tr>
                       ))}
                       <tr className="bg-green-50">
                         <td colSpan="4" className="py-3 px-4 text-sm font-semibold text-gray-900 text-right">
-                          Total Paid ({paidEarnings.length} clients):
+                          {t('worker.totalPaid', 'Total Paid')} ({paidEarnings.length} {t('worker.clients', 'clients')}):
                         </td>
                         <td className="py-3 px-4 text-lg font-bold text-green-600 text-right">
                           {formatCurrency(paidEarnings.reduce((sum, e) => sum + e.workerEarning, 0))}
@@ -313,9 +315,9 @@ const WorkerFinancePage = () => {
               {unpaidEarnings.length === 0 ? (
                 <div className="text-center py-12">
                   <Clock className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p className="text-gray-600">No unpaid earnings yet</p>
+                  <p className="text-gray-600">{t('worker.noUnpaidEarnings', 'No unpaid earnings yet')}</p>
                   <p className="text-gray-500 text-sm mt-1">
-                    Your earnings will appear here after completing appointments
+                    {t('worker.earningsWillAppear', 'Your earnings will appear here after completing appointments')}
                   </p>
                 </div>
               ) : (
@@ -323,12 +325,12 @@ const WorkerFinancePage = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Client</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Service</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Price</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Your Earning</th>
-                        <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Action</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.client', 'Client')}</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.date', 'Date')}</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.service', 'Service')}</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.price', 'Price')}</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.yourEarning', 'Your Earning')}</th>
+                        <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.action', 'Action')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -341,10 +343,10 @@ const WorkerFinancePage = () => {
                               </div>
                               <div>
                                 <p className="text-sm font-semibold text-gray-900">
-                                  {earning.appointmentId?.clientId?.name || 'Unknown Client'}
+                                  {earning.appointmentId?.clientId?.name || t('worker.unknownClient', 'Unknown Client')}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {earning.appointmentId?.clientId?.phone || 'No phone'}
+                                  {earning.appointmentId?.clientId?.phone || t('worker.noPhone', 'No phone')}
                                 </p>
                               </div>
                             </div>
@@ -353,7 +355,7 @@ const WorkerFinancePage = () => {
                             {formatDate(earning.serviceDate)}
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-900">
-                            {earning.serviceId?.name || 'Service'}
+                            {earning.serviceId?.name || t('worker.service', 'Service')}
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-600 text-right">
                             {formatCurrency(earning.servicePrice)}
@@ -369,14 +371,14 @@ const WorkerFinancePage = () => {
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <CheckCircle size={14} />
-                              Mark Paid
+                              {t('worker.markPaid', 'Mark Paid')}
                             </Button>
                           </td>
                         </tr>
                       ))}
                       <tr className="bg-orange-50">
                         <td colSpan="4" className="py-3 px-4 text-sm font-semibold text-gray-900 text-right">
-                          Total Unpaid ({unpaidEarnings.length} clients):
+                          {t('worker.totalUnpaid', 'Total Unpaid')} ({unpaidEarnings.length} {t('worker.clients', 'clients')}):
                         </td>
                         <td className="py-3 px-4 text-lg font-bold text-orange-600 text-right">
                           {formatCurrency(unpaidEarnings.reduce((sum, e) => sum + e.workerEarning, 0))}
@@ -395,9 +397,9 @@ const WorkerFinancePage = () => {
               {!estimatedEarnings || estimatedEarnings.appointmentsCount === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p className="text-gray-600">No confirmed appointments this week</p>
+                  <p className="text-gray-600">{t('worker.noConfirmedAppointments', 'No confirmed appointments this week')}</p>
                   <p className="text-gray-500 text-sm mt-1">
-                    Future bookings will show estimated earnings here
+                    {t('worker.futureBookings', 'Future bookings will show estimated earnings here')}
                   </p>
                 </div>
               ) : (
@@ -405,9 +407,9 @@ const WorkerFinancePage = () => {
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-blue-700 font-medium">Estimated Earnings This Week</p>
+                        <p className="text-sm text-blue-700 font-medium">{t('worker.estimatedEarningsThisWeek', 'Estimated Earnings This Week')}</p>
                         <p className="text-xs text-blue-600 mt-1">
-                          Based on {estimatedEarnings.appointmentsCount} confirmed appointments ({estimatedEarnings.commissionPercentage}% commission)
+                          {t('worker.basedOn', 'Based on')} {estimatedEarnings.appointmentsCount} {t('worker.confirmedAppointments', 'confirmed appointments')} ({estimatedEarnings.commissionPercentage}% {t('worker.commission', 'commission')})
                         </p>
                       </div>
                       <p className="text-3xl font-bold text-blue-600">
@@ -420,11 +422,11 @@ const WorkerFinancePage = () => {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Client</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Service</th>
-                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Price</th>
-                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Est. Earning</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.client', 'Client')}</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.date', 'Date')}</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.service', 'Service')}</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.price', 'Price')}</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.estEarning', 'Est. Earning')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -437,10 +439,10 @@ const WorkerFinancePage = () => {
                                 </div>
                                 <div>
                                   <p className="text-sm font-semibold text-gray-900">
-                                    {item.clientName || 'Unknown'}
+                                    {item.clientName || t('worker.unknownClient', 'Unknown Client')}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {item.clientPhone || 'No phone'}
+                                    {item.clientPhone || t('worker.noPhone', 'No phone')}
                                   </p>
                                 </div>
                               </div>
@@ -461,7 +463,7 @@ const WorkerFinancePage = () => {
                         ))}
                         <tr className="bg-blue-50">
                           <td colSpan="4" className="py-3 px-4 text-sm font-semibold text-gray-900 text-right">
-                            Total Estimated ({estimatedEarnings.appointmentsCount} clients):
+                            {t('worker.totalEstimated', 'Total Estimated')} ({estimatedEarnings.appointmentsCount} {t('worker.clients', 'clients')}):
                           </td>
                           <td className="py-3 px-4 text-lg font-bold text-blue-600 text-right">
                             {formatCurrency(estimatedEarnings.thisWeekEstimated)}
@@ -480,9 +482,9 @@ const WorkerFinancePage = () => {
               {paymentHistory.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p className="text-gray-600">No payment history yet</p>
+                  <p className="text-gray-600">{t('worker.noPaymentHistory', 'No payment history yet')}</p>
                   <p className="text-gray-500 text-sm mt-1">
-                    Your invoices and payments will appear here
+                    {t('worker.invoicesWillAppear', 'Your invoices and payments will appear here')}
                   </p>
                 </div>
               ) : (
@@ -502,33 +504,33 @@ const WorkerFinancePage = () => {
                             </div>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <p className="text-gray-600">Period</p>
+                                <p className="text-gray-600">{t('worker.period', 'Period')}</p>
                                 <p className="text-gray-900 font-medium">
                                   {formatDate(invoice.periodStart)} - {formatDate(invoice.periodEnd)}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-gray-600">Appointments</p>
+                                <p className="text-gray-600">{t('worker.appointments', 'Appointments')}</p>
                                 <p className="text-gray-900 font-medium">
-                                  {invoice.appointmentsCount} services
+                                  {invoice.appointmentsCount} {t('worker.service', 'Service')}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-gray-600">Payment Method</p>
+                                <p className="text-gray-600">{t('worker.paymentMethod', 'Payment Method')}</p>
                                 <p className="text-gray-900 font-medium capitalize">
                                   {invoice.paymentMethod.replace('_', ' ')}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-gray-600">Paid Date</p>
+                                <p className="text-gray-600">{t('worker.paidDate', 'Paid Date')}</p>
                                 <p className="text-gray-900 font-medium">
-                                  {invoice.paidDate ? formatDate(invoice.paidDate) : 'Pending'}
+                                  {invoice.paidDate ? formatDate(invoice.paidDate) : t('worker.pending', 'Pending')}
                                 </p>
                               </div>
                             </div>
                             {invoice.notes && (
                               <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-600">
-                                <strong>Note:</strong> {invoice.notes}
+                                <strong>{t('worker.note', 'Note')}:</strong> {invoice.notes}
                               </div>
                             )}
                           </div>
@@ -551,9 +553,9 @@ const WorkerFinancePage = () => {
               {advances.length === 0 ? (
                 <div className="text-center py-12">
                   <DollarSign className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p className="text-gray-600">No advances yet</p>
+                  <p className="text-gray-600">{t('worker.noAdvances', 'No advances yet')}</p>
                   <p className="text-gray-500 text-sm mt-1">
-                    Advances given by the owner will appear here
+                    {t('worker.advancesWillAppear', 'Advances given by the owner will appear here')}
                   </p>
                 </div>
               ) : (
@@ -561,9 +563,9 @@ const WorkerFinancePage = () => {
                   <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-purple-700 font-medium">Outstanding Advances</p>
+                        <p className="text-sm text-purple-700 font-medium">{t('worker.outstandingAdvancesTitle', 'Outstanding Advances')}</p>
                         <p className="text-xs text-purple-600 mt-1">
-                          These will be deducted from your next payment
+                          {t('worker.willBeDeducted', 'These will be deducted from your next payment')}
                         </p>
                       </div>
                       <p className="text-3xl font-bold text-purple-600">
@@ -576,11 +578,11 @@ const WorkerFinancePage = () => {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Reason</th>
-                          <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Deducted From</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.date', 'Date')}</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.amount', 'Amount')}</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.reason', 'Reason')}</th>
+                          <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.status', 'Status')}</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('worker.deductedFrom', 'Deducted From')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -593,7 +595,7 @@ const WorkerFinancePage = () => {
                               {formatCurrency(advance.amount)}
                             </td>
                             <td className="py-3 px-4 text-sm text-gray-900">
-                              {advance.reason || 'No reason provided'}
+                              {advance.reason || t('worker.noReasonProvided', 'No reason provided')}
                             </td>
                             <td className="py-3 px-4 text-center">
                               <Badge 
@@ -603,9 +605,9 @@ const WorkerFinancePage = () => {
                                   'default'
                                 }
                               >
-                                {advance.status === 'deducted' ? 'Deducted' : 
-                                 advance.status === 'approved' ? 'Outstanding' : 
-                                 'Pending'}
+                                {advance.status === 'deducted' ? t('worker.deducted', 'Deducted') : 
+                                 advance.status === 'approved' ? t('worker.outstanding', 'Outstanding') : 
+                                 t('worker.pending', 'Pending')}
                               </Badge>
                             </td>
                             <td className="py-3 px-4 text-sm text-gray-600">
@@ -615,7 +617,7 @@ const WorkerFinancePage = () => {
                         ))}
                         <tr className="bg-purple-50">
                           <td colSpan="1" className="py-3 px-4 text-sm font-semibold text-gray-900 text-right">
-                            Total Given:
+                            {t('worker.totalGiven', 'Total Given')}:
                           </td>
                           <td className="py-3 px-4 text-lg font-bold text-purple-600">
                             {formatCurrency(advances.reduce((sum, a) => sum + a.amount, 0))}
