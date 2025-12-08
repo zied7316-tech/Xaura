@@ -295,17 +295,6 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
       {/* Print Styles */}
       <style jsx global>{`
         @media print {
-          /* Hide everything by default */
-          body * {
-            visibility: hidden;
-          }
-          
-          /* Show only the QR poster */
-          #qr-poster,
-          #qr-poster * {
-            visibility: visible;
-          }
-          
           /* Hide layout elements */
           nav,
           aside,
@@ -315,7 +304,12 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
           .mobile-bottom-nav,
           .print\\:hidden {
             display: none !important;
-            visibility: hidden !important;
+          }
+          
+          /* Hide browser print headers/footers */
+          @page {
+            size: A4;
+            margin: 0;
           }
           
           /* Reset body styles */
@@ -326,22 +320,69 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
             overflow: visible;
           }
           
-          /* QR Poster styling */
+          /* Hide everything except the QR poster */
+          body > *:not(#qr-poster) {
+            display: none !important;
+          }
+          
+          /* Show the QR poster and all its content */
           #qr-poster {
+            display: block !important;
+            visibility: visible !important;
             page-break-inside: avoid;
             width: 100%;
             max-width: 100%;
             margin: 0;
             padding: 0;
-            position: absolute;
+            position: relative;
             left: 0;
             top: 0;
           }
           
-          /* Page settings */
-          @page {
-            size: A4;
-            margin: 0.5cm;
+          /* Make all children of QR poster visible and preserve their display types */
+          #qr-poster * {
+            visibility: visible !important;
+          }
+          
+          /* Preserve flex layouts */
+          #qr-poster .flex {
+            display: flex !important;
+          }
+          
+          /* Preserve grid layouts */
+          #qr-poster .grid {
+            display: grid !important;
+          }
+          
+          /* Preserve inline and inline-block elements */
+          #qr-poster span,
+          #qr-poster a {
+            display: inline !important;
+          }
+          
+          /* Ensure block elements are visible */
+          #qr-poster div,
+          #qr-poster p,
+          #qr-poster h1,
+          #qr-poster h2,
+          #qr-poster h3,
+          #qr-poster ul,
+          #qr-poster li {
+            display: block !important;
+          }
+          
+          /* Ensure images and SVGs are visible */
+          #qr-poster img,
+          #qr-poster svg {
+            display: block !important;
+            visibility: visible !important;
+          }
+          
+          /* Hide decorative blur effects when printing */
+          #qr-poster .blur-xl,
+          #qr-poster .blur-2xl,
+          #qr-poster .blur-3xl {
+            display: none !important;
           }
         }
       `}</style>
