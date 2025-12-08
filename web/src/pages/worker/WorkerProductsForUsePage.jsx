@@ -10,8 +10,10 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
+import { useLanguage } from '../../context/LanguageContext'
 
 const WorkerProductsForUsePage = () => {
+  const { t } = useLanguage()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [showUseModal, setShowUseModal] = useState(false)
@@ -30,7 +32,7 @@ const WorkerProductsForUsePage = () => {
       setProducts(data.data || [])
     } catch (error) {
       console.error('Error loading products:', error)
-      toast.error('Failed to load products for use')
+      toast.error(t('worker.failedToLoadProductsUse', 'Failed to load products for use'))
     } finally {
       setLoading(false)
     }
@@ -44,12 +46,12 @@ const WorkerProductsForUsePage = () => {
 
   const handleUseProduct = async () => {
     if (!useQuantity || parseFloat(useQuantity) <= 0) {
-      toast.error('Please enter a valid quantity')
+      toast.error(t('worker.enterValidQuantity', 'Please enter a valid quantity'))
       return
     }
 
     if (parseFloat(useQuantity) > selectedProduct.quantity) {
-      toast.error('Insufficient stock')
+      toast.error(t('worker.insufficientStock', 'Insufficient stock'))
       return
     }
 
@@ -57,11 +59,11 @@ const WorkerProductsForUsePage = () => {
       const result = await inventoryService.workerUseProduct(selectedProduct._id, parseFloat(useQuantity))
       const usageCost = result?.usageCost || (parseFloat(useQuantity) * selectedProduct.costPrice)
       const costMessage = usageCost > 0 ? ` (Cost: ${formatCurrency(usageCost)})` : ''
-      toast.success(`Used ${useQuantity} ${selectedProduct.unit} of ${selectedProduct.name}${costMessage}`)
+      toast.success(`${t('worker.productUsed', 'Used')} ${useQuantity} ${selectedProduct.unit} ${t('worker.of', 'of')} ${selectedProduct.name}${costMessage}`)
       setShowUseModal(false)
       loadProducts()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to use product')
+      toast.error(error.response?.data?.message || t('worker.failedToUse', 'Failed to use product'))
     }
   }
 
@@ -83,8 +85,8 @@ const WorkerProductsForUsePage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products for Use</h1>
-          <p className="text-gray-600 mt-1">Track internal product usage for stock management</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('worker.productsForUse', 'Products for Use')}</h1>
+          <p className="text-gray-600 mt-1">{t('worker.trackUsageDescription', 'Track internal product usage for stock management')}</p>
         </div>
         <Button onClick={loadProducts} variant="outline">
           <RefreshCw size={18} />
@@ -99,7 +101,7 @@ const WorkerProductsForUsePage = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder={t('worker.searchProducts', 'Search products...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
@@ -114,7 +116,7 @@ const WorkerProductsForUsePage = () => {
         <Card>
           <CardContent className="p-12 text-center">
             <Wrench className="mx-auto text-gray-400 mb-4" size={64} />
-            <p className="text-gray-600">No products for use available</p>
+            <p className="text-gray-600">{t('worker.noProductsForUse', 'No products for use available')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -129,13 +131,13 @@ const WorkerProductsForUsePage = () => {
                       <p className="text-sm text-gray-500 mt-1">SKU: {product.sku}</p>
                     )}
                   </div>
-                  <Badge variant="secondary">For Use</Badge>
+                  <Badge variant="secondary">{t('worker.forUse', 'For Use')}</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Stock:</span>
+                    <span className="text-sm text-gray-600">{t('worker.stock', 'Stock')}:</span>
                     <span className={`font-semibold ${
                       product.quantity === 0 ? 'text-red-600' :
                       product.quantity <= product.lowStockThreshold ? 'text-orange-600' :
@@ -147,12 +149,12 @@ const WorkerProductsForUsePage = () => {
                   {product.quantity <= product.lowStockThreshold && (
                     <div className="flex items-center gap-1 text-orange-600 text-sm">
                       <AlertTriangle size={14} />
-                      <span>Low stock</span>
+                      <span>{t('worker.lowStock', 'Low stock')}</span>
                     </div>
                   )}
                   {product.costPrice > 0 && (
                     <div className="mt-2 text-xs text-gray-500">
-                      Cost: {formatCurrency(product.costPrice)} per {product.unit}
+                      {t('worker.cost', 'Cost')}: {formatCurrency(product.costPrice)} {t('worker.per', 'per')} {product.unit}
                     </div>
                   )}
                 </div>
@@ -164,7 +166,7 @@ const WorkerProductsForUsePage = () => {
                   variant="outline"
                 >
                   <Package size={18} />
-                  Use Product
+                  {t('worker.useProduct', 'Use Product')}
                 </Button>
               </CardContent>
             </Card>
@@ -176,7 +178,7 @@ const WorkerProductsForUsePage = () => {
       <Modal
         isOpen={showUseModal}
         onClose={() => setShowUseModal(false)}
-        title="Use Product"
+        title={t('worker.useProduct', 'Use Product')}
         size="sm"
       >
         {selectedProduct && (
@@ -184,12 +186,12 @@ const WorkerProductsForUsePage = () => {
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900">{selectedProduct.name}</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Available: <span className="font-semibold">{selectedProduct.quantity} {selectedProduct.unit}</span>
+                {t('worker.available', 'Available')}: <span className="font-semibold">{selectedProduct.quantity} {selectedProduct.unit}</span>
               </p>
             </div>
 
             <Input
-              label={`Quantity to Use (${selectedProduct.unit})`}
+              label={`${t('worker.quantityToUse', 'Quantity to Use')} (${selectedProduct.unit})`}
               type="number"
               min="1"
               max={selectedProduct.quantity}
@@ -197,23 +199,23 @@ const WorkerProductsForUsePage = () => {
               required
               value={useQuantity}
               onChange={(e) => setUseQuantity(e.target.value)}
-              placeholder="Enter quantity"
+              placeholder={t('worker.enterQuantity', 'Enter quantity')}
               autoFocus
             />
             
             {useQuantity && parseFloat(useQuantity) > 0 && selectedProduct.costPrice > 0 && (
               <div className="bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Usage Cost:</span>
+                  <span className="text-sm text-gray-600">{t('worker.usageCost', 'Usage Cost')}:</span>
                   <span className="font-semibold text-blue-600">
                     {formatCurrency(parseFloat(useQuantity) * selectedProduct.costPrice)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {parseFloat(useQuantity)} {selectedProduct.unit} × {formatCurrency(selectedProduct.costPrice)} per {selectedProduct.unit}
+                  {parseFloat(useQuantity)} {selectedProduct.unit} × {formatCurrency(selectedProduct.costPrice)} {t('worker.per', 'per')} {selectedProduct.unit}
                 </p>
                 <p className="text-xs text-gray-500 mt-1 italic">
-                  This cost will be automatically recorded in finance as an expense.
+                  {t('worker.costRecordedExpense', 'This cost will be automatically recorded in finance as an expense.')}
                 </p>
               </div>
             )}
@@ -221,10 +223,10 @@ const WorkerProductsForUsePage = () => {
             <div className="flex gap-3 pt-4">
               <Button onClick={handleUseProduct} fullWidth>
                 <Package size={18} />
-                Use Product
+                {t('worker.useProduct', 'Use Product')}
               </Button>
               <Button variant="outline" onClick={() => setShowUseModal(false)} fullWidth>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
             </div>
           </div>

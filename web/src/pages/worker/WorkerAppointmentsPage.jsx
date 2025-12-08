@@ -14,8 +14,10 @@ import {
 import { formatDate, formatTime, formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 import { playWorkerNotificationSound } from '../../utils/soundNotification'
+import { useLanguage } from '../../context/LanguageContext'
 
 const WorkerAppointmentsPage = () => {
+  const { t } = useLanguage()
   const [pendingAppointments, setPendingAppointments] = useState([])
   const [activeAppointments, setActiveAppointments] = useState([])
   const [selectedAppointment, setSelectedAppointment] = useState(null)
@@ -62,15 +64,15 @@ const WorkerAppointmentsPage = () => {
       } catch (markError) {
         console.log('Could not mark notifications as read:', markError)
       }
-      toast.success('Appointment accepted!')
+      toast.success(t('worker.appointmentAccepted', 'Appointment accepted!'))
       loadAppointments()
     } catch (error) {
-      toast.error('Failed to accept appointment')
+      toast.error(t('worker.failedToAccept', 'Failed to accept appointment'))
     }
   }
 
   const handleReject = async (appointmentId) => {
-    if (!confirm('Are you sure you want to reject this appointment?')) return
+    if (!confirm(t('worker.confirmReject', 'Are you sure you want to reject this appointment?'))) return
     
     try {
       await appointmentManagementService.rejectAppointment(appointmentId, 'Not available')
@@ -81,20 +83,20 @@ const WorkerAppointmentsPage = () => {
       } catch (markError) {
         console.log('Could not mark notifications as read:', markError)
       }
-      toast.success('Appointment rejected')
+      toast.success(t('worker.appointmentRejected', 'Appointment rejected'))
       loadAppointments()
     } catch (error) {
-      toast.error('Failed to reject appointment')
+      toast.error(t('worker.failedToReject', 'Failed to reject appointment'))
     }
   }
 
   const handleStart = async (appointmentId) => {
     try {
       await appointmentManagementService.startAppointment(appointmentId)
-      toast.success('Service started!')
+      toast.success(t('worker.serviceStarted', 'Service started!'))
       loadAppointments()
     } catch (error) {
-      toast.error('Failed to start service')
+      toast.error(t('worker.failedToStart', 'Failed to start service'))
     }
   }
 
@@ -112,7 +114,7 @@ const WorkerAppointmentsPage = () => {
   const handleCompleteAppointment = async () => {
     // Validate finalPrice
     if (!paymentData.finalPrice || parseFloat(paymentData.finalPrice) <= 0) {
-      toast.error('Please enter a valid price')
+      toast.error(t('worker.enterValidPrice', 'Please enter a valid price'))
       return
     }
 
@@ -126,9 +128,9 @@ const WorkerAppointmentsPage = () => {
       )
       
       if (paymentData.paymentStatus === 'paid') {
-        toast.success('✅ Service completed & payment recorded!')
+        toast.success(t('worker.serviceCompletedPaid', '✅ Service completed & payment recorded!'))
       } else {
-        toast.success('✅ Service completed, payment pending')
+        toast.success(t('worker.serviceCompletedPending', '✅ Service completed, payment pending'))
       }
       
       // Play notification sound for worker
@@ -138,7 +140,7 @@ const WorkerAppointmentsPage = () => {
       setSelectedAppointment(null)
       loadAppointments()
     } catch (error) {
-      toast.error('Failed to complete appointment')
+      toast.error(t('worker.failedToComplete', 'Failed to complete appointment'))
     }
   }
 
@@ -170,8 +172,8 @@ const WorkerAppointmentsPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">My Appointments</h1>
-        <p className="text-gray-600 mt-1">Manage booking requests and complete services</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('worker.myAppointments', 'My Appointments')}</h1>
+        <p className="text-gray-600 mt-1">{t('worker.manageBookings', 'Manage booking requests and complete services')}</p>
       </div>
 
       {/* Stats */}
@@ -180,7 +182,7 @@ const WorkerAppointmentsPage = () => {
           <CardContent className="p-4 text-center">
             <AlertCircle className="mx-auto text-orange-600 mb-2" size={32} />
             <p className="text-2xl font-bold text-orange-600">{pendingAppointments.length}</p>
-            <p className="text-gray-600 text-sm">Pending Requests</p>
+            <p className="text-gray-600 text-sm">{t('worker.pendingRequests', 'Pending Requests')}</p>
           </CardContent>
         </Card>
         
@@ -188,7 +190,7 @@ const WorkerAppointmentsPage = () => {
           <CardContent className="p-4 text-center">
             <Calendar className="mx-auto text-green-600 mb-2" size={32} />
             <p className="text-2xl font-bold text-green-600">{activeAppointments.length}</p>
-            <p className="text-gray-600 text-sm">Confirmed Upcoming</p>
+            <p className="text-gray-600 text-sm">{t('worker.confirmedUpcoming', 'Confirmed Upcoming')}</p>
           </CardContent>
         </Card>
       </div>
@@ -206,7 +208,7 @@ const WorkerAppointmentsPage = () => {
               }`}
             >
               <AlertCircle className="inline mr-2" size={18} />
-              Pending Requests ({pendingAppointments.length})
+              {t('worker.pendingRequests', 'Pending Requests')} ({pendingAppointments.length})
             </button>
             <button
               onClick={() => setActiveTab('active')}
@@ -217,7 +219,7 @@ const WorkerAppointmentsPage = () => {
               }`}
             >
               <CheckCircle className="inline mr-2" size={18} />
-              Confirmed Upcoming ({activeAppointments.length})
+              {t('worker.confirmedUpcoming', 'Confirmed Upcoming')} ({activeAppointments.length})
             </button>
           </div>
         </div>
@@ -228,7 +230,7 @@ const WorkerAppointmentsPage = () => {
               {pendingAppointments.length === 0 ? (
                 <div className="text-center py-12">
                   <Clock className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p className="text-gray-600">No pending requests</p>
+                  <p className="text-gray-600">{t('worker.noPendingRequests', 'No pending requests')}</p>
                 </div>
               ) : (
                 pendingAppointments.map((apt) => (
@@ -249,9 +251,9 @@ const WorkerAppointmentsPage = () => {
                         </div>
                         
                         <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                          {apt.clientId?.name || 'New Client'}
+                          {apt.clientId?.name || t('worker.newClient', 'New Client')}
                         </h3>
-                        <p className="text-sm text-gray-600">wants to book with you</p>
+                        <p className="text-sm text-gray-600">{t('worker.wantsToBook', 'wants to book with you')}</p>
                         
                         <div className="mt-4 inline-block">
                           {getStatusBadge(apt.status)}
@@ -260,7 +262,7 @@ const WorkerAppointmentsPage = () => {
 
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-center">
                         <p className="text-sm text-yellow-800">
-                          🔒 Accept to see appointment details (time, service, price)
+                          🔒 {t('worker.acceptToSeeDetails', 'Accept to see appointment details (time, service, price)')}
                         </p>
                       </div>
 
@@ -271,7 +273,7 @@ const WorkerAppointmentsPage = () => {
                           className="bg-green-600 hover:bg-green-700"
                         >
                           <CheckCircle size={18} />
-                          Accept Request
+                          {t('worker.acceptRequest', 'Accept Request')}
                         </Button>
                         <Button
                           variant="outline"
@@ -280,7 +282,7 @@ const WorkerAppointmentsPage = () => {
                           className="border-red-300 text-red-600 hover:bg-red-50"
                         >
                           <XCircle size={18} />
-                          Reject
+                          {t('worker.reject', 'Reject')}
                         </Button>
                       </div>
                     </CardContent>
@@ -295,7 +297,7 @@ const WorkerAppointmentsPage = () => {
               {activeAppointments.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p className="text-gray-600">No confirmed appointments</p>
+                  <p className="text-gray-600">{t('worker.noConfirmedAppointments', 'No confirmed appointments')}</p>
                 </div>
               ) : (
                 activeAppointments.map((apt) => (
@@ -317,8 +319,8 @@ const WorkerAppointmentsPage = () => {
                           )}
                           
                           <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 text-lg">{apt.clientId?.name || 'Client'}</h3>
-                            <p className="text-sm text-gray-600">{apt.serviceId?.name || 'Service'}</p>
+                            <h3 className="font-semibold text-gray-900 text-lg">{apt.clientId?.name || t('worker.client', 'Client')}</h3>
+                            <p className="text-sm text-gray-600">{apt.serviceId?.name || t('worker.service', 'Service')}</p>
                             <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                               <span>📅 {formatDate(apt.dateTime)}</span>
                               <span>🕐 {formatTime(apt.dateTime)}</span>
@@ -347,7 +349,7 @@ const WorkerAppointmentsPage = () => {
                               fullWidth
                             >
                               <Play size={16} />
-                              Start Service
+                              {t('worker.startService', 'Start Service')}
                             </Button>
                             <Button
                               size="sm"
@@ -355,7 +357,7 @@ const WorkerAppointmentsPage = () => {
                               onClick={() => handleReject(apt._id)}
                               fullWidth
                             >
-                              Cancel
+                              {t('common.cancel', 'Cancel')}
                             </Button>
                           </>
                         )}
@@ -367,7 +369,7 @@ const WorkerAppointmentsPage = () => {
                             fullWidth
                           >
                             <CheckCircle size={16} />
-                            Complete & Process Payment
+                            {t('worker.completeProcessPayment', 'Complete & Process Payment')}
                           </Button>
                         )}
                       </div>
@@ -387,18 +389,18 @@ const WorkerAppointmentsPage = () => {
           setShowPaymentModal(false)
           setSelectedAppointment(null)
         }}
-        title="Complete Appointment"
+        title={t('worker.completeAppointment', 'Complete Appointment')}
         size="md"
       >
             {selectedAppointment && (
           <div className="space-y-4">
             {/* Appointment Info */}
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">Service Details</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('worker.serviceDetails', 'Service Details')}</h3>
               <div className="space-y-1 text-sm">
-                <p><strong>Client:</strong> {selectedAppointment.clientId?.name || 'Client'}</p>
-                <p><strong>Service:</strong> {selectedAppointment.serviceId?.name || 'Service'}</p>
-                <p><strong>Original Price:</strong> <span className="text-lg font-semibold text-gray-700">{formatCurrency(selectedAppointment.servicePriceAtBooking || selectedAppointment.serviceId?.price || 0)}</span></p>
+                <p><strong>{t('worker.client', 'Client')}:</strong> {selectedAppointment.clientId?.name || t('worker.client', 'Client')}</p>
+                <p><strong>{t('worker.service', 'Service')}:</strong> {selectedAppointment.serviceId?.name || t('worker.service', 'Service')}</p>
+                <p><strong>{t('worker.originalPrice', 'Original Price')}:</strong> <span className="text-lg font-semibold text-gray-700">{formatCurrency(selectedAppointment.servicePriceAtBooking || selectedAppointment.serviceId?.price || 0)}</span></p>
               </div>
             </div>
 
@@ -408,7 +410,7 @@ const WorkerAppointmentsPage = () => {
                 label={
                   <span className="flex items-center gap-2">
                     <Edit size={16} />
-                    Final Price (Adjust if client changed service)
+                    {t('worker.finalPrice', 'Final Price')} ({t('worker.adjustIfChanged', 'Adjust if client changed service')})
                   </span>
                 }
                 type="number"
@@ -417,15 +419,15 @@ const WorkerAppointmentsPage = () => {
                 required
                 value={paymentData.finalPrice}
                 onChange={(e) => setPaymentData({ ...paymentData, finalPrice: e.target.value })}
-                helperText="Change this if client added/removed services or you adjusted the price"
+                helperText={t('worker.priceAdjustHelper', 'Change this if client added/removed services or you adjusted the price')}
               />
               {paymentData.finalPrice && parseFloat(paymentData.finalPrice) !== (selectedAppointment.servicePriceAtBooking || selectedAppointment.serviceId?.price) && (
                 <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-sm text-yellow-800">
-                  <p className="font-semibold">⚠️ Price changed!</p>
+                  <p className="font-semibold">{t('worker.priceChanged', '⚠️ Price changed!')}</p>
                   <p>
-                    From: {formatCurrency(selectedAppointment.servicePriceAtBooking || selectedAppointment.serviceId?.price || 0)} 
+                    {t('worker.from', 'From')}: {formatCurrency(selectedAppointment.servicePriceAtBooking || selectedAppointment.serviceId?.price || 0)} 
                     {' → '}
-                    To: {formatCurrency(parseFloat(paymentData.finalPrice) || 0)}
+                    {t('worker.toPrice', 'To')}: {formatCurrency(parseFloat(paymentData.finalPrice) || 0)}
                   </p>
                 </div>
               )}
@@ -446,8 +448,8 @@ const WorkerAppointmentsPage = () => {
                   }`}
                 >
                   <CheckCircle className={`mx-auto mb-2 ${paymentData.paymentStatus === 'paid' ? 'text-green-600' : 'text-gray-400'}`} size={32} />
-                  <p className="font-semibold text-gray-900">Client Paid</p>
-                  <p className="text-xs text-gray-600 mt-1">Add to wallet & finances</p>
+                  <p className="font-semibold text-gray-900">{t('worker.clientPaid', 'Client Paid')}</p>
+                  <p className="text-xs text-gray-600 mt-1">{t('worker.addToWallet', 'Add to wallet & finances')}</p>
                 </button>
 
                 <button
@@ -459,8 +461,8 @@ const WorkerAppointmentsPage = () => {
                   }`}
                 >
                   <Clock className={`mx-auto mb-2 ${paymentData.paymentStatus === 'waiting' ? 'text-orange-600' : 'text-gray-400'}`} size={32} />
-                  <p className="font-semibold text-gray-900">Waiting Payment</p>
-                  <p className="text-xs text-gray-600 mt-1">Payment pending</p>
+                  <p className="font-semibold text-gray-900">{t('worker.waitingPayment', 'Waiting Payment')}</p>
+                  <p className="text-xs text-gray-600 mt-1">{t('worker.paymentPending', 'Payment pending')}</p>
                 </button>
               </div>
             </div>
@@ -468,14 +470,14 @@ const WorkerAppointmentsPage = () => {
             {/* Payment Method (only if paid) */}
             {paymentData.paymentStatus === 'paid' && (
               <Select
-                label="Payment Method"
+                label={t('worker.paymentMethod', 'Payment Method')}
                 value={paymentData.paymentMethod}
                 onChange={(e) => setPaymentData({ ...paymentData, paymentMethod: e.target.value })}
                 options={[
-                  { value: 'cash', label: 'Cash' },
-                  { value: 'card', label: 'Card' },
-                  { value: 'bank_transfer', label: 'Bank Transfer' },
-                  { value: 'other', label: 'Other' }
+                  { value: 'cash', label: t('worker.cash', 'Cash') },
+                  { value: 'card', label: t('worker.card', 'Card') },
+                  { value: 'bank_transfer', label: t('worker.bankTransfer', 'Bank Transfer') },
+                  { value: 'other', label: t('worker.other', 'Other') }
                 ]}
               />
             )}
@@ -483,18 +485,18 @@ const WorkerAppointmentsPage = () => {
             {/* Info Message */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
               {paymentData.paymentStatus === 'paid' ? (
-                <p>💰 Payment will be added to your wallet and salon finances</p>
+                <p>💰 {t('worker.paymentAddedWallet', 'Payment will be added to your wallet and salon finances')}</p>
               ) : (
-                <p>⏳ Payment will remain pending. Client can pay later.</p>
+                <p>⏳ {t('worker.paymentRemainPending', 'Payment will remain pending. Client can pay later.')}</p>
               )}
-              <p className="mt-1">✅ You will be set back to "Available" status after completing</p>
+              <p className="mt-1">✅ {t('worker.setBackAvailable', 'You will be set back to "Available" status after completing')}</p>
             </div>
 
             {/* Actions */}
             <div className="flex gap-3 pt-4">
               <Button onClick={handleCompleteAppointment} fullWidth>
                 <CheckCircle size={18} />
-                Complete Appointment
+                {t('worker.completeAppointment', 'Complete Appointment')}
               </Button>
               <Button
                 variant="outline"
@@ -504,7 +506,7 @@ const WorkerAppointmentsPage = () => {
                 }}
                 fullWidth
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
             </div>
           </div>

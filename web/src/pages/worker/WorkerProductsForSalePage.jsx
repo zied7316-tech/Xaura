@@ -11,8 +11,10 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import toast from 'react-hot-toast'
+import { useLanguage } from '../../context/LanguageContext'
 
 const WorkerProductsForSalePage = () => {
+  const { t } = useLanguage()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [showSellModal, setShowSellModal] = useState(false)
@@ -32,7 +34,7 @@ const WorkerProductsForSalePage = () => {
       setProducts(data.data || [])
     } catch (error) {
       console.error('Error loading products:', error)
-      toast.error('Failed to load products for sale')
+      toast.error(t('worker.failedToLoadProducts', 'Failed to load products for sale'))
     } finally {
       setLoading(false)
     }
@@ -40,7 +42,7 @@ const WorkerProductsForSalePage = () => {
 
   const handleOpenSellModal = (product) => {
     if (product.sellingPrice <= 0) {
-      toast.error('Product selling price is not set')
+      toast.error(t('worker.priceNotSet', 'Product selling price is not set'))
       return
     }
     setSelectedProduct(product)
@@ -51,12 +53,12 @@ const WorkerProductsForSalePage = () => {
 
   const handleSellProduct = async () => {
     if (!sellQuantity || parseFloat(sellQuantity) <= 0) {
-      toast.error('Please enter a valid quantity')
+      toast.error(t('worker.enterValidQuantity', 'Please enter a valid quantity'))
       return
     }
 
     if (parseFloat(sellQuantity) > selectedProduct.quantity) {
-      toast.error('Insufficient stock')
+      toast.error(t('worker.insufficientStock', 'Insufficient stock'))
       return
     }
 
@@ -67,11 +69,11 @@ const WorkerProductsForSalePage = () => {
       }
 
       const result = await inventoryService.workerSellProduct(selectedProduct._id, saleData)
-      toast.success(result.message || 'Product sold successfully!')
+      toast.success(result.message || t('worker.productSold', 'Product sold successfully!'))
       setShowSellModal(false)
       loadProducts()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to sell product')
+      toast.error(error.response?.data?.message || t('worker.failedToSell', 'Failed to sell product'))
     }
   }
 
@@ -105,8 +107,8 @@ const WorkerProductsForSalePage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products for Sale</h1>
-          <p className="text-gray-600 mt-1">Sell products to customers with payment methods and commission tracking</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('worker.productsForSale', 'Products for Sale')}</h1>
+          <p className="text-gray-600 mt-1">{t('worker.sellProductsDescription', 'Sell products to customers with payment methods and commission tracking')}</p>
         </div>
         <Button onClick={loadProducts} variant="outline">
           <RefreshCw size={18} />
@@ -121,7 +123,7 @@ const WorkerProductsForSalePage = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder={t('worker.searchProducts', 'Search products...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
@@ -136,7 +138,7 @@ const WorkerProductsForSalePage = () => {
         <Card>
           <CardContent className="p-12 text-center">
             <ShoppingCart className="mx-auto text-gray-400 mb-4" size={64} />
-            <p className="text-gray-600">No products for sale available</p>
+            <p className="text-gray-600">{t('worker.noProductsForSale', 'No products for sale available')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -151,13 +153,13 @@ const WorkerProductsForSalePage = () => {
                       <p className="text-sm text-gray-500 mt-1">SKU: {product.sku}</p>
                     )}
                   </div>
-                  <Badge variant="default">For Sale</Badge>
+                  <Badge variant="default">{t('worker.forSale', 'For Sale')}</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Stock:</span>
+                    <span className="text-sm text-gray-600">{t('worker.stock', 'Stock')}:</span>
                     <span className={`font-semibold ${
                       product.quantity === 0 ? 'text-red-600' :
                       product.quantity <= product.lowStockThreshold ? 'text-orange-600' :
@@ -169,21 +171,21 @@ const WorkerProductsForSalePage = () => {
                   {product.quantity <= product.lowStockThreshold && (
                     <div className="flex items-center gap-1 text-orange-600 text-sm">
                       <AlertTriangle size={14} />
-                      <span>Low stock</span>
+                      <span>{t('worker.lowStock', 'Low stock')}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="border-t pt-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Price:</span>
+                    <span className="text-sm text-gray-600">{t('worker.price', 'Price')}:</span>
                     <span className="font-semibold text-green-600">
                       {formatCurrency(product.sellingPrice)}
                     </span>
                   </div>
                   {product.workerCommission && (
                     <div className="text-xs text-gray-500">
-                      Commission: {
+                      {t('worker.commission', 'Commission')}: {
                         product.workerCommission.type === 'percentage'
                           ? `${product.workerCommission.percentage || 0}%`
                           : `${formatCurrency(product.workerCommission.fixedAmount || 0)} per unit`
@@ -198,7 +200,7 @@ const WorkerProductsForSalePage = () => {
                   fullWidth
                 >
                   <ShoppingCart size={18} />
-                  Sell Product
+                  {t('worker.sellProduct', 'Sell Product')}
                 </Button>
               </CardContent>
             </Card>
@@ -210,7 +212,7 @@ const WorkerProductsForSalePage = () => {
       <Modal
         isOpen={showSellModal}
         onClose={() => setShowSellModal(false)}
-        title="Sell Product"
+        title={t('worker.sellProduct', 'Sell Product')}
         size="sm"
       >
         {selectedProduct && (
@@ -218,15 +220,15 @@ const WorkerProductsForSalePage = () => {
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900">{selectedProduct.name}</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Available: <span className="font-semibold">{selectedProduct.quantity} {selectedProduct.unit}</span>
+                {t('worker.available', 'Available')}: <span className="font-semibold">{selectedProduct.quantity} {selectedProduct.unit}</span>
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                Price: <span className="font-semibold text-green-600">{formatCurrency(selectedProduct.sellingPrice)}</span>
+                {t('worker.price', 'Price')}: <span className="font-semibold text-green-600">{formatCurrency(selectedProduct.sellingPrice)}</span>
               </p>
             </div>
 
             <Input
-              label={`Quantity to Sell (${selectedProduct.unit})`}
+              label={`${t('worker.quantityToSell', 'Quantity to Sell')} (${selectedProduct.unit})`}
               type="number"
               min="1"
               max={selectedProduct.quantity}
@@ -234,20 +236,20 @@ const WorkerProductsForSalePage = () => {
               required
               value={sellQuantity}
               onChange={(e) => setSellQuantity(e.target.value)}
-              placeholder="Enter quantity"
+              placeholder={t('worker.enterQuantity', 'Enter quantity')}
               autoFocus
             />
 
             {sellQuantity && parseFloat(sellQuantity) > 0 && (
               <div className="bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Total Sale:</span>
+                  <span className="text-sm text-gray-600">{t('worker.totalSale', 'Total Sale')}:</span>
                   <span className="font-semibold text-gray-900">
                     {formatCurrency(selectedProduct.sellingPrice * parseFloat(sellQuantity))}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Your Commission:</span>
+                  <span className="text-sm text-gray-600">{t('worker.yourCommission', 'Your Commission')}:</span>
                   <span className="font-semibold text-green-600">
                     {formatCurrency(calculateCommission(selectedProduct, parseFloat(sellQuantity)))}
                   </span>
@@ -256,26 +258,26 @@ const WorkerProductsForSalePage = () => {
             )}
 
             <Select
-              label="Payment Method"
+              label={t('worker.paymentMethod', 'Payment Method')}
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
               options={[
-                { value: 'cash', label: 'Cash' },
-                { value: 'card', label: 'Card' },
-                { value: 'bank_transfer', label: 'Bank Transfer' },
-                { value: 'online', label: 'Online' },
-                { value: 'wallet', label: 'Wallet' },
-                { value: 'other', label: 'Other' }
+                { value: 'cash', label: t('worker.cash', 'Cash') },
+                { value: 'card', label: t('worker.card', 'Card') },
+                { value: 'bank_transfer', label: t('worker.bankTransfer', 'Bank Transfer') },
+                { value: 'online', label: t('worker.online', 'Online') },
+                { value: 'wallet', label: t('worker.wallet', 'Wallet') },
+                { value: 'other', label: t('worker.other', 'Other') }
               ]}
             />
 
             <div className="flex gap-3 pt-4">
               <Button onClick={handleSellProduct} fullWidth>
                 <ShoppingCart size={18} />
-                Sell Product
+                {t('worker.sellProduct', 'Sell Product')}
               </Button>
               <Button variant="outline" onClick={() => setShowSellModal(false)} fullWidth>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
             </div>
           </div>

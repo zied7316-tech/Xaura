@@ -5,20 +5,23 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { Calendar, Clock, Save, ToggleLeft, ToggleRight } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useLanguage } from '../../context/LanguageContext'
 
 const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-const DAY_LABELS = {
-  monday: 'Monday',
-  tuesday: 'Tuesday',
-  wednesday: 'Wednesday',
-  thursday: 'Thursday',
-  friday: 'Friday',
-  saturday: 'Saturday',
-  sunday: 'Sunday'
-}
 
 const WorkerAvailabilityPage = () => {
+  const { t } = useLanguage()
   const [availability, setAvailability] = useState(null)
+  
+  const DAY_LABELS = {
+    monday: t('common.monday', 'Monday'),
+    tuesday: t('common.tuesday', 'Tuesday'),
+    wednesday: t('common.wednesday', 'Wednesday'),
+    thursday: t('common.thursday', 'Thursday'),
+    friday: t('common.friday', 'Friday'),
+    saturday: t('common.saturday', 'Saturday'),
+    sunday: t('common.sunday', 'Sunday')
+  }
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -49,7 +52,7 @@ const WorkerAvailabilityPage = () => {
       }
     } catch (error) {
       console.error('Error loading availability:', error)
-      toast.error('Failed to load availability')
+      toast.error(t('worker.failedToLoadAvailability', 'Failed to load availability'))
     } finally {
       setLoading(false)
     }
@@ -132,10 +135,10 @@ const WorkerAvailabilityPage = () => {
         weeklySchedule: availability.weeklySchedule,
         defaultHours: availability.defaultHours
       })
-      toast.success('Availability updated successfully!')
+      toast.success(t('worker.availabilityUpdated', 'Availability updated successfully!'))
     } catch (error) {
       console.error('Error saving availability:', error)
-      toast.error('Failed to save availability')
+      toast.error(t('worker.failedToSaveAvailability', 'Failed to save availability'))
     } finally {
       setSaving(false)
     }
@@ -153,19 +156,19 @@ const WorkerAvailabilityPage = () => {
     <div className="space-y-6 px-4 md:px-0">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">My Availability</h1>
-          <p className="text-gray-600 mt-1 text-sm md:text-base">Set your working hours for each day</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t('worker.myAvailability', 'My Availability')}</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-base">{t('worker.setWorkingHours', 'Set your working hours for each day')}</p>
         </div>
         <Button onClick={handleSave} loading={saving} className="w-full md:w-auto">
           <Save size={18} />
-          <span className="hidden sm:inline">Save Changes</span>
-          <span className="sm:hidden">Save</span>
+          <span className="hidden sm:inline">{t('common.saveChanges', 'Save Changes')}</span>
+          <span className="sm:hidden">{t('common.save', 'Save')}</span>
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Weekly Schedule</CardTitle>
+          <CardTitle>{t('worker.weeklySchedule', 'Weekly Schedule')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -191,12 +194,12 @@ const WorkerAvailabilityPage = () => {
                       {daySchedule.isAvailable ? (
                         <>
                           <ToggleRight size={18} className="md:w-5 md:h-5" />
-                          <span className="font-medium">Available</span>
+                          <span className="font-medium">{t('worker.available', 'Available')}</span>
                         </>
                       ) : (
                         <>
                           <ToggleLeft size={18} className="md:w-5 md:h-5" />
-                          <span className="font-medium">Not Available</span>
+                          <span className="font-medium">{t('worker.notAvailable', 'Not Available')}</span>
                         </>
                       )}
                     </button>
@@ -214,7 +217,7 @@ const WorkerAvailabilityPage = () => {
                               onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
                               className="flex-1 sm:w-32"
                             />
-                            <span className="text-gray-500 text-sm sm:text-base">to</span>
+                            <span className="text-gray-500 text-sm sm:text-base">{t('common.to', 'to')}</span>
                             <Input
                               type="time"
                               value={slot.end}
@@ -227,7 +230,7 @@ const WorkerAvailabilityPage = () => {
                               onClick={() => handleRemoveSlot(day, index)}
                               className="text-red-600 hover:text-red-700 text-sm font-medium px-2 py-1 sm:px-0 sm:py-0"
                             >
-                              Remove
+                              {t('common.remove', 'Remove')}
                             </button>
                           )}
                         </div>
@@ -237,7 +240,7 @@ const WorkerAvailabilityPage = () => {
                         onClick={() => handleAddSlot(day)}
                         className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1 px-2 py-1"
                       >
-                        + Add Time Slot
+                        + {t('worker.addTimeSlot', 'Add Time Slot')}
                       </button>
                     </div>
                   )}
@@ -251,8 +254,8 @@ const WorkerAvailabilityPage = () => {
       <div className="flex justify-end px-4 md:px-0">
         <Button onClick={handleSave} loading={saving} size="lg" className="w-full sm:w-auto">
           <Save size={20} />
-          <span className="hidden sm:inline">Save Availability</span>
-          <span className="sm:hidden">Save</span>
+          <span className="hidden sm:inline">{t('worker.saveAvailability', 'Save Availability')}</span>
+          <span className="sm:hidden">{t('common.save', 'Save')}</span>
         </Button>
       </div>
     </div>
