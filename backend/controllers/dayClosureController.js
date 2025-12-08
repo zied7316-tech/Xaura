@@ -12,8 +12,16 @@ const Expense = require('../models/Expense');
 const closeTheDay = async (req, res, next) => {
   try {
     const { date, notes, actualCash } = req.body;
-    const closureDate = date ? new Date(date) : new Date();
-    closureDate.setHours(0, 0, 0, 0);
+    
+    // Parse date string (YYYY-MM-DD) in local timezone
+    let closureDate;
+    if (date && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const dateParts = date.split('-').map(Number);
+      closureDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], 0, 0, 0, 0);
+    } else {
+      closureDate = date ? new Date(date) : new Date();
+      closureDate.setHours(0, 0, 0, 0);
+    }
     
     const nextDay = new Date(closureDate);
     nextDay.setDate(nextDay.getDate() + 1);
@@ -240,8 +248,16 @@ const getDayClosureHistory = async (req, res, next) => {
 const getDayClosure = async (req, res, next) => {
   try {
     const { date } = req.params;
-    const closureDate = new Date(date);
-    closureDate.setHours(0, 0, 0, 0);
+    
+    // Parse date string (YYYY-MM-DD) in local timezone
+    let closureDate;
+    if (date && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const dateParts = date.split('-').map(Number);
+      closureDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], 0, 0, 0, 0);
+    } else {
+      closureDate = new Date(date);
+      closureDate.setHours(0, 0, 0, 0);
+    }
 
     const salon = await Salon.findOne({ ownerId: req.user.id });
     if (!salon) {

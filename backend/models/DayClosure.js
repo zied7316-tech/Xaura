@@ -27,12 +27,30 @@ const dayClosureSchema = new mongoose.Schema({
   // Payment Summary
   payments: {
     total: { type: Number, default: 0 },
-    cash: { type: Number, default: 0 },
-    card: { type: Number, default: 0 },
-    bank_transfer: { type: Number, default: 0 },
-    online: { type: Number, default: 0 },
-    wallet: { type: Number, default: 0 },
-    other: { type: Number, default: 0 }
+    cash: {
+      count: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }
+    },
+    card: {
+      count: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }
+    },
+    bank_transfer: {
+      count: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }
+    },
+    online: {
+      count: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }
+    },
+    wallet: {
+      count: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }
+    },
+    other: {
+      count: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }
+    }
   },
   // Cash Verification
   cashVerification: {
