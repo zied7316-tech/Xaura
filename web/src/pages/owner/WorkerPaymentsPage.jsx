@@ -431,9 +431,17 @@ const WorkerPaymentsPage = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className={`font-semibold ${(wallet.netBalance !== undefined ? wallet.netBalance : Math.max(0, (wallet.balance || 0) - (wallet.outstandingAdvances || 0))) > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                          {formatCurrency(wallet.netBalance !== undefined ? wallet.netBalance : Math.max(0, (wallet.balance || 0) - (wallet.outstandingAdvances || 0)))}
-                        </span>
+                        {(() => {
+                          const netBalance = wallet.netBalance !== undefined 
+                            ? wallet.netBalance 
+                            : (wallet.balance || 0) - (wallet.outstandingAdvances || 0);
+                          const isNegative = netBalance < 0;
+                          return (
+                            <span className={`font-semibold ${isNegative ? 'text-red-600' : netBalance > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                              {formatCurrency(netBalance)}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <span className={`font-semibold ${(wallet.outstandingAdvances || 0) > 0 ? 'text-red-600' : 'text-gray-400'}`}>

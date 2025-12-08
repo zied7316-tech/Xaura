@@ -40,8 +40,8 @@ const getWorkerWallet = async (req, res, next) => {
     const thisMonthPaidOut = thisMonthInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
 
     // Calculate net balance (balance - outstanding advances)
-    // This is what worker can actually receive
-    const netBalance = Math.max(0, (wallet.balance || 0) - (wallet.outstandingAdvances || 0));
+    // This is what worker can actually receive (can be negative if advances exceed balance)
+    const netBalance = (wallet.balance || 0) - (wallet.outstandingAdvances || 0);
 
     res.json({
       success: true,
@@ -148,9 +148,9 @@ const getAllWorkersWallets = async (req, res, next) => {
       .populate('workerId', 'name email avatar paymentModel');
 
     // Calculate netBalance for each wallet (same as worker endpoint)
-    // netBalance = balance - outstandingAdvances (what worker can actually receive)
+    // netBalance = balance - outstandingAdvances (what worker can actually receive, can be negative)
     const walletsWithNetBalance = wallets.map(wallet => {
-      const netBalance = Math.max(0, (wallet.balance || 0) - (wallet.outstandingAdvances || 0));
+      const netBalance = (wallet.balance || 0) - (wallet.outstandingAdvances || 0);
       return {
         ...wallet.toObject(),
         netBalance // Add netBalance to match worker view

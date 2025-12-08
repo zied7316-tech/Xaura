@@ -226,6 +226,7 @@
     "trackEarnings": "Suivez vos gains et historique de paiement",
     "netAvailableBalance": "💰 Solde Net Disponible",
     "afterAdvancesDeducted": "Après déduction des avances",
+    "owesAmount": "Montant dû (les avances dépassent les gains)",
     "outstandingAdvances": "💳 Avances en Attente",
     "toBeDeducted": "À déduire du prochain paiement",
     "unpaidEarnings": "⏳ Gains Non Payés",

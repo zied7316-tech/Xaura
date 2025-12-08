@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { workerFinanceService } from '../../services/workerFinanceService'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
-import { Wallet, Clock, CheckCircle, DollarSign, FileText, Calendar, User } from 'lucide-react'
+import { Wallet, Clock, CheckCircle, DollarSign, FileText, Calendar, User, AlertCircle } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import { formatCurrency, formatDate } from '../../utils/helpers'
 import toast from 'react-hot-toast'
@@ -87,22 +87,40 @@ const WorkerFinancePage = () => {
 
       {/* Financial Summary */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">{t('worker.netAvailableBalance', '💰 Net Available Balance')}</p>
-                <p className="text-3xl font-bold mt-2">
-                  {formatCurrency(wallet?.netBalance !== undefined ? wallet.netBalance : Math.max(0, (wallet?.balance || 0) - (wallet?.outstandingAdvances || 0)))}
-                </p>
-                <p className="text-green-100 text-sm mt-1">
-                  {t('worker.afterAdvancesDeducted', 'After advances deducted')}
-                </p>
-              </div>
-              <CheckCircle size={48} className="text-green-200" />
-            </div>
-          </CardContent>
-        </Card>
+        {(() => {
+          const netBalance = wallet?.netBalance !== undefined 
+            ? wallet.netBalance 
+            : (wallet?.balance || 0) - (wallet?.outstandingAdvances || 0);
+          const isNegative = netBalance < 0;
+          
+          return (
+            <Card className={`bg-gradient-to-br ${isNegative ? 'from-red-500 to-red-600' : 'from-green-500 to-green-600'} text-white`}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`${isNegative ? 'text-red-100' : 'text-green-100'} text-sm font-medium`}>
+                      {t('worker.netAvailableBalance', '💰 Net Available Balance')}
+                    </p>
+                    <p className="text-3xl font-bold mt-2">
+                      {formatCurrency(netBalance)}
+                    </p>
+                    <p className={`${isNegative ? 'text-red-100' : 'text-green-100'} text-sm mt-1`}>
+                      {isNegative 
+                        ? t('worker.owesAmount', 'Amount owed (advances exceed earnings)')
+                        : t('worker.afterAdvancesDeducted', 'After advances deducted')
+                      }
+                    </p>
+                  </div>
+                  {isNegative ? (
+                    <AlertCircle size={48} className="text-red-200" />
+                  ) : (
+                    <CheckCircle size={48} className="text-green-200" />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
           <CardContent className="p-6">

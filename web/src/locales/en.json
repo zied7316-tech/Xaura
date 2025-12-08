@@ -226,6 +226,7 @@
     "trackEarnings": "Track your earnings and payment history",
     "netAvailableBalance": "💰 Net Available Balance",
     "afterAdvancesDeducted": "After advances deducted",
+    "owesAmount": "Amount owed (advances exceed earnings)",
     "outstandingAdvances": "💳 Outstanding Advances",
     "toBeDeducted": "To be deducted from next payment",
     "unpaidEarnings": "⏳ Unpaid Earnings",

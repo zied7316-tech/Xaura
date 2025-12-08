@@ -12,11 +12,10 @@ const workerWalletSchema = new mongoose.Schema({
     ref: 'Salon',
     required: true
   },
-  // Current unpaid balance
+  // Current unpaid balance (can be negative if advances exceed earnings)
   balance: {
     type: Number,
-    default: 0,
-    min: 0
+    default: 0
   },
   // Total earned (all time)
   totalEarned: {
