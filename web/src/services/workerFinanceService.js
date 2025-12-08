@@ -97,6 +97,16 @@ export const workerFinanceService = {
     return response.data.data
   },
 
+  // Get all invoices for a worker (Owner only)
+  getWorkerInvoices: async (workerId, filters = {}) => {
+    const params = new URLSearchParams(filters).toString()
+    const response = await axios.get(
+      `${API_URL}/worker-finance/worker/${workerId}/invoices${params ? `?${params}` : ''}`,
+      getAuthHeader()
+    )
+    return response.data.data
+  },
+
   recordEarning: async (data) => {
     const response = await axios.post(
       `${API_URL}/worker-finance/record-earning`,

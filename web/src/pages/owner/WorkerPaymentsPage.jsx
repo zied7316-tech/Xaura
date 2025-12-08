@@ -25,6 +25,9 @@ const WorkerPaymentsPage = () => {
   const [paidEarnings, setPaidEarnings] = useState([])
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [showAdvanceModal, setShowAdvanceModal] = useState(false)
+  const [showInvoiceHistoryModal, setShowInvoiceHistoryModal] = useState(false)
+  const [workerInvoices, setWorkerInvoices] = useState([])
+  const [loadingInvoices, setLoadingInvoices] = useState(false)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
 
@@ -127,6 +130,22 @@ const WorkerPaymentsPage = () => {
     setSelectedWorker(wallet)
     setAdvanceData({ amount: '', reason: '', notes: '' })
     setShowAdvanceModal(true)
+  }
+
+  const handleViewInvoices = async (wallet) => {
+    setSelectedWorker(wallet)
+    setShowInvoiceHistoryModal(true)
+    setLoadingInvoices(true)
+    try {
+      const invoices = await workerFinanceService.getWorkerInvoices(wallet.workerId._id)
+      setWorkerInvoices(invoices || [])
+    } catch (error) {
+      console.error('Error loading invoices:', error)
+      toast.error('Failed to load invoices')
+      setWorkerInvoices([])
+    } finally {
+      setLoadingInvoices(false)
+    }
   }
 
   const handleGenerateInvoice = async () => {
@@ -472,6 +491,17 @@ const WorkerPaymentsPage = () => {
                           >
                             💳 Advance
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewInvoices(wallet)}
+                            disabled={generating}
+                            title="View invoice history"
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                          >
+                            <Eye size={16} className="mr-1" />
+                            Invoices
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -737,6 +767,126 @@ const WorkerPaymentsPage = () => {
                 Cancel
               </Button>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Invoice History Modal */}
+      <Modal
+        isOpen={showInvoiceHistoryModal}
+        onClose={() => {
+          setShowInvoiceHistoryModal(false)
+          setSelectedWorker(null)
+          setWorkerInvoices([])
+        }}
+        title="Invoice History"
+        size="lg"
+      >
+        {selectedWorker && (
+          <div className="space-y-4">
+            {/* Worker Info */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-2">Worker Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Name</p>
+                  <p className="text-gray-900 font-medium">{selectedWorker.workerId.name}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Email</p>
+                  <p className="text-gray-900 font-medium">{selectedWorker.workerId.email}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Invoices List */}
+            {loadingInvoices ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : workerInvoices.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="mx-auto text-gray-400 mb-4" size={48} />
+                <p className="text-gray-600">No invoices found</p>
+                <p className="text-gray-500 text-sm mt-1">Invoices will appear here after payments are processed</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {workerInvoices.map((invoice) => (
+                  <Card key={invoice._id} className="border border-gray-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-gray-900">
+                              {invoice.invoiceNumber}
+                            </h3>
+                            <Badge variant={invoice.status === 'paid' ? 'success' : 'warning'}>
+                              {invoice.status}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-600">Date</p>
+                              <p className="font-medium text-gray-900">
+                                {formatDate(invoice.paidDate || invoice.createdAt)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Amount</p>
+                              <p className="font-semibold text-primary-600">
+                                {formatCurrency(invoice.totalAmount || 0)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Services</p>
+                              <p className="font-medium text-gray-900">
+                                {invoice.appointmentsCount || 0} appointments
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Payment Method</p>
+                              <p className="font-medium text-gray-900 capitalize">
+                                {invoice.paymentMethod?.replace('_', ' ') || 'Cash'}
+                              </p>
+                            </div>
+                            {invoice.periodStart && invoice.periodEnd && (
+                              <>
+                                <div>
+                                  <p className="text-gray-600">Period Start</p>
+                                  <p className="font-medium text-gray-900">
+                                    {formatDate(invoice.periodStart)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-600">Period End</p>
+                                  <p className="font-medium text-gray-900">
+                                    {formatDate(invoice.periodEnd)}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              window.open(`/owner/invoice/${invoice._id}`, '_blank')
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Eye size={16} />
+                            View
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </Modal>
