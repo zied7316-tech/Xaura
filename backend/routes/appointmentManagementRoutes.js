@@ -16,13 +16,13 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.get('/worker/pending', protect, authorize('Worker'), getWorkerPendingAppointments);
 router.get('/worker/active', protect, authorize('Worker'), getWorkerActiveAppointments);
 
-// Walk-in appointments - Only Worker
-router.post('/walk-in', protect, authorize('Worker'), (req, res, next) => {
+// Walk-in appointments - Worker and Owner (if worksAsWorker is enabled)
+router.post('/walk-in', protect, authorize('Worker', 'Owner'), (req, res, next) => {
   console.log('[ROUTE] ========== WALK-IN ROUTE HIT ==========');
   console.log('[ROUTE] Method:', req.method);
   console.log('[ROUTE] Path:', req.path);
   console.log('[ROUTE] Body:', JSON.stringify(req.body));
-  console.log('[ROUTE] User:', req.user ? { id: req.user.id, role: req.user.role } : 'NO USER');
+  console.log('[ROUTE] User:', req.user ? { id: req.user.id, role: req.user.role, worksAsWorker: req.user.worksAsWorker } : 'NO USER');
   console.log('[ROUTE] Headers origin:', req.headers.origin);
   console.log('[ROUTE] Calling createWalkInAppointment controller...');
   createWalkInAppointment(req, res, next);

@@ -164,7 +164,7 @@ function App() {
         <Route path="/worker/finances" element={<ProtectedRoute roles={['Worker']}><WorkerFinancePage /></ProtectedRoute>} />
         <Route path="/worker/availability" element={<ProtectedRoute roles={['Worker']}><WorkerAvailabilityPage /></ProtectedRoute>} />
         <Route path="/worker/appointments" element={<ProtectedRoute roles={['Worker']}><WorkerAppointmentsPage /></ProtectedRoute>} />
-        <Route path="/worker/walk-in" element={<ProtectedRoute roles={['Worker']}><WorkerWalkInPage /></ProtectedRoute>} />
+        <Route path="/worker/walk-in" element={<ProtectedRoute roles={['Worker', 'Owner']}><WorkerWalkInPage /></ProtectedRoute>} />
         <Route path="/worker/inventory" element={<ProtectedRoute roles={['Worker']}><WorkerInventoryPage /></ProtectedRoute>} />
         <Route path="/worker/products-for-sale" element={<ProtectedRoute roles={['Worker']}><WorkerProductsForSalePage /></ProtectedRoute>} />
         <Route path="/worker/products-for-use" element={<ProtectedRoute roles={['Worker']}><WorkerProductsForUsePage /></ProtectedRoute>} />

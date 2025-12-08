@@ -761,14 +761,14 @@ const createWalkInAppointment = async (req, res, next) => {
     try {
       const queryStart = Date.now();
       [worker, service] = await Promise.all([
-        User.findById(workerId).select('salonId paymentModel').maxTimeMS(3000),
-        Service.findById(serviceId).select('name duration price').maxTimeMS(3000)
+        User.findById(workerId).select('salonId paymentModel role worksAsWorker').maxTimeMS(3000),
+        Service.findById(serviceId).select('name duration price salonId').maxTimeMS(3000)
       ]);
       const queryDuration = Date.now() - queryStart;
       console.log('[WALK-IN] Step 11: Queries completed in', queryDuration, 'ms');
       console.log('[WALK-IN] Worker found:', !!worker, 'Service found:', !!service);
-      if (worker) console.log('[WALK-IN] Worker salonId:', worker.salonId);
-      if (service) console.log('[WALK-IN] Service name:', service.name, 'duration:', service.duration);
+      if (worker) console.log('[WALK-IN] Worker role:', worker.role, 'worksAsWorker:', worker.worksAsWorker, 'salonId:', worker.salonId);
+      if (service) console.log('[WALK-IN] Service name:', service.name, 'duration:', service.duration, 'salonId:', service.salonId);
     } catch (queryError) {
       console.error('[WALK-IN] ❌ Error fetching worker/service:', queryError.message);
       console.error('[WALK-IN] Error stack:', queryError.stack);
@@ -778,10 +778,14 @@ const createWalkInAppointment = async (req, res, next) => {
       });
     }
 
-    if (!worker || !worker.salonId) {
+    // Check if worker is a regular worker or owner who works as worker
+    const isWorker = worker && worker.role === 'Worker';
+    const isWorkingOwner = worker && worker.role === 'Owner' && worker.worksAsWorker;
+
+    if (!worker || (!isWorker && !isWorkingOwner)) {
       return res.status(400).json({
         success: false,
-        message: 'Worker must be assigned to a salon'
+        message: 'User must be a worker or owner who works as worker'
       });
     }
 
@@ -792,25 +796,78 @@ const createWalkInAppointment = async (req, res, next) => {
       });
     }
 
-    const salonId = worker.salonId;
+    // Get salonId - for workers it's worker.salonId, for owners get from salon
+    let salonId;
+    if (isWorker) {
+      salonId = worker.salonId;
+      if (!salonId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Worker must be assigned to a salon'
+        });
+      }
+    } else if (isWorkingOwner) {
+      // For owner, get salon from ownerId
+      const Salon = require('../models/Salon');
+      const salon = await Salon.findOne({ ownerId: worker._id }).select('_id').maxTimeMS(3000);
+      if (!salon) {
+        return res.status(400).json({
+          success: false,
+          message: 'Owner must have a salon'
+        });
+      }
+      salonId = salon._id;
+    }
+
+    // Verify service belongs to the salon
+    if (service.salonId && service.salonId.toString() !== salonId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service does not belong to the salon'
+      });
+    }
+
     console.log('[WALK-IN] Step 12: Salon ID:', salonId);
 
     // Calculate worker earnings (before creating appointment)
-    console.log('[WALK-IN] Step 13: Calculating earnings - price:', numericPrice, 'paymentModel:', worker.paymentModel);
+    console.log('[WALK-IN] Step 13: Calculating earnings - price:', numericPrice, 'paymentModel:', worker.paymentModel, 'isOwner:', isWorkingOwner);
     let workerEarning = 0;
     let commissionPercentage = 0;
 
-    if (worker.paymentModel && worker.paymentModel.type) {
-      if (worker.paymentModel.type === 'percentage_commission') {
-        commissionPercentage = worker.paymentModel.commissionPercentage || 50;
-        workerEarning = (numericPrice * commissionPercentage) / 100;
-      } else if (worker.paymentModel.type === 'hybrid') {
-        commissionPercentage = worker.paymentModel.commissionPercentage || 30;
-        workerEarning = (numericPrice * commissionPercentage) / 100;
+    // Handle owner vs worker differently
+    if (isWorkingOwner) {
+      // Owner working as worker - use their payment model if set, or default to 100%
+      if (worker.paymentModel && worker.paymentModel.type) {
+        if (worker.paymentModel.type === 'percentage_commission') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 100;
+          workerEarning = (numericPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'hybrid') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 100;
+          workerEarning = (numericPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'fixed_salary') {
+          // Fixed salary doesn't apply per appointment, use 100% for owners
+          commissionPercentage = 100;
+          workerEarning = numericPrice;
+        }
+      } else {
+        // Default: Owner gets 100% (they own the business)
+        commissionPercentage = 100;
+        workerEarning = numericPrice;
       }
     } else {
-      commissionPercentage = 50;
-      workerEarning = (numericPrice * 50) / 100;
+      // Regular worker logic
+      if (worker.paymentModel && worker.paymentModel.type) {
+        if (worker.paymentModel.type === 'percentage_commission') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 50;
+          workerEarning = (numericPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'hybrid') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 30;
+          workerEarning = (numericPrice * commissionPercentage) / 100;
+        }
+      } else {
+        commissionPercentage = 50;
+        workerEarning = (numericPrice * 50) / 100;
+      }
     }
     console.log('[WALK-IN] Step 13: Earnings calculated - commission:', commissionPercentage, 'workerEarning:', workerEarning);
 
