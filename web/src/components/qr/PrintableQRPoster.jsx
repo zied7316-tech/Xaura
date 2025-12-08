@@ -84,10 +84,10 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
       {/* Printable Poster */}
       <div className="bg-white rounded-3xl shadow-2xl overflow-hidden print:shadow-none print:rounded-none print:bg-white border-2 border-gray-200" id="qr-poster">
         {/* Header Section - Enhanced with more shine */}
-        <div className="relative bg-gradient-to-r from-primary-600 via-purple-600 via-pink-600 to-orange-500 p-8 text-white print:p-6 overflow-hidden">
-          {/* Shine effect overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none"></div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+        <div className="relative bg-gradient-to-r from-primary-600 via-purple-600 via-pink-600 to-orange-500 p-8 text-white print:p-6 print:bg-primary-600 overflow-hidden">
+          {/* Shine effect overlay - Hidden in print */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none print:hidden"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none print:hidden"></div>
           
           <div className="relative flex items-center justify-between mb-6">
             <div className="flex-1">
@@ -100,25 +100,25 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
             </div>
             {salon?.logo && (
               <div className="relative">
-                <div className="absolute inset-0 bg-white/30 rounded-full blur-xl"></div>
-                <img
-                  src={salon.logo}
-                  alt={salon.name}
-                  className="relative w-28 h-28 rounded-full object-cover border-4 border-white shadow-2xl ring-4 ring-white/50 print:w-20 print:h-20"
-                />
+                <div className="absolute inset-0 bg-white/30 rounded-full blur-xl print:hidden"></div>
+              <img
+                src={salon.logo}
+                alt={salon.name}
+                  className="relative w-28 h-28 rounded-full object-cover border-4 border-white shadow-2xl ring-4 ring-white/50 print:w-20 print:h-20 print:ring-0 print:shadow-none"
+              />
               </div>
             )}
           </div>
 
-          <div className="relative flex items-center justify-center gap-6 text-white/95 print:text-sm font-medium">
+          <div className="relative flex items-center justify-center gap-6 text-white/95 print:text-sm print:text-white font-medium">
             {salon?.address && (
-              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full print:bg-white/30 print:backdrop-blur-none">
                 <span className="text-2xl">📍</span>
                 <span>{salon.address.city}</span>
               </div>
             )}
             {salon?.phone && (
-              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full print:bg-white/30 print:backdrop-blur-none">
                 <span className="text-2xl">📞</span>
                 <span>{salon.phone}</span>
               </div>
@@ -127,14 +127,14 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
         </div>
 
         {/* Main Content */}
-        <div className="p-8 print:p-6 bg-gradient-to-b from-white to-gray-50">
+        <div className="p-8 print:p-6 bg-gradient-to-b from-white to-gray-50 print:bg-white">
           {/* Call to Action - Enhanced */}
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-primary-50 via-purple-50 to-pink-50 px-8 py-4 rounded-2xl mb-4 print:bg-gray-100 shadow-lg border-2 border-primary-100">
-              <div className="p-2 bg-gradient-to-br from-primary-500 to-purple-500 rounded-xl shadow-md">
+            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-primary-50 via-purple-50 to-pink-50 px-8 py-4 rounded-2xl mb-4 print:bg-gray-100 print:border-2 print:border-primary-300 shadow-lg border-2 border-primary-100">
+              <div className="p-2 bg-gradient-to-br from-primary-500 to-purple-500 rounded-xl shadow-md print:bg-primary-600 print:shadow-none">
                 <Smartphone className="text-white" size={28} />
               </div>
-              <h2 className="text-4xl font-extrabold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent print:text-2xl print:bg-none print:text-gray-900">
+              <h2 className="text-4xl font-extrabold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent print:text-2xl print:bg-none print:text-gray-900 print:font-bold">
                 {translations.scanToBook}
               </h2>
             </div>
@@ -147,88 +147,88 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
           <div className="flex flex-col md:flex-row items-center justify-center gap-10 mb-10 print:flex-col print:gap-6">
             {/* QR Code - More beautiful */}
             <div className="relative">
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-400 via-purple-400 to-pink-400 rounded-3xl blur-2xl opacity-30 -z-10"></div>
-              <div className="relative bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl border-4 border-primary-300 shadow-2xl print:shadow-lg ring-4 ring-primary-100">
-                <QRCodeSVG 
-                  value={bookingLink}
+              {/* Glow effect - Hidden in print */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary-400 via-purple-400 to-pink-400 rounded-3xl blur-2xl opacity-30 -z-10 print:hidden"></div>
+              <div className="relative bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl border-4 border-primary-300 shadow-2xl print:shadow-lg print:bg-white print:border-4 print:border-primary-600 ring-4 ring-primary-100 print:ring-0">
+              <QRCodeSVG 
+                value={bookingLink}
                   size={300}
-                  level="H"
-                  includeMargin={true}
-                  className="print:w-full print:h-auto"
-                />
-                {/* Decorative corners */}
-                <div className="absolute top-2 left-2 w-6 h-6 border-t-4 border-l-4 border-primary-400 rounded-tl-lg"></div>
-                <div className="absolute top-2 right-2 w-6 h-6 border-t-4 border-r-4 border-primary-400 rounded-tr-lg"></div>
-                <div className="absolute bottom-2 left-2 w-6 h-6 border-b-4 border-l-4 border-primary-400 rounded-bl-lg"></div>
-                <div className="absolute bottom-2 right-2 w-6 h-6 border-b-4 border-r-4 border-primary-400 rounded-br-lg"></div>
+                level="H"
+                includeMargin={true}
+                className="print:w-full print:h-auto"
+              />
+                {/* Decorative corners - Visible in print */}
+                <div className="absolute top-2 left-2 w-6 h-6 border-t-4 border-l-4 border-primary-400 rounded-tl-lg print:border-primary-600"></div>
+                <div className="absolute top-2 right-2 w-6 h-6 border-t-4 border-r-4 border-primary-400 rounded-tr-lg print:border-primary-600"></div>
+                <div className="absolute bottom-2 left-2 w-6 h-6 border-b-4 border-l-4 border-primary-400 rounded-bl-lg print:border-primary-600"></div>
+                <div className="absolute bottom-2 right-2 w-6 h-6 border-b-4 border-r-4 border-primary-400 rounded-br-lg print:border-primary-600"></div>
               </div>
             </div>
 
             {/* Features List - Enhanced */}
             <div className="flex-1 max-w-md space-y-4 print:max-w-full">
-              <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-7 rounded-2xl border-2 border-blue-300 shadow-xl print:bg-gray-50 print:border print:p-4 overflow-hidden">
-                {/* Decorative background pattern */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary-200/30 to-purple-200/30 rounded-full blur-2xl -mr-16 -mt-16"></div>
+              <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-7 rounded-2xl border-2 border-blue-300 shadow-xl print:bg-gray-50 print:border-2 print:border-blue-400 print:p-4 overflow-hidden">
+                {/* Decorative background pattern - Hidden in print */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary-200/30 to-purple-200/30 rounded-full blur-2xl -mr-16 -mt-16 print:hidden"></div>
                 <div className="relative">
-                  <h3 className="text-2xl font-extrabold text-gray-900 mb-5 flex items-center gap-3 print:text-xl">
-                    <div className="p-2 bg-gradient-to-br from-primary-500 to-purple-500 rounded-lg shadow-md">
+                  <h3 className="text-2xl font-extrabold text-gray-900 mb-5 flex items-center gap-3 print:text-xl print:font-bold">
+                    <div className="p-2 bg-gradient-to-br from-primary-500 to-purple-500 rounded-lg shadow-md print:bg-primary-600 print:shadow-none">
                       <Sparkles className="text-white" size={22} />
                     </div>
                     {translations.whyScan}
-                  </h3>
+                </h3>
                   <ul className="space-y-4">
                     <li className="flex items-start gap-4 group">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-bold shadow-lg group-hover:scale-110 transition-transform print:w-6 print:h-6 print:text-sm print:rounded-lg">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-bold shadow-lg group-hover:scale-110 transition-transform print:w-6 print:h-6 print:text-sm print:rounded-lg print:bg-primary-600 print:shadow-none">
                         <Zap size={18} className="print:w-3 print:h-3" />
-                      </div>
-                      <div>
+                    </div>
+                    <div>
                         <p className="font-bold text-gray-900 text-lg">{translations.instantBooking}</p>
                         <p className="text-sm text-gray-600 mt-1">{translations.instantBookingDesc}</p>
-                      </div>
-                    </li>
+                    </div>
+                  </li>
                     <li className="flex items-start gap-4 group">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-bold shadow-lg group-hover:scale-110 transition-transform print:w-6 print:h-6 print:text-sm print:rounded-lg">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-bold shadow-lg group-hover:scale-110 transition-transform print:w-6 print:h-6 print:text-sm print:rounded-lg print:bg-blue-600 print:shadow-none">
                         <Globe size={18} className="print:w-3 print:h-3" />
-                      </div>
-                      <div>
+                    </div>
+                    <div>
                         <p className="font-bold text-gray-900 text-lg">{translations.noApp}</p>
                         <p className="text-sm text-gray-600 mt-1">{translations.noAppDesc}</p>
-                      </div>
-                    </li>
+                    </div>
+                  </li>
                     <li className="flex items-start gap-4 group">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-bold shadow-lg group-hover:scale-110 transition-transform print:w-6 print:h-6 print:text-sm print:rounded-lg">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-bold shadow-lg group-hover:scale-110 transition-transform print:w-6 print:h-6 print:text-sm print:rounded-lg print:bg-purple-600 print:shadow-none">
                         <Clock size={18} className="print:w-3 print:h-3" />
-                      </div>
-                      <div>
+                    </div>
+                    <div>
                         <p className="font-bold text-gray-900 text-lg">{translations.availability247}</p>
                         <p className="text-sm text-gray-600 mt-1">{translations.availability247Desc}</p>
-                      </div>
-                    </li>
+                    </div>
+                  </li>
                     <li className="flex items-start gap-4 group">
-                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-bold shadow-lg group-hover:scale-110 transition-transform print:w-6 print:h-6 print:text-sm print:rounded-lg">
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-bold shadow-lg group-hover:scale-110 transition-transform print:w-6 print:h-6 print:text-sm print:rounded-lg print:bg-green-600 print:shadow-none">
                         <Shield size={18} className="print:w-3 print:h-3" />
                       </div>
-                      <div>
+                    <div>
                         <p className="font-bold text-gray-900 text-lg">{translations.easyManagement}</p>
                         <p className="text-sm text-gray-600 mt-1">{translations.easyManagementDesc}</p>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
+                    </div>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
+          </div>
 
           {/* Instructions - Enhanced */}
-          <div className="relative bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-2xl p-7 border-2 border-gray-300 shadow-xl print:bg-white print:border print:p-4 overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-yellow-200/40 to-orange-200/40 rounded-full blur-xl"></div>
-            <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-br from-primary-200/30 to-purple-200/30 rounded-full blur-xl"></div>
+          <div className="relative bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-2xl p-7 border-2 border-gray-300 shadow-xl print:bg-white print:border-2 print:border-gray-400 print:p-4 overflow-hidden">
+            {/* Decorative elements - Hidden in print */}
+            <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-yellow-200/40 to-orange-200/40 rounded-full blur-xl print:hidden"></div>
+            <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-br from-primary-200/30 to-purple-200/30 rounded-full blur-xl print:hidden"></div>
             
             <div className="relative">
-              <h3 className="text-2xl font-extrabold text-gray-900 mb-6 flex items-center gap-3 print:text-lg">
-                <div className="p-2 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-lg shadow-md">
+              <h3 className="text-2xl font-extrabold text-gray-900 mb-6 flex items-center gap-3 print:text-lg print:font-bold">
+                <div className="p-2 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-lg shadow-md print:bg-yellow-500 print:shadow-none">
                   <Star className="text-white" size={22} />
                 </div>
                 {translations.howToUse}
@@ -236,38 +236,38 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
               <div className="grid md:grid-cols-4 gap-6 print:grid-cols-2">
                 <div className="text-center group">
                   <div className="relative mx-auto mb-3">
-                    <div className="absolute inset-0 bg-primary-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                    <div className="relative w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-full flex items-center justify-center font-extrabold text-xl shadow-xl ring-4 ring-primary-100 print:w-10 print:h-10 print:text-lg">
+                    <div className="absolute inset-0 bg-primary-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity print:hidden"></div>
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-full flex items-center justify-center font-extrabold text-xl shadow-xl ring-4 ring-primary-100 print:w-10 print:h-10 print:text-lg print:bg-primary-600 print:shadow-none print:ring-0">
                       1
                     </div>
                   </div>
                   <p className="text-sm font-bold text-gray-900">{translations.openCamera}</p>
                   <p className="text-xs text-gray-600 mt-1">{translations.openCameraDesc}</p>
-                </div>
+              </div>
                 <div className="text-center group">
                   <div className="relative mx-auto mb-3">
-                    <div className="absolute inset-0 bg-blue-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                    <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-extrabold text-xl shadow-xl ring-4 ring-blue-100 print:w-10 print:h-10 print:text-lg">
+                    <div className="absolute inset-0 bg-blue-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity print:hidden"></div>
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-extrabold text-xl shadow-xl ring-4 ring-blue-100 print:w-10 print:h-10 print:text-lg print:bg-blue-600 print:shadow-none print:ring-0">
                       2
                     </div>
                   </div>
                   <p className="text-sm font-bold text-gray-900">{translations.scanQR}</p>
                   <p className="text-xs text-gray-600 mt-1">{translations.scanQRDesc}</p>
-                </div>
+              </div>
                 <div className="text-center group">
                   <div className="relative mx-auto mb-3">
-                    <div className="absolute inset-0 bg-purple-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                    <div className="relative w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-full flex items-center justify-center font-extrabold text-xl shadow-xl ring-4 ring-purple-100 print:w-10 print:h-10 print:text-lg">
+                    <div className="absolute inset-0 bg-purple-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity print:hidden"></div>
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-full flex items-center justify-center font-extrabold text-xl shadow-xl ring-4 ring-purple-100 print:w-10 print:h-10 print:text-lg print:bg-purple-600 print:shadow-none print:ring-0">
                       3
                     </div>
                   </div>
                   <p className="text-sm font-bold text-gray-900">{translations.selectService}</p>
                   <p className="text-xs text-gray-600 mt-1">{translations.selectServiceDesc}</p>
-                </div>
+              </div>
                 <div className="text-center group">
                   <div className="relative mx-auto mb-3">
-                    <div className="absolute inset-0 bg-green-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                    <div className="relative w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-full flex items-center justify-center font-extrabold text-xl shadow-xl ring-4 ring-green-100 print:w-10 print:h-10 print:text-lg">
+                    <div className="absolute inset-0 bg-green-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity print:hidden"></div>
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-full flex items-center justify-center font-extrabold text-xl shadow-xl ring-4 ring-green-100 print:w-10 print:h-10 print:text-lg print:bg-green-600 print:shadow-none print:ring-0">
                       4
                     </div>
                   </div>
@@ -292,7 +292,7 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
         </div>
       </div>
 
-      {/* Print Styles */}
+      {/* Print Styles - Optimized for PDF */}
       <style jsx global>{`
         @media print {
           /* Hide layout elements */
@@ -316,8 +316,11 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
           body {
             margin: 0;
             padding: 0;
-            background: white;
+            background: white !important;
             overflow: visible;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
           }
           
           /* Hide everything except the QR poster */
@@ -337,11 +340,16 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
             position: relative;
             left: 0;
             top: 0;
+            background: white !important;
+            border: none !important;
           }
           
-          /* Make all children of QR poster visible and preserve their display types */
+          /* Make all children of QR poster visible */
           #qr-poster * {
             visibility: visible !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
           }
           
           /* Preserve flex layouts */
@@ -354,7 +362,7 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
             display: grid !important;
           }
           
-          /* Preserve inline and inline-block elements */
+          /* Preserve inline elements */
           #qr-poster span,
           #qr-poster a {
             display: inline !important;
@@ -378,11 +386,116 @@ const PrintableQRPoster = ({ salon, qrCode, bookingLink, onPrint, onDownload }) 
             visibility: visible !important;
           }
           
-          /* Hide decorative blur effects when printing */
+          /* Hide all blur effects - they don't print well */
           #qr-poster .blur-xl,
           #qr-poster .blur-2xl,
-          #qr-poster .blur-3xl {
+          #qr-poster .blur-3xl,
+          #qr-poster .blur-lg {
             display: none !important;
+          }
+          
+          /* Simplify gradients for print - use solid colors */
+          #qr-poster [class*="bg-gradient"] {
+            background: #6366f1 !important; /* Primary color as fallback */
+          }
+          
+          /* Header gradient - use solid primary color for print */
+          #qr-poster > div:first-child {
+            background: #6366f1 !important;
+            background-image: none !important;
+          }
+          
+          /* Simplify header overlays */
+          #qr-poster > div:first-child > div[class*="absolute"] {
+            display: none !important;
+          }
+          
+          /* Ensure text is readable in print */
+          #qr-poster h1,
+          #qr-poster h2,
+          #qr-poster h3,
+          #qr-poster p,
+          #qr-poster span {
+            color: #000 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          /* Header text should be white on colored background */
+          #qr-poster > div:first-child h1,
+          #qr-poster > div:first-child p,
+          #qr-poster > div:first-child span {
+            color: #ffffff !important;
+          }
+          
+          /* Simplify call-to-action section */
+          #qr-poster [class*="bg-gradient-to-r"][class*="from-primary-50"] {
+            background: #f3f4f6 !important;
+            border: 2px solid #6366f1 !important;
+          }
+          
+          /* Simplify QR code container */
+          #qr-poster [class*="bg-gradient-to-br"][class*="from-white"] {
+            background: white !important;
+            border: 3px solid #6366f1 !important;
+          }
+          
+          /* Simplify features section */
+          #qr-poster [class*="bg-gradient-to-br"][class*="from-blue-50"] {
+            background: #f9fafb !important;
+            border: 2px solid #3b82f6 !important;
+          }
+          
+          /* Simplify instructions section */
+          #qr-poster [class*="bg-gradient-to-br"][class*="from-gray-50"] {
+            background: #f9fafb !important;
+            border: 2px solid #6b7280 !important;
+          }
+          
+          /* Hide decorative background patterns */
+          #qr-poster [class*="absolute"][class*="bg-gradient"]:not([class*="rounded-full"]) {
+            display: none !important;
+          }
+          
+          /* Ensure icons are visible */
+          #qr-poster svg {
+            fill: currentColor !important;
+            stroke: currentColor !important;
+          }
+          
+          /* Simplify icon backgrounds for print */
+          #qr-poster [class*="bg-gradient-to-br"][class*="from-primary-500"] {
+            background: #6366f1 !important;
+          }
+          
+          #qr-poster [class*="bg-gradient-to-br"][class*="from-blue-500"] {
+            background: #3b82f6 !important;
+          }
+          
+          #qr-poster [class*="bg-gradient-to-br"][class*="from-purple-500"] {
+            background: #8b5cf6 !important;
+          }
+          
+          #qr-poster [class*="bg-gradient-to-br"][class*="from-green-500"] {
+            background: #10b981 !important;
+          }
+          
+          #qr-poster [class*="bg-gradient-to-br"][class*="from-yellow-400"] {
+            background: #fbbf24 !important;
+          }
+          
+          /* Remove text gradient effects - use solid colors */
+          #qr-poster [class*="bg-clip-text"] {
+            -webkit-background-clip: unset !important;
+            background-clip: unset !important;
+            color: #1f2937 !important;
+          }
+          
+          /* Ensure QR code is visible and properly sized */
+          #qr-poster svg[viewBox] {
+            width: 100% !important;
+            height: auto !important;
+            max-width: 300px !important;
           }
         }
       `}</style>
