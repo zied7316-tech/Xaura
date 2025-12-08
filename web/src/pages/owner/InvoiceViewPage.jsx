@@ -204,12 +204,36 @@ const InvoiceViewPage = () => {
         </div>
 
         {/* Notes */}
-        {invoice.notes && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm font-semibold text-gray-700 mb-2">Notes:</p>
-            <p className="text-sm text-gray-600 whitespace-pre-line">{invoice.notes}</p>
-          </div>
-        )}
+        {invoice.notes && (() => {
+          // Parse notes to extract advance deduction info
+          const notesText = invoice.notes;
+          const advanceMatch = notesText.match(/Advances deducted:\s*([\d.]+)\s*\(Gross earnings:\s*([\d.]+)\)/);
+          const hasFullBalance = notesText.includes('Full balance payment');
+          
+          return (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Notes:</p>
+              <div className="space-y-2">
+                {hasFullBalance && (
+                  <p className="text-sm font-medium text-gray-700">Full balance payment</p>
+                )}
+                {advanceMatch && (
+                  <div className="text-sm text-red-600 font-semibold space-y-1">
+                    <p className="text-red-600">
+                      <span className="font-bold">Advances deducted:</span> {formatCurrency(parseFloat(advanceMatch[1]))}
+                    </p>
+                    <p className="text-red-600">
+                      <span className="font-bold">Gross earnings:</span> {formatCurrency(parseFloat(advanceMatch[2]))}
+                    </p>
+                  </div>
+                )}
+                {!advanceMatch && !hasFullBalance && (
+                  <p className="text-sm text-gray-600 whitespace-pre-line">{notesText}</p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-200 text-center text-xs text-gray-500">
