@@ -1,8 +1,40 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Salon = require('../models/Salon');
 const Appointment = require('../models/Appointment');
 const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
+const Service = require('../models/Service');
+const Product = require('../models/Product');
+const ProductHistory = require('../models/ProductHistory');
+const ProductSale = require('../models/ProductSale');
+const SalonClient = require('../models/SalonClient');
+const Review = require('../models/Review');
+const LoyaltyProgram = require('../models/LoyaltyProgram');
+const LoyaltyTransaction = require('../models/LoyaltyTransaction');
+const WorkerEarning = require('../models/WorkerEarning');
+const WorkerInvoice = require('../models/WorkerInvoice');
+const WorkerAdvance = require('../models/WorkerAdvance');
+const WorkerWallet = require('../models/WorkerWallet');
+const Commission = require('../models/Commission');
+const Expense = require('../models/Expense');
+const DayClosure = require('../models/DayClosure');
+const RecurringAppointment = require('../models/RecurringAppointment');
+const GroupBooking = require('../models/GroupBooking');
+const WorkerAvailability = require('../models/WorkerAvailability');
+const WorkerStatusLog = require('../models/WorkerStatusLog');
+const GPSTrackingLog = require('../models/GPSTrackingLog');
+const ReminderSettings = require('../models/ReminderSettings');
+const EmailCampaign = require('../models/EmailCampaign');
+const Notification = require('../models/Notification');
+const CustomerProfile = require('../models/CustomerProfile');
+const Customer = require('../models/Customer');
+const Inventory = require('../models/Inventory');
+const PaymentMethod = require('../models/PaymentMethod');
+const SalonOwnership = require('../models/SalonOwnership');
+const ChatMessage = require('../models/ChatMessage');
+const ActivityLog = require('../models/ActivityLog');
+const UserHistory = require('../models/UserHistory');
 const { createActivityLog } = require('../middleware/activityLogger');
 
 /**
@@ -486,15 +518,19 @@ const updateUserStatus = async (req, res, next) => {
 };
 
 /**
- * @desc    Delete user (soft delete)
+ * @desc    Delete user (hard delete with cascade)
  * @route   DELETE /api/super-admin/users/:id
  * @access  Private (SuperAdmin)
  */
 const deleteUser = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).session(session);
 
     if (!user) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -503,6 +539,7 @@ const deleteUser = async (req, res, next) => {
 
     // Don't allow deleting other SuperAdmins
     if (user.role === 'SuperAdmin') {
+      await session.abortTransaction();
       return res.status(403).json({
         success: false,
         message: 'Cannot delete Super Admin users'
@@ -514,12 +551,193 @@ const deleteUser = async (req, res, next) => {
     const userEmail = user.email;
     const userRole = user.role;
 
-    // Soft delete - deactivate instead of removing
-    user.isActive = false;
-    user.email = `deleted_${Date.now()}_${user.email}`; // Prevent email conflicts
-    await user.save();
+    // If deleting an Owner, cascade delete all associated data
+    if (user.role === 'Owner') {
+      // Find all salons owned by this user
+      const salons = await Salon.find({ ownerId: user._id }).session(session);
+      const salonIds = salons.map(salon => salon._id);
 
-    // Log activity
+      // Delete all data associated with these salons
+      if (salonIds.length > 0) {
+        // Delete appointments
+        await Appointment.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete services
+        await Service.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete products
+        await Product.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete product history
+        await ProductHistory.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete product sales
+        await ProductSale.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete subscriptions
+        await Subscription.deleteMany({ ownerId: user._id }).session(session);
+        
+        // Delete salon clients
+        await SalonClient.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete payments
+        await Payment.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete reviews
+        await Review.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete loyalty programs
+        await LoyaltyProgram.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete loyalty transactions
+        await LoyaltyTransaction.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete worker earnings
+        await WorkerEarning.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete worker invoices
+        await WorkerInvoice.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete worker advances
+        await WorkerAdvance.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete worker wallets
+        await WorkerWallet.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete commissions
+        await Commission.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete expenses
+        await Expense.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete day closures
+        await DayClosure.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete recurring appointments
+        await RecurringAppointment.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete group bookings
+        await GroupBooking.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete worker availability
+        await WorkerAvailability.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete worker status logs
+        await WorkerStatusLog.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete GPS tracking logs
+        await GPSTrackingLog.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete reminders
+        await ReminderSettings.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete email campaigns
+        await EmailCampaign.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete notifications
+        await Notification.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete customer profiles
+        await CustomerProfile.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete customers
+        await Customer.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete inventory
+        await Inventory.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete payment methods
+        await PaymentMethod.deleteMany({ salonId: { $in: salonIds } }).session(session);
+        
+        // Delete salon ownership records
+        await SalonOwnership.deleteMany({ salon: { $in: salonIds } }).session(session);
+        
+        // Delete workers associated with these salons
+        const workers = await User.find({ salonId: { $in: salonIds }, role: 'Worker' }).session(session);
+        const workerIds = workers.map(w => w._id);
+        
+        if (workerIds.length > 0) {
+          // Delete worker-related appointments
+          await Appointment.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          
+          // Delete worker-related data
+          await WorkerEarning.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          await WorkerInvoice.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          await WorkerAdvance.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          await WorkerWallet.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          await Commission.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          await WorkerAvailability.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          await WorkerStatusLog.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          await GPSTrackingLog.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          
+          // Delete the workers themselves
+          await User.deleteMany({ _id: { $in: workerIds } }).session(session);
+        }
+        
+        // Finally, delete the salons
+        await Salon.deleteMany({ _id: { $in: salonIds } }).session(session);
+      }
+    } else if (user.role === 'Worker') {
+      // If deleting a Worker, clean up worker-specific data
+      const workerId = user._id;
+      
+      // Delete worker-related appointments
+      await Appointment.deleteMany({ workerId }).session(session);
+      
+      // Delete worker-related data
+      await WorkerEarning.deleteMany({ workerId }).session(session);
+      await WorkerInvoice.deleteMany({ workerId }).session(session);
+      await WorkerAdvance.deleteMany({ workerId }).session(session);
+      await WorkerWallet.deleteMany({ workerId }).session(session);
+      await Commission.deleteMany({ workerId }).session(session);
+      await WorkerAvailability.deleteMany({ workerId }).session(session);
+      await WorkerStatusLog.deleteMany({ workerId }).session(session);
+      await GPSTrackingLog.deleteMany({ workerId }).session(session);
+      
+      // Remove worker from service assignments
+      await Service.updateMany(
+        { assignedWorkers: workerId },
+        { $pull: { assignedWorkers: workerId } }
+      ).session(session);
+    } else if (user.role === 'Client') {
+      // If deleting a Client, clean up client-specific data
+      const clientId = user._id;
+      
+      // Delete client appointments
+      await Appointment.deleteMany({ clientId }).session(session);
+      
+      // Delete recurring appointments
+      await RecurringAppointment.deleteMany({ clientId }).session(session);
+      
+      // Delete group bookings
+      await GroupBooking.deleteMany({ clientId }).session(session);
+      
+      // Delete salon client relationships
+      await SalonClient.deleteMany({ clientId }).session(session);
+      
+      // Delete customer profiles
+      await CustomerProfile.deleteMany({ clientId }).session(session);
+      
+      // Delete reviews
+      await Review.deleteMany({ clientId }).session(session);
+      
+      // Delete loyalty transactions
+      await LoyaltyTransaction.deleteMany({ clientId }).session(session);
+      
+      // Delete chat messages
+      await ChatMessage.deleteMany({ senderId: clientId }).session(session);
+      
+      // Delete notifications
+      await Notification.deleteMany({ userId: clientId }).session(session);
+    }
+
+    // Delete user-related data (for all roles)
+    await ChatMessage.deleteMany({ senderId: user._id }).session(session);
+    await Notification.deleteMany({ userId: user._id }).session(session);
+    // Note: ActivityLog entries are kept for historical records (they reference targetId, not userId)
+    await UserHistory.deleteMany({ userId: user._id }).session(session);
+
+    // Log activity BEFORE deleting the user (so we can reference it)
     await createActivityLog(
       req,
       'user_deleted',
@@ -529,12 +747,20 @@ const deleteUser = async (req, res, next) => {
       { email: userEmail, role: userRole }
     );
 
+    // Finally, delete the user
+    await User.deleteOne({ _id: user._id }).session(session);
+
+    await session.commitTransaction();
+
     res.json({
       success: true,
-      message: 'User deleted successfully'
+      message: 'User and all associated data deleted successfully'
     });
   } catch (error) {
+    await session.abortTransaction();
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
