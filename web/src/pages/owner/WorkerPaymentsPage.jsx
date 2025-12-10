@@ -41,7 +41,8 @@ const WorkerPaymentsPage = () => {
   const [advanceData, setAdvanceData] = useState({
     amount: '',
     reason: '',
-    notes: ''
+    notes: '',
+    paymentMethod: 'cash'
   })
 
   useEffect(() => {
@@ -110,12 +111,13 @@ const WorkerPaymentsPage = () => {
         workerId: selectedWorker.workerId._id,
         amount,
         reason: advanceData.reason || '',
-        notes: advanceData.notes || ''
+        notes: advanceData.notes || '',
+        paymentMethod: advanceData.paymentMethod || 'cash'
       })
       
       toast.success('Advance given successfully!')
       setShowAdvanceModal(false)
-      setAdvanceData({ amount: '', reason: '', notes: '' })
+      setAdvanceData({ amount: '', reason: '', notes: '', paymentMethod: 'cash' })
       setSelectedWorker(null)
       loadWallets()
     } catch (error) {
@@ -128,7 +130,7 @@ const WorkerPaymentsPage = () => {
 
   const handleSelectWorkerForAdvance = (wallet) => {
     setSelectedWorker(wallet)
-    setAdvanceData({ amount: '', reason: '', notes: '' })
+    setAdvanceData({ amount: '', reason: '', notes: '', paymentMethod: 'cash' })
     setShowAdvanceModal(true)
   }
 
@@ -669,7 +671,7 @@ const WorkerPaymentsPage = () => {
         onClose={() => {
           setShowAdvanceModal(false)
           setSelectedWorker(null)
-          setAdvanceData({ amount: '', reason: '', notes: '' })
+          setAdvanceData({ amount: '', reason: '', notes: '', paymentMethod: 'cash' })
         }}
         title="Give Advance Payment"
         size="md"
@@ -768,7 +770,7 @@ const WorkerPaymentsPage = () => {
                 onClick={() => {
                   setShowAdvanceModal(false)
                   setSelectedWorker(null)
-                  setAdvanceData({ amount: '', reason: '', notes: '' })
+                  setAdvanceData({ amount: '', reason: '', notes: '', paymentMethod: 'cash' })
                 }}
                 fullWidth
               >

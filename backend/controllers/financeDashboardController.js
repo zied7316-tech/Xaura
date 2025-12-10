@@ -1,6 +1,7 @@
 const Payment = require('../models/Payment');
 const WorkerEarning = require('../models/WorkerEarning');
 const Expense = require('../models/Expense');
+const WorkerAdvance = require('../models/WorkerAdvance');
 const Salon = require('../models/Salon');
 const User = require('../models/User');
 
@@ -167,7 +168,23 @@ const getFinanceDashboard = async (req, res, next) => {
       }
     });
 
-    // 8. Additional metrics
+    // 8. Get cash advances for the date range (for cash reconciliation)
+    const cashAdvances = await WorkerAdvance.find({
+      salonId: salon._id,
+      givenAt: dateFilter,
+      paymentMethod: 'cash',
+      status: 'approved'
+    });
+
+    // 9. Calculate expected cash (for cash reconciliation)
+    const cashPaymentsReceived = paymentMethodBreakdown.cash.amount;
+    const cashAdvancesGiven = cashAdvances.reduce((sum, advance) => sum + advance.amount, 0);
+    const cashExpensesPaid = expenses
+      .filter(expense => expense.paymentMethod === 'cash')
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    const expectedCash = cashPaymentsReceived - cashAdvancesGiven - cashExpensesPaid;
+
+    // 10. Additional metrics
     const paymentCount = payments.length;
     const expenseCount = expenses.length;
     const averageTransaction = paymentCount > 0 ? totalRevenue / paymentCount : 0;
@@ -194,6 +211,12 @@ const getFinanceDashboard = async (req, res, next) => {
         paymentMethodBreakdown,
         workerBreakdown,
         transactions,
+        cashReconciliation: {
+          cashPaymentsReceived,
+          cashAdvancesGiven,
+          cashExpensesPaid,
+          expectedCash
+        },
         payments: payments.map(p => ({
           id: p._id,
           amount: p.amount,

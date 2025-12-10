@@ -48,6 +48,11 @@ const workerAdvanceSchema = new mongoose.Schema({
     type: String,
     default: '',
     trim: true
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'card', 'bank_transfer', 'check', 'other'],
+    default: 'cash'
   }
 }, {
   timestamps: true

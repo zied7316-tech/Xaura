@@ -1049,32 +1049,69 @@ const FinancesPage = () => {
           </div>
 
           {dashboardData && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">{t('finance.totalRevenue', 'Total Revenue')}</p>
-                <p className="text-xl font-bold text-green-600">
-                  {formatCurrency(summary.totalRevenue || 0)}
+            <>
+              {/* Expected Cash - Prominently Displayed */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-5 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-lg font-semibold text-blue-900">
+                    {t('finance.expectedCash', 'Expected Cash in Register')}
+                  </p>
+                  <p className="text-3xl font-bold text-blue-700">
+                    {formatCurrency(dashboardData.cashReconciliation?.expectedCash || 0)}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 mt-3 text-sm">
+                  <div className="bg-white rounded p-2">
+                    <p className="text-gray-600 text-xs">{t('finance.cashReceived', 'Cash Received')}</p>
+                    <p className="font-semibold text-green-600">
+                      {formatCurrency(dashboardData.cashReconciliation?.cashPaymentsReceived || 0)}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-gray-600 text-xs">{t('finance.cashAdvances', 'Cash Advances Given')}</p>
+                    <p className="font-semibold text-red-600">
+                      -{formatCurrency(dashboardData.cashReconciliation?.cashAdvancesGiven || 0)}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-gray-600 text-xs">{t('finance.cashExpenses', 'Cash Expenses Paid')}</p>
+                    <p className="font-semibold text-red-600">
+                      -{formatCurrency(dashboardData.cashReconciliation?.cashExpensesPaid || 0)}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-700 mt-3">
+                  {t('finance.expectedCashDescription', 'This is the calculated cash amount you should have in your register after accounting for cash payments, advances, and expenses.')}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">{t('finance.totalExpenses', 'Total Expenses')}</p>
-                <p className="text-xl font-bold text-red-600">
-                  {formatCurrency(summary.totalExpenses || 0)}
-                </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600">{t('finance.totalRevenue', 'Total Revenue')}</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {formatCurrency(summary.totalRevenue || 0)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600">{t('finance.totalExpenses', 'Total Expenses')}</p>
+                  <p className="text-xl font-bold text-red-600">
+                    {formatCurrency(summary.totalExpenses || 0)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600">{t('finance.netProfit', 'Net Profit')}</p>
+                  <p className="text-xl font-bold text-primary-600">
+                    {formatCurrency(summary.netProfit || 0)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600">{t('finance.payments', 'Payments')}</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {summary.paymentCount || 0}
+                  </p>
+                </div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">{t('finance.netProfit', 'Net Profit')}</p>
-                <p className="text-xl font-bold text-primary-600">
-                  {formatCurrency(summary.netProfit || 0)}
-                </p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">{t('finance.payments', 'Payments')}</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {summary.paymentCount || 0}
-                </p>
-              </div>
-            </div>
+            </>
           )}
 
           <div>

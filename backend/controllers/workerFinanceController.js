@@ -1130,7 +1130,7 @@ const recalculateWalletBalance = async (req, res, next) => {
  */
 const giveAdvance = async (req, res, next) => {
   try {
-    const { workerId, amount, reason, notes } = req.body;
+    const { workerId, amount, reason, notes, paymentMethod } = req.body;
 
     // Validate required fields
     if (!workerId || !amount) {
@@ -1207,7 +1207,8 @@ const giveAdvance = async (req, res, next) => {
       reason: reason || '',
       status: 'approved',
       givenBy: req.user.id,
-      notes: notes || ''
+      notes: notes || '',
+      paymentMethod: paymentMethod || 'cash'
     });
 
     // Update wallet

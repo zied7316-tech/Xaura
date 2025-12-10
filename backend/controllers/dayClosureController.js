@@ -3,6 +3,7 @@ const Salon = require('../models/Salon');
 const Appointment = require('../models/Appointment');
 const Payment = require('../models/Payment');
 const Expense = require('../models/Expense');
+const WorkerAdvance = require('../models/WorkerAdvance');
 
 /**
  * @desc    Close the day - finalize daily operations
@@ -67,6 +68,14 @@ const closeTheDay = async (req, res, next) => {
       date: { $gte: closureDate, $lt: nextDay }
     });
 
+    // Get all cash advances given on this day
+    const cashAdvances = await WorkerAdvance.find({
+      salonId: salon._id,
+      givenAt: { $gte: closureDate, $lt: nextDay },
+      paymentMethod: 'cash',
+      status: 'approved' // Only count approved advances
+    });
+
     // Calculate financial summary
     const totalRevenue = payments.reduce((sum, p) => sum + p.salonRevenue, 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -104,7 +113,18 @@ const closeTheDay = async (req, res, next) => {
     });
 
     // Calculate cash total from payments
-    const calculatedCash = paymentSummary.cash.amount;
+    const cashPaymentsReceived = paymentSummary.cash.amount;
+    
+    // Calculate cash advances given (only cash advances)
+    const cashAdvancesGiven = cashAdvances.reduce((sum, advance) => sum + advance.amount, 0);
+    
+    // Calculate cash expenses paid (only cash expenses)
+    const cashExpensesPaid = expenses
+      .filter(expense => expense.paymentMethod === 'cash')
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    
+    // Expected cash = Cash received - Cash advances given - Cash expenses paid
+    const calculatedCash = cashPaymentsReceived - cashAdvancesGiven - cashExpensesPaid;
 
     // Worker performance
     const workerStats = {};
