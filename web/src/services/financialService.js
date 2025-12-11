@@ -98,10 +98,11 @@ export const financialService = {
     return response.data?.data?.closure || null
   },
 
-  closeDay: async (date, actualCash, notes) => {
+  closeDay: async (date, actualCash, notes, openingCash) => {
     const response = await api.post('/day-closure/close', {
       date,
       actualCash: actualCash !== null && actualCash !== undefined ? parseFloat(actualCash) : null,
+      openingCash: openingCash !== null && openingCash !== undefined ? parseFloat(openingCash) : 0,
       notes
     })
     return response.data

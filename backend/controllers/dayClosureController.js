@@ -12,7 +12,7 @@ const WorkerAdvance = require('../models/WorkerAdvance');
  */
 const closeTheDay = async (req, res, next) => {
   try {
-    const { date, notes, actualCash } = req.body;
+    const { date, notes, actualCash, openingCash } = req.body;
     
     // Parse date string (YYYY-MM-DD) in local timezone
     let closureDate;
@@ -123,8 +123,13 @@ const closeTheDay = async (req, res, next) => {
       .filter(expense => expense.paymentMethod === 'cash')
       .reduce((sum, expense) => sum + expense.amount, 0);
     
-    // Expected cash = Cash received - Cash advances given - Cash expenses paid
-    const calculatedCash = cashPaymentsReceived - cashAdvancesGiven - cashExpensesPaid;
+    // Parse opening cash (fond de caisse) - money already in register at start of day
+    const openingCashAmount = openingCash !== undefined && openingCash !== null 
+      ? parseFloat(openingCash) 
+      : 0;
+    
+    // Expected cash = Opening cash + Cash received - Cash advances given - Cash expenses paid
+    const calculatedCash = openingCashAmount + cashPaymentsReceived - cashAdvancesGiven - cashExpensesPaid;
 
     // Worker performance
     const workerStats = {};
@@ -178,6 +183,7 @@ const closeTheDay = async (req, res, next) => {
 
     // Calculate cash verification
     const cashVerification = {
+      openingCash: openingCashAmount,
       calculatedCash: calculatedCash,
       actualCash: actualCash !== undefined && actualCash !== null ? parseFloat(actualCash) : null,
       discrepancy: actualCash !== undefined && actualCash !== null 

@@ -22,6 +22,7 @@ const FinancesPage = () => {
   // Day Closure states
   const [showCloseDayModal, setShowCloseDayModal] = useState(false)
   const [closingDay, setClosingDay] = useState(false)
+  const [openingCash, setOpeningCash] = useState('')
   const [actualCash, setActualCash] = useState('')
   const [closureNotes, setClosureNotes] = useState('')
   const [todayClosure, setTodayClosure] = useState(null)
@@ -214,9 +215,10 @@ const FinancesPage = () => {
     setClosingDay(true)
     try {
       const today = new Date().toISOString().split('T')[0]
-      await financialService.closeDay(today, actualCash || null, closureNotes)
+      await financialService.closeDay(today, actualCash || null, closureNotes, openingCash || '0')
       toast.success('Day closed successfully!')
       setShowCloseDayModal(false)
+      setOpeningCash('')
       setActualCash('')
       setClosureNotes('')
       // Refresh today's closure status
@@ -1032,6 +1034,7 @@ const FinancesPage = () => {
         isOpen={showCloseDayModal}
         onClose={() => {
           setShowCloseDayModal(false)
+          setOpeningCash('')
           setActualCash('')
           setClosureNotes('')
         }}
@@ -1050,6 +1053,26 @@ const FinancesPage = () => {
 
           {dashboardData && (
             <>
+              {/* Opening Cash - Fond de Caisse */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-5 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-lg font-semibold text-green-900">
+                    {t('finance.openingCash', 'Opening Cash (Fond de Caisse)')}
+                  </p>
+                </div>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={openingCash}
+                  onChange={(e) => setOpeningCash(e.target.value)}
+                  placeholder={t('finance.enterOpeningCash', 'Enter opening cash amount (e.g., 50.000)')}
+                  className="w-full mt-2"
+                />
+                <p className="text-xs text-green-700 mt-2">
+                  {t('finance.openingCashDescription', 'Enter the amount of money (coins/bills) that was already in the cash register at the start of the day.')}
+                </p>
+              </div>
+
               {/* Expected Cash - Prominently Displayed */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-5 mb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -1057,10 +1080,19 @@ const FinancesPage = () => {
                     {t('finance.expectedCash', 'Expected Cash in Register')}
                   </p>
                   <p className="text-3xl font-bold text-blue-700">
-                    {formatCurrency(dashboardData.cashReconciliation?.expectedCash || 0)}
+                    {formatCurrency(
+                      (parseFloat(openingCash) || 0) + 
+                      (dashboardData.cashReconciliation?.expectedCash || 0)
+                    )}
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-3 mt-3 text-sm">
+                <div className="grid grid-cols-4 gap-3 mt-3 text-sm">
+                  <div className="bg-white rounded p-2">
+                    <p className="text-gray-600 text-xs">{t('finance.openingCash', 'Opening Cash')}</p>
+                    <p className="font-semibold text-green-600">
+                      {formatCurrency(parseFloat(openingCash) || 0)}
+                    </p>
+                  </div>
                   <div className="bg-white rounded p-2">
                     <p className="text-gray-600 text-xs">{t('finance.cashReceived', 'Cash Received')}</p>
                     <p className="font-semibold text-green-600">
@@ -1081,7 +1113,7 @@ const FinancesPage = () => {
                   </div>
                 </div>
                 <p className="text-xs text-blue-700 mt-3">
-                  {t('finance.expectedCashDescription', 'This is the calculated cash amount you should have in your register after accounting for cash payments, advances, and expenses.')}
+                  {t('finance.expectedCashDescription', 'This is the calculated cash amount you should have in your register: Opening Cash + Cash Received - Cash Advances - Cash Expenses.')}
                 </p>
               </div>
 
@@ -1158,6 +1190,7 @@ const FinancesPage = () => {
               variant="outline"
               onClick={() => {
                 setShowCloseDayModal(false)
+                setOpeningCash('')
                 setActualCash('')
                 setClosureNotes('')
               }}
@@ -1316,7 +1349,15 @@ const FinancesPage = () => {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">{t('finance.cashVerification', 'Cash Verification')}</h4>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className={`grid gap-4 ${selectedClosure.cashVerification.actualCash !== null ? 'grid-cols-4' : 'grid-cols-2'}`}>
+                    {selectedClosure.cashVerification.openingCash !== undefined && selectedClosure.cashVerification.openingCash > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-600">{t('finance.openingCash', 'Opening Cash')}</p>
+                        <p className="text-lg font-bold text-green-600">
+                          {formatCurrency(selectedClosure.cashVerification.openingCash || 0)}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-sm text-gray-600">{t('finance.calculatedCash', 'Calculated Cash')}</p>
                       <p className="text-lg font-bold text-gray-900">

@@ -54,6 +54,7 @@ const dayClosureSchema = new mongoose.Schema({
   },
   // Cash Verification
   cashVerification: {
+    openingCash: { type: Number, default: 0 }, // Opening cash (fond de caisse) - money already in register at start of day
     calculatedCash: { type: Number, default: 0 }, // Cash from app calculations
     actualCash: { type: Number, default: null }, // Actual cash count entered by owner
     discrepancy: { type: Number, default: 0 }, // Difference (actual - calculated)
