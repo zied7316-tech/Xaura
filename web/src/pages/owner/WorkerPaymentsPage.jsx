@@ -454,10 +454,17 @@ const WorkerPaymentsPage = () => {
                       <td className="py-3 px-4 text-right">
                         {(() => {
                           // Ensure proper number conversion and explicit calculation
+                          // Unpaid Amount = Balance - Outstanding Advances (net amount owner should pay)
                           const balance = Number(wallet.balance) || 0;
                           const outstandingAdvances = Number(wallet.outstandingAdvances) || 0;
                           const unpaidAmount = balance - outstandingAdvances;
                           const isNegative = unpaidAmount < 0;
+                          
+                          // Debug log (remove in production if needed)
+                          if (process.env.NODE_ENV === 'development' && balance > 0) {
+                            console.log(`Worker ${wallet.workerId?.name}: Balance=${balance}, Advances=${outstandingAdvances}, Unpaid=${unpaidAmount}`);
+                          }
+                          
                           return (
                             <span className={`font-semibold ${isNegative ? 'text-red-600' : unpaidAmount > 0 ? 'text-primary-600' : 'text-gray-400'}`}>
                               {formatCurrency(unpaidAmount)}
