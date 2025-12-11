@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const WorkerWallet = require('../models/WorkerWallet');
 const WorkerInvoice = require('../models/WorkerInvoice');
 const WorkerEarning = require('../models/WorkerEarning');
@@ -151,7 +152,38 @@ const getAllWorkersWallets = async (req, res, next) => {
     // This ensures the value is always in sync with actual advance records
     const walletsWithNetBalance = await Promise.all(wallets.map(async (wallet) => {
       // Get worker ID - handle both populated and non-populated cases
-      const workerId = wallet.workerId?._id ? wallet.workerId._id : wallet.workerId;
+      // Validate workerId exists and is valid (skip wallets with deleted/orphaned worker references)
+      let workerId = null;
+      if (wallet.workerId) {
+        // Handle populated worker (object with _id) or direct ObjectId
+        if (wallet.workerId._id) {
+          workerId = wallet.workerId._id;
+        } else if (wallet.workerId.toString && typeof wallet.workerId.toString === 'function') {
+          // It's a valid ObjectId (has toString method)
+          workerId = wallet.workerId;
+        } else if (typeof wallet.workerId === 'string' || wallet.workerId instanceof mongoose.Types.ObjectId) {
+          // Direct ObjectId or string
+          workerId = wallet.workerId;
+        }
+      }
+      
+      // Validate workerId is actually a valid ObjectId (not null, undefined, or empty object)
+      // If workerId is invalid (worker was deleted), skip advance calculation
+      const isValidObjectId = workerId && 
+        (mongoose.Types.ObjectId.isValid(workerId) || 
+         (typeof workerId === 'object' && workerId.toString && typeof workerId.toString === 'function'));
+      
+      if (!isValidObjectId) {
+        // Worker was deleted or workerId is invalid - use existing wallet values
+        const balance = Number(wallet.balance) || 0;
+        const outstanding = Number(wallet.outstandingAdvances) || 0;
+        const netBalance = balance - outstanding;
+        return {
+          ...wallet.toObject(),
+          outstandingAdvances: outstanding, // Use existing value from wallet
+          netBalance // Calculate netBalance with existing outstandingAdvances
+        };
+      }
       
       // Get actual outstanding advances from WorkerAdvance records
       const outstandingAdvances = await WorkerAdvance.find({

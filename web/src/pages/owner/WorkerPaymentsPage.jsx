@@ -324,7 +324,13 @@ const WorkerPaymentsPage = () => {
     )
   }
 
-  const totalUnpaidAmount = wallets.reduce((sum, w) => sum + w.balance, 0)
+  // Calculate total unpaid amount (sum of all workers' unpaid amounts after advances)
+  // This matches the individual "Unpaid Amount" calculation: balance - outstandingAdvances
+  const totalUnpaidAmount = wallets.reduce((sum, w) => {
+    const balance = Number(w.balance) || 0;
+    const outstandingAdvances = Number(w.outstandingAdvances) || 0;
+    return sum + (balance - outstandingAdvances);
+  }, 0)
 
   return (
     <div className="space-y-6">
