@@ -402,6 +402,7 @@ const WorkerPaymentsPage = () => {
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Balance</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Net Balance</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Outstanding Advances</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Unpaid Amount</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Earned</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Paid</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Last Payout</th>
@@ -449,6 +450,19 @@ const WorkerPaymentsPage = () => {
                         <span className={`font-semibold ${(wallet.outstandingAdvances || 0) > 0 ? 'text-red-600' : 'text-gray-400'}`}>
                           {formatCurrency(wallet.outstandingAdvances || 0)}
                         </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {(() => {
+                          const unpaidAmount = wallet.netBalance !== undefined 
+                            ? wallet.netBalance 
+                            : (wallet.balance || 0) - (wallet.outstandingAdvances || 0);
+                          const isNegative = unpaidAmount < 0;
+                          return (
+                            <span className={`font-semibold ${isNegative ? 'text-red-600' : unpaidAmount > 0 ? 'text-primary-600' : 'text-gray-400'}`}>
+                              {formatCurrency(unpaidAmount)}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="py-3 px-4 text-right text-gray-900 font-medium">
                         {formatCurrency(wallet.totalEarned)}
