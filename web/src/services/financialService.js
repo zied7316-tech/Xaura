@@ -135,7 +135,8 @@ export const financialService = {
     if (endDate) params.append('endDate', endDate);
     if (limit) params.append('limit', limit);
     const response = await api.get(`/opening-cash/history?${params}`);
-    return response.data?.data?.history || [];
+    // API interceptor unwraps response.data, so response is { success: true, count: X, data: { history: [...] } }
+    return response.data?.history || [];
   },
 }
 
