@@ -151,34 +151,80 @@ const getAllWorkersWallets = async (req, res, next) => {
     // Check if owner works as worker and include their wallet
     const owner = await User.findById(req.user.id).select('worksAsWorker paymentModel');
     if (owner && owner.worksAsWorker) {
-      // Check if owner already has a wallet
+
+      // Check if owner already has a wallet in the current results
       const ownerWalletExists = wallets.some(w => {
         const walletWorkerId = w.workerId?._id?.toString() || w.workerId?.toString() || w.workerId;
         return walletWorkerId && walletWorkerId.toString() === req.user.id.toString();
       });
 
-      // If owner doesn't have a wallet yet, create one
+      // If owner's wallet is not in the results, check if they have one globally
+      // (workerId is unique globally, so we check by workerId only)
       if (!ownerWalletExists) {
+        // First check if owner has ANY wallet globally (since workerId is unique)
         let ownerWallet = await WorkerWallet.findOne({ 
-          workerId: req.user.id,
-          salonId: salon._id 
+          workerId: req.user.id
         });
 
-        if (!ownerWallet) {
-          ownerWallet = await WorkerWallet.create({
-            workerId: req.user.id,
-            salonId: salon._id,
-            balance: 0,
-            totalEarned: 0,
-            totalPaid: 0
-          });
-        }
+        if (ownerWallet) {
+          // Wallet exists - verify it's for this salon
+          // DO NOT reassign salonId as this would corrupt financial records
+          if (ownerWallet.salonId.toString() === salon._id.toString()) {
+            // Wallet is for this salon - include it
+            ownerWallet = await WorkerWallet.findById(ownerWallet._id)
+              .populate('workerId', 'name email avatar paymentModel');
+            
+            wallets.push(ownerWallet);
+          } else {
+            // Wallet exists but is for a different salon
+            // This is a data inconsistency - log warning but don't reassign
+            // (Reassigning would corrupt financial records for the original salon)
+            console.warn(`Owner ${req.user.id} has wallet for salon ${ownerWallet.salonId} but viewing salon ${salon._id}. Wallet not included to prevent data corruption.`);
+            // Don't include the wallet - it belongs to a different salon
+          }
+        } else {
+          // No wallet exists globally, create one for this salon
+          // Use findOneAndUpdate with upsert to avoid duplicate key errors
+          let walletAlreadyAdded = false;
+          try {
+            ownerWallet = await WorkerWallet.findOneAndUpdate(
+              { workerId: req.user.id },
+              {
+                workerId: req.user.id,
+                salonId: salon._id,
+                balance: 0,
+                totalEarned: 0,
+                totalPaid: 0
+              },
+              { upsert: true, new: true }
+            );
+          } catch (error) {
+            // If duplicate key error occurs (race condition), fetch the existing wallet
+            if (error.code === 11000 || error.name === 'MongoError') {
+              ownerWallet = await WorkerWallet.findOne({ workerId: req.user.id });
+              // If wallet was created by another request, check if it's for this salon
+              if (ownerWallet && ownerWallet.salonId.toString() === salon._id.toString()) {
+                // Include it if it's for this salon
+                ownerWallet = await WorkerWallet.findById(ownerWallet._id)
+                  .populate('workerId', 'name email avatar paymentModel');
+                
+                wallets.push(ownerWallet);
+                walletAlreadyAdded = true; // Mark as already added to prevent duplicate
+              }
+              // If it's for a different salon, don't include it (same as above)
+            } else {
+              throw error;
+            }
+          }
 
-        // Populate the workerId field and add to wallets array
-        ownerWallet = await WorkerWallet.findById(ownerWallet._id)
-          .populate('workerId', 'name email avatar paymentModel');
-        
-        wallets.push(ownerWallet);
+          // Populate and add wallet if it was successfully created (and not already added in catch handler)
+          if (!walletAlreadyAdded && ownerWallet && ownerWallet.salonId.toString() === salon._id.toString()) {
+            ownerWallet = await WorkerWallet.findById(ownerWallet._id)
+              .populate('workerId', 'name email avatar paymentModel');
+            
+            wallets.push(ownerWallet);
+          }
+        }
       }
     }
 
