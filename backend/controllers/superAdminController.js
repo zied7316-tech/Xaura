@@ -652,26 +652,27 @@ const deleteUser = async (req, res, next) => {
         // Delete salon ownership records
         await SalonOwnership.deleteMany({ salon: { $in: salonIds } }).session(session);
         
-        // Delete workers associated with these salons
+        // Disassociate workers from these salons (but don't delete them)
         const workers = await User.find({ salonId: { $in: salonIds }, role: 'Worker' }).session(session);
         const workerIds = workers.map(w => w._id);
         
         if (workerIds.length > 0) {
-          // Delete worker-related appointments
-          await Appointment.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          // Remove salon association from workers (set salonId to null)
+          await User.updateMany(
+            { _id: { $in: workerIds } },
+            { $set: { salonId: null } }
+          ).session(session);
           
-          // Delete worker-related data
-          await WorkerEarning.deleteMany({ workerId: { $in: workerIds } }).session(session);
-          await WorkerInvoice.deleteMany({ workerId: { $in: workerIds } }).session(session);
-          await WorkerAdvance.deleteMany({ workerId: { $in: workerIds } }).session(session);
-          await WorkerWallet.deleteMany({ workerId: { $in: workerIds } }).session(session);
-          await Commission.deleteMany({ workerId: { $in: workerIds } }).session(session);
-          await WorkerAvailability.deleteMany({ workerId: { $in: workerIds } }).session(session);
-          await WorkerStatusLog.deleteMany({ workerId: { $in: workerIds } }).session(session);
-          await GPSTrackingLog.deleteMany({ workerId: { $in: workerIds } }).session(session);
+          // Remove workers from service assignments in these salons
+          await Service.updateMany(
+            { salonId: { $in: salonIds } },
+            { $pullAll: { assignedWorkers: workerIds } }
+          ).session(session);
           
-          // Delete the workers themselves
-          await User.deleteMany({ _id: { $in: workerIds } }).session(session);
+          // Note: Salon-specific worker data (earnings, availability, etc.) 
+          // is already deleted above by salonId (lines 596-629)
+          // Appointments at these salons are already deleted above (line 563)
+          // Workers themselves are kept and can join other salons
         }
         
         // Finally, delete the salons
