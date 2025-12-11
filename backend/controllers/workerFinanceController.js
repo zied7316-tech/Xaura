@@ -147,15 +147,29 @@ const getAllWorkersWallets = async (req, res, next) => {
     const wallets = await WorkerWallet.find({ salonId: salon._id })
       .populate('workerId', 'name email avatar paymentModel');
 
-    // Calculate netBalance for each wallet (same as worker endpoint)
-    // netBalance = balance - outstandingAdvances (what worker can actually receive, can be negative)
-    const walletsWithNetBalance = wallets.map(wallet => {
-      const netBalance = (wallet.balance || 0) - (wallet.outstandingAdvances || 0);
+    // Recalculate outstandingAdvances from WorkerAdvance records for accuracy
+    // This ensures the value is always in sync with actual advance records
+    const walletsWithNetBalance = await Promise.all(wallets.map(async (wallet) => {
+      // Get actual outstanding advances from WorkerAdvance records
+      const outstandingAdvances = await WorkerAdvance.find({
+        workerId: wallet.workerId._id || wallet.workerId,
+        salonId: salon._id,
+        status: 'approved' // Only approved advances that haven't been deducted
+      });
+      
+      const actualOutstandingAdvances = outstandingAdvances.reduce((sum, a) => sum + (a.amount || 0), 0);
+      
+      // Calculate netBalance = balance - outstandingAdvances (what worker can actually receive, can be negative)
+      const balance = Number(wallet.balance) || 0;
+      const outstanding = Number(actualOutstandingAdvances) || 0;
+      const netBalance = balance - outstanding;
+      
       return {
         ...wallet.toObject(),
+        outstandingAdvances: actualOutstandingAdvances, // Use recalculated value
         netBalance // Add netBalance to match worker view
       };
-    });
+    }));
 
     res.json({
       success: true,

@@ -453,9 +453,10 @@ const WorkerPaymentsPage = () => {
                       </td>
                       <td className="py-3 px-4 text-right">
                         {(() => {
-                          const unpaidAmount = wallet.netBalance !== undefined 
-                            ? wallet.netBalance 
-                            : (wallet.balance || 0) - (wallet.outstandingAdvances || 0);
+                          // Ensure proper number conversion and explicit calculation
+                          const balance = Number(wallet.balance) || 0;
+                          const outstandingAdvances = Number(wallet.outstandingAdvances) || 0;
+                          const unpaidAmount = balance - outstandingAdvances;
                           const isNegative = unpaidAmount < 0;
                           return (
                             <span className={`font-semibold ${isNegative ? 'text-red-600' : unpaidAmount > 0 ? 'text-primary-600' : 'text-gray-400'}`}>

@@ -1349,44 +1349,67 @@ const FinancesPage = () => {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">{t('finance.cashVerification', 'Cash Verification')}</h4>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className={`grid gap-4 ${selectedClosure.cashVerification.actualCash !== null ? 'grid-cols-4' : 'grid-cols-2'}`}>
-                    {selectedClosure.cashVerification.openingCash !== undefined && selectedClosure.cashVerification.openingCash > 0 && (
-                      <div>
-                        <p className="text-sm text-gray-600">{t('finance.openingCash', 'Opening Cash')}</p>
-                        <p className="text-lg font-bold text-green-600">
-                          {formatCurrency(selectedClosure.cashVerification.openingCash || 0)}
-                        </p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm text-gray-600">{t('finance.calculatedCash', 'Calculated Cash')}</p>
-                      <p className="text-lg font-bold text-gray-900">
-                        {formatCurrency(selectedClosure.cashVerification.calculatedCash || 0)}
-                      </p>
-                    </div>
-                    {selectedClosure.cashVerification.actualCash !== null && (
-                      <>
+                  {(() => {
+                    // Calculate how many items will be displayed
+                    const showOpeningCash = selectedClosure.cashVerification.openingCash !== undefined && selectedClosure.cashVerification.openingCash > 0;
+                    const showActualCash = selectedClosure.cashVerification.actualCash !== null;
+                    const showDiscrepancy = showActualCash; // Discrepancy is shown when actualCash is shown
+                    
+                    // Always show Calculated Cash, so count starts at 1
+                    let itemCount = 1;
+                    if (showOpeningCash) itemCount++;
+                    if (showActualCash) itemCount++;
+                    if (showDiscrepancy) itemCount++;
+                    
+                    // Determine grid columns based on actual item count
+                    const gridCols = itemCount === 1 ? 'grid-cols-1' : 
+                                     itemCount === 2 ? 'grid-cols-2' : 
+                                     itemCount === 3 ? 'grid-cols-3' : 
+                                     'grid-cols-4';
+                    
+                    return (
+                      <div className={`grid gap-4 ${gridCols}`}>
+                        {showOpeningCash && (
+                          <div>
+                            <p className="text-sm text-gray-600">{t('finance.openingCash', 'Opening Cash')}</p>
+                            <p className="text-lg font-bold text-green-600">
+                              {formatCurrency(selectedClosure.cashVerification.openingCash || 0)}
+                            </p>
+                          </div>
+                        )}
                         <div>
-                          <p className="text-sm text-gray-600">{t('finance.actualCash', 'Actual Cash')}</p>
+                          <p className="text-sm text-gray-600">{t('finance.calculatedCash', 'Calculated Cash')}</p>
                           <p className="text-lg font-bold text-gray-900">
-                            {formatCurrency(selectedClosure.cashVerification.actualCash || 0)}
+                            {formatCurrency(selectedClosure.cashVerification.calculatedCash || 0)}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600">{t('finance.discrepancy', 'Discrepancy')}</p>
-                          <p className={`text-lg font-bold ${
-                            (selectedClosure.cashVerification.discrepancy || 0) === 0
-                              ? 'text-green-600'
-                              : (selectedClosure.cashVerification.discrepancy || 0) > 0
-                              ? 'text-green-600'
-                              : 'text-red-600'
-                          }`}>
-                            {formatCurrency(selectedClosure.cashVerification.discrepancy || 0)}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                        {showActualCash && (
+                          <>
+                            <div>
+                              <p className="text-sm text-gray-600">{t('finance.actualCash', 'Actual Cash')}</p>
+                              <p className="text-lg font-bold text-gray-900">
+                                {formatCurrency(selectedClosure.cashVerification.actualCash || 0)}
+                              </p>
+                            </div>
+                            {showDiscrepancy && (
+                              <div>
+                                <p className="text-sm text-gray-600">{t('finance.discrepancy', 'Discrepancy')}</p>
+                                <p className={`text-lg font-bold ${
+                                  (selectedClosure.cashVerification.discrepancy || 0) === 0
+                                    ? 'text-green-600'
+                                    : (selectedClosure.cashVerification.discrepancy || 0) > 0
+                                    ? 'text-green-600'
+                                    : 'text-red-600'
+                                }`}>
+                                  {formatCurrency(selectedClosure.cashVerification.discrepancy || 0)}
+                                </p>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
