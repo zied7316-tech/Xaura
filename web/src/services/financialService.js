@@ -116,5 +116,26 @@ export const financialService = {
     console.log('Day Closure History Response:', { response, closuresCount: closures.length })
     return closures
   },
+
+  // Opening Cash (Fond de Caisse)
+  getOpeningCash: async (date) => {
+    const queryString = date ? `?date=${date}` : '';
+    const response = await api.get(`/opening-cash${queryString}`);
+    return response.data;
+  },
+
+  setOpeningCash: async (date, amount, notes) => {
+    const response = await api.post('/opening-cash', { date, amount, notes });
+    return response.data;
+  },
+
+  getOpeningCashHistory: async (startDate, endDate, limit = 30) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (limit) params.append('limit', limit);
+    const response = await api.get(`/opening-cash/history?${params}`);
+    return response.data?.data?.history || [];
+  },
 }
 

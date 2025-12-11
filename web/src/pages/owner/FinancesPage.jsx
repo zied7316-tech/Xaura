@@ -28,6 +28,16 @@ const FinancesPage = () => {
   const [todayClosure, setTodayClosure] = useState(null)
   const [checkingClosure, setCheckingClosure] = useState(false)
   
+  // Opening Cash Management states
+  const [currentOpeningCash, setCurrentOpeningCash] = useState(null)
+  const [loadingOpeningCash, setLoadingOpeningCash] = useState(false)
+  const [showOpeningCashModal, setShowOpeningCashModal] = useState(false)
+  const [openingCashForm, setOpeningCashForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    amount: '',
+    notes: ''
+  })
+  
   // Closure History states
   const [showHistory, setShowHistory] = useState(false)
   const [closureHistory, setClosureHistory] = useState([])
@@ -131,7 +141,40 @@ const FinancesPage = () => {
   useEffect(() => {
     fetchDashboardData()
     fetchExpenses()
+    fetchOpeningCash()
   }, [dateRange, customStartDate, customEndDate])
+  
+  // Fetch opening cash for current date
+  const fetchOpeningCash = async () => {
+    setLoadingOpeningCash(true)
+    try {
+      const dates = getDateRange()
+      if (!dates) {
+        setLoadingOpeningCash(false)
+        return
+      }
+      
+      // For today, use today's date; for other ranges, use start date
+      const targetDate = dateRange === 'today' 
+        ? new Date().toISOString().split('T')[0]
+        : dates.startDate
+      
+      const openingCashData = await financialService.getOpeningCash(targetDate)
+      if (openingCashData && openingCashData.amount !== undefined) {
+        setCurrentOpeningCash(openingCashData)
+        setOpeningCash(openingCashData.amount.toString())
+      } else {
+        setCurrentOpeningCash(null)
+        setOpeningCash('')
+      }
+    } catch (error) {
+      console.error('Error fetching opening cash:', error)
+      setCurrentOpeningCash(null)
+      setOpeningCash('')
+    } finally {
+      setLoadingOpeningCash(false)
+    }
+  }
   
   // Fetch expenses for current date range
   const fetchExpenses = async () => {
@@ -218,9 +261,10 @@ const FinancesPage = () => {
       await financialService.closeDay(today, actualCash || null, closureNotes, openingCash || '0')
       toast.success('Day closed successfully!')
       setShowCloseDayModal(false)
-      setOpeningCash('')
       setActualCash('')
       setClosureNotes('')
+      // Reload opening cash to preserve stored value (don't clear it)
+      await fetchOpeningCash()
       // Refresh today's closure status
       const closure = await financialService.getDayClosure(today)
       setTodayClosure(closure)
@@ -299,6 +343,43 @@ const FinancesPage = () => {
   const summary = dashboardData?.summary || {}
   const workerBreakdown = dashboardData?.workerBreakdown || []
   const transactions = dashboardData?.transactions || []
+  
+  // Opening Cash management functions
+  const handleSetOpeningCash = () => {
+    const dates = getDateRange()
+    const targetDate = dateRange === 'today' 
+      ? new Date().toISOString().split('T')[0]
+      : dates?.startDate || new Date().toISOString().split('T')[0]
+    
+    setOpeningCashForm({
+      date: targetDate,
+      amount: currentOpeningCash?.amount?.toString() || openingCash || '',
+      notes: currentOpeningCash?.notes || ''
+    })
+    setShowOpeningCashModal(true)
+  }
+  
+  const handleSaveOpeningCash = async () => {
+    if (!openingCashForm.amount || parseFloat(openingCashForm.amount) < 0) {
+      toast.error('Please enter a valid opening cash amount')
+      return
+    }
+    
+    try {
+      await financialService.setOpeningCash(
+        openingCashForm.date,
+        openingCashForm.amount,
+        openingCashForm.notes
+      )
+      toast.success('Opening cash saved successfully')
+      setShowOpeningCashModal(false)
+      fetchOpeningCash()
+      fetchDashboardData() // Refresh dashboard to update calculations
+    } catch (error) {
+      console.error('Error saving opening cash:', error)
+      toast.error(error.response?.data?.message || 'Failed to save opening cash')
+    }
+  }
   
   // Expense management functions
   const handleAddExpense = () => {
@@ -466,7 +547,11 @@ const FinancesPage = () => {
           {dateRange === 'today' && !todayClosure && !checkingClosure && (
             <Button
               variant="primary"
-              onClick={() => setShowCloseDayModal(true)}
+              onClick={async () => {
+                // Load opening cash before opening modal
+                await fetchOpeningCash()
+                setShowCloseDayModal(true)
+              }}
               className="flex items-center gap-2"
             >
               <Lock size={18} />
@@ -618,6 +703,71 @@ const FinancesPage = () => {
           </div>
         </Card>
       </div>
+
+      {/* Opening Cash Display Card */}
+      {dateRange === 'today' && (
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-green-900">
+                <DollarSign size={20} />
+                {t('finance.openingCash', 'Opening Cash (Fond de Caisse)')}
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSetOpeningCash}
+                className="border-green-300 text-green-700 hover:bg-green-50"
+              >
+                <Edit size={16} className="mr-1" />
+                {currentOpeningCash ? t('finance.edit', 'Edit') : t('finance.set', 'Set')}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingOpeningCash ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-700 mb-1">
+                    {t('finance.openingCashSubtitle', 'Money already in register at start of day')}
+                  </p>
+                  <p className="text-3xl font-bold text-green-900">
+                    {formatCurrency(parseFloat(openingCash) || 0)}
+                  </p>
+                  {currentOpeningCash?.notes && (
+                    <p className="text-xs text-green-600 mt-2">{currentOpeningCash.notes}</p>
+                  )}
+                  {currentOpeningCash?.updatedBy && (
+                    <p className="text-xs text-green-500 mt-1">
+                      {t('finance.lastUpdated', 'Last updated')}: {formatDate(currentOpeningCash.updatedAt)}
+                    </p>
+                  )}
+                </div>
+                {!currentOpeningCash && (
+                  <div className="text-center">
+                    <p className="text-sm text-green-600 mb-2">
+                      {t('finance.noOpeningCashSet', 'No opening cash set for today')}
+                    </p>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleSetOpeningCash}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <DollarSign size={16} className="mr-1" />
+                      {t('finance.setOpeningCash', 'Set Opening Cash')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Worker Breakdown Table */}
       <Card>
@@ -1032,11 +1182,12 @@ const FinancesPage = () => {
       {/* Close Day Modal */}
       <Modal
         isOpen={showCloseDayModal}
-        onClose={() => {
+        onClose={async () => {
           setShowCloseDayModal(false)
-          setOpeningCash('')
           setActualCash('')
           setClosureNotes('')
+          // Reload opening cash to preserve stored value
+          await fetchOpeningCash()
         }}
         title={t('finance.closeTheDay', 'Close the Day')}
         size="lg"
@@ -1199,11 +1350,12 @@ const FinancesPage = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
+              onClick={async () => {
                 setShowCloseDayModal(false)
-                setOpeningCash('')
                 setActualCash('')
                 setClosureNotes('')
+                // Reload opening cash to preserve stored value (don't clear it)
+                await fetchOpeningCash()
               }}
               fullWidth
             >
@@ -1623,6 +1775,64 @@ const FinancesPage = () => {
               onClick={handleSaveExpense}
             >
               {editingExpense ? t('finance.updateExpense', 'Update Expense') : t('finance.addExpense', 'Add Expense')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Set/Edit Opening Cash Modal */}
+      <Modal
+        isOpen={showOpeningCashModal}
+        onClose={() => setShowOpeningCashModal(false)}
+        title={t('finance.setOpeningCash', 'Set Opening Cash')}
+        size="md"
+      >
+        <div className="space-y-4">
+          <Input
+            label={t('common.date', 'Date')}
+            type="date"
+            value={openingCashForm.date}
+            onChange={(e) => setOpeningCashForm({ ...openingCashForm, date: e.target.value })}
+            required
+          />
+          
+          <Input
+            label={t('common.amount', 'Amount')}
+            type="number"
+            step="0.001"
+            min="0"
+            value={openingCashForm.amount}
+            onChange={(e) => setOpeningCashForm({ ...openingCashForm, amount: e.target.value })}
+            placeholder={t('finance.enterOpeningCash', 'Enter opening cash amount (e.g., 50.000)')}
+            required
+          />
+          
+          <Textarea
+            label={t('common.notes', 'Notes')}
+            value={openingCashForm.notes}
+            onChange={(e) => setOpeningCashForm({ ...openingCashForm, notes: e.target.value })}
+            placeholder={t('finance.openingCashNotesPlaceholder', 'Optional notes about the opening cash')}
+            rows={3}
+          />
+          
+          <p className="text-xs text-gray-500">
+            {t('finance.openingCashDescription', 'Enter the amount of money (coins/bills) that was already in the cash register at the start of the day.')}
+          </p>
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowOpeningCashModal(false)}
+            >
+              {t('common.cancel', 'Cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveOpeningCash}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <DollarSign size={16} className="mr-1" />
+              {t('common.save', 'Save')}
             </Button>
           </div>
         </div>

@@ -215,6 +215,7 @@ if (loadRoute('/api/notifications', './routes/notificationRoutes')) routesLoaded
 if (loadRoute('/api/payments', './routes/paymentRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/finance', './routes/financeRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/expenses', './routes/expenseRoutes')) routesLoaded++; else routesFailed++;
+if (loadRoute('/api/opening-cash', './routes/openingCashRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/analytics', './routes/analyticsRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/customers', './routes/customerRoutes')) routesLoaded++; else routesFailed++;
 if (loadRoute('/api/inventory', './routes/inventoryRoutes')) routesLoaded++; else routesFailed++;

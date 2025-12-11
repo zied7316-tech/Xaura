@@ -4,6 +4,7 @@ const Appointment = require('../models/Appointment');
 const Payment = require('../models/Payment');
 const Expense = require('../models/Expense');
 const WorkerAdvance = require('../models/WorkerAdvance');
+const DailyOpeningCash = require('../models/DailyOpeningCash');
 
 /**
  * @desc    Close the day - finalize daily operations
@@ -124,9 +125,20 @@ const closeTheDay = async (req, res, next) => {
       .reduce((sum, expense) => sum + expense.amount, 0);
     
     // Parse opening cash (fond de caisse) - money already in register at start of day
-    const openingCashAmount = openingCash !== undefined && openingCash !== null 
-      ? parseFloat(openingCash) 
-      : 0;
+    // First try to get from request body, then from stored daily opening cash record
+    let openingCashAmount = 0;
+    if (openingCash !== undefined && openingCash !== null) {
+      openingCashAmount = parseFloat(openingCash);
+    } else {
+      // Try to get from daily opening cash record
+      const dailyOpeningCash = await DailyOpeningCash.findOne({
+        salonId: salon._id,
+        date: closureDate
+      });
+      if (dailyOpeningCash) {
+        openingCashAmount = dailyOpeningCash.amount;
+      }
+    }
     
     // Expected cash = Opening cash + Cash received - Cash advances given - Cash expenses paid
     const calculatedCash = openingCashAmount + cashPaymentsReceived - cashAdvancesGiven - cashExpensesPaid;
