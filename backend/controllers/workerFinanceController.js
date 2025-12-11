@@ -148,6 +148,40 @@ const getAllWorkersWallets = async (req, res, next) => {
     const wallets = await WorkerWallet.find({ salonId: salon._id })
       .populate('workerId', 'name email avatar paymentModel');
 
+    // Check if owner works as worker and include their wallet
+    const owner = await User.findById(req.user.id).select('worksAsWorker paymentModel');
+    if (owner && owner.worksAsWorker) {
+      // Check if owner already has a wallet
+      const ownerWalletExists = wallets.some(w => {
+        const walletWorkerId = w.workerId?._id?.toString() || w.workerId?.toString() || w.workerId;
+        return walletWorkerId && walletWorkerId.toString() === req.user.id.toString();
+      });
+
+      // If owner doesn't have a wallet yet, create one
+      if (!ownerWalletExists) {
+        let ownerWallet = await WorkerWallet.findOne({ 
+          workerId: req.user.id,
+          salonId: salon._id 
+        });
+
+        if (!ownerWallet) {
+          ownerWallet = await WorkerWallet.create({
+            workerId: req.user.id,
+            salonId: salon._id,
+            balance: 0,
+            totalEarned: 0,
+            totalPaid: 0
+          });
+        }
+
+        // Populate the workerId field and add to wallets array
+        ownerWallet = await WorkerWallet.findById(ownerWallet._id)
+          .populate('workerId', 'name email avatar paymentModel');
+        
+        wallets.push(ownerWallet);
+      }
+    }
+
     // Recalculate outstandingAdvances from WorkerAdvance records for accuracy
     // This ensures the value is always in sync with actual advance records
     const walletsWithNetBalance = await Promise.all(wallets.map(async (wallet) => {

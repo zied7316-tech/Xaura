@@ -373,6 +373,7 @@ const getMe = async (req, res, next) => {
         paymentModel: user.paymentModel,
         status: user.status,
         vipStatus: user.vipStatus,
+        worksAsWorker: user.worksAsWorker || false, // Include worksAsWorker field
       },
     });
   } catch (error) {
