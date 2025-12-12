@@ -1156,6 +1156,7 @@ const editWalkInAppointment = async (req, res, next) => {
           newWorkerEarning = newPrice;
         }
       } else {
+        // Regular worker logic
         if (worker.paymentModel && worker.paymentModel.type) {
           if (worker.paymentModel.type === 'percentage_commission') {
             commissionPercentage = worker.paymentModel.commissionPercentage || 50;
@@ -1163,6 +1164,11 @@ const editWalkInAppointment = async (req, res, next) => {
           } else if (worker.paymentModel.type === 'hybrid') {
             commissionPercentage = worker.paymentModel.commissionPercentage || 30;
             newWorkerEarning = (newPrice * commissionPercentage) / 100;
+          } else {
+            // Fallback for fixed_salary or other payment model types
+            // For fixed_salary, workers don't get per-appointment commission, but we default to 50% for consistency
+            commissionPercentage = 50;
+            newWorkerEarning = (newPrice * 50) / 100;
           }
         } else {
           commissionPercentage = 50;
@@ -1329,8 +1335,12 @@ const editWalkInAppointmentOwner = async (req, res, next) => {
     }
 
     // Verify owner owns the salon
-    const salonOwnerId = appointment.salonId.ownerId || appointment.salonId.ownerId;
-    if (salonOwnerId.toString() !== req.user.id) {
+    // Handle both populated (object with _id) and non-populated (ObjectId) ownerId
+    let salonOwnerId = appointment.salonId.ownerId;
+    if (salonOwnerId && salonOwnerId._id) {
+      salonOwnerId = salonOwnerId._id;
+    }
+    if (!salonOwnerId || salonOwnerId.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to edit this appointment'
@@ -1395,6 +1405,7 @@ const editWalkInAppointmentOwner = async (req, res, next) => {
         newWorkerEarning = newPrice;
       }
     } else {
+      // Regular worker logic
       if (worker.paymentModel && worker.paymentModel.type) {
         if (worker.paymentModel.type === 'percentage_commission') {
           commissionPercentage = worker.paymentModel.commissionPercentage || 50;
@@ -1402,6 +1413,11 @@ const editWalkInAppointmentOwner = async (req, res, next) => {
         } else if (worker.paymentModel.type === 'hybrid') {
           commissionPercentage = worker.paymentModel.commissionPercentage || 30;
           newWorkerEarning = (newPrice * commissionPercentage) / 100;
+        } else {
+          // Fallback for fixed_salary or other payment model types
+          // For fixed_salary, workers don't get per-appointment commission, but we default to 50% for consistency
+          commissionPercentage = 50;
+          newWorkerEarning = (newPrice * 50) / 100;
         }
       } else {
         commissionPercentage = 50;
@@ -1569,8 +1585,12 @@ const voidWalkInAppointment = async (req, res, next) => {
     }
 
     // Verify owner owns the salon
-    const salonOwnerId = appointment.salonId.ownerId || appointment.salonId.ownerId;
-    if (salonOwnerId.toString() !== req.user.id) {
+    // Handle both populated (object with _id) and non-populated (ObjectId) ownerId
+    let salonOwnerId = appointment.salonId.ownerId;
+    if (salonOwnerId && salonOwnerId._id) {
+      salonOwnerId = salonOwnerId._id;
+    }
+    if (!salonOwnerId || salonOwnerId.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to void this appointment'
