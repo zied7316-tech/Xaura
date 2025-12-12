@@ -362,7 +362,7 @@ const subscriptionSchema = new mongoose.Schema({
   limits: {
     maxWorkers: {
       type: Number,
-      default: 3 // Basic plan default
+      default: 5 // Basic plan default
     },
     maxLocations: {
       type: Number,

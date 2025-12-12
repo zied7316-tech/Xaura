@@ -19,7 +19,7 @@ const SUBSCRIPTION_PLANS = {
     features: {
       // Team & Branches
       maxLocations: 1,
-      maxWorkers: 3,
+      maxWorkers: 5,
       
       // Operations
       unlimitedAppointments: true,

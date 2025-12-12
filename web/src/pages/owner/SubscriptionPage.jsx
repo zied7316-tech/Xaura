@@ -504,7 +504,7 @@ const SubscriptionPage = () => {
                                   {plan.features?.maxWorkers === -1 ? (
                                     <><Infinity size={14} className="inline text-primary-600" /> Unlimited Workers</>
                                   ) : (
-                                    `Up to ${plan.features?.maxWorkers || 3} Workers`
+                                    `Up to ${plan.features?.maxWorkers || 5} Workers`
                                   )}
                                 </span>
                               </li>
