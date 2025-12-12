@@ -172,11 +172,38 @@ const updateSubscriptionPlan = async (req, res, next) => {
     }
 
     const oldPlan = subscription.plan;
-    // Update isUpgrade logic to include solo plans
-    const teamPlans = ['basic', 'pro', 'enterprise'];
-    const soloPlans = ['solo_basic', 'solo_pro'];
-    const allPlans = [...soloPlans, ...teamPlans];
-    const isUpgrade = !oldPlan || (oldPlan && plan && allPlans.indexOf(plan) > allPlans.indexOf(oldPlan));
+    
+    // Determine if this is an upgrade based on actual pricing, not array index
+    // Solo and team plans are separate plan families and shouldn't be compared directly
+    let isUpgrade = false;
+    
+    if (!oldPlan) {
+      // No old plan means this is a new subscription (from trial)
+      isUpgrade = true;
+    } else if (oldPlan && plan) {
+      // Get plan details to compare prices
+      const { SUBSCRIPTION_PLANS } = require('../config/subscriptionPlans');
+      const oldPlanConfig = SUBSCRIPTION_PLANS[oldPlan.toLowerCase()];
+      const newPlanConfig = SUBSCRIPTION_PLANS[plan.toLowerCase()];
+      
+      if (oldPlanConfig && newPlanConfig) {
+        // Get monthly prices for comparison
+        const oldPrice = oldPlanConfig.price.month || 0;
+        const newPrice = newPlanConfig.price.month || 0;
+        
+        // Compare within the same plan family (solo vs team)
+        const isOldSolo = oldPlan.startsWith('solo_');
+        const isNewSolo = plan.startsWith('solo_');
+        
+        if (isOldSolo === isNewSolo) {
+          // Same plan family: compare by price
+          isUpgrade = newPrice > oldPrice;
+        } else {
+          // Different plan families: treat as change (shouldn't happen due to validation, but handle gracefully)
+          isUpgrade = false;
+        }
+      }
+    }
     
     subscription.plan = plan;
     
