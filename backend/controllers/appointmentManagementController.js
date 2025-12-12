@@ -343,9 +343,13 @@ const completeAppointment = async (req, res, next) => {
         } else if (worker.paymentModel.type === 'hybrid') {
           commissionPercentage = worker.paymentModel.commissionPercentage || 30;
           workerEarning = (actualPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'fixed_salary') {
+          // Fixed salary workers don't get per-appointment commission
+          // Earnings are calculated monthly, not per appointment
+          commissionPercentage = 0;
+          workerEarning = 0;
         } else {
-          // Fallback for fixed_salary or other payment model types
-          // For fixed_salary, workers don't get per-appointment commission, but we default to 50% for consistency
+          // Fallback for unknown payment model types - default to 50% commission
           commissionPercentage = 50;
           workerEarning = (actualPrice * 50) / 100;
         }
@@ -868,9 +872,13 @@ const createWalkInAppointment = async (req, res, next) => {
         } else if (worker.paymentModel.type === 'hybrid') {
           commissionPercentage = worker.paymentModel.commissionPercentage || 30;
           workerEarning = (numericPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'fixed_salary') {
+          // Fixed salary workers don't get per-appointment commission
+          // Earnings are calculated monthly, not per appointment
+          commissionPercentage = 0;
+          workerEarning = 0;
         } else {
-          // Fallback for fixed_salary or other payment model types
-          // For fixed_salary, workers don't get per-appointment commission, but we default to 50% for consistency
+          // Fallback for unknown payment model types - default to 50% commission
           commissionPercentage = 50;
           workerEarning = (numericPrice * 50) / 100;
         }
@@ -1174,9 +1182,13 @@ const editWalkInAppointment = async (req, res, next) => {
           } else if (worker.paymentModel.type === 'hybrid') {
             commissionPercentage = worker.paymentModel.commissionPercentage || 30;
             newWorkerEarning = (newPrice * commissionPercentage) / 100;
+          } else if (worker.paymentModel.type === 'fixed_salary') {
+            // Fixed salary workers don't get per-appointment commission
+            // Earnings are calculated monthly, not per appointment
+            commissionPercentage = 0;
+            newWorkerEarning = 0;
           } else {
-            // Fallback for fixed_salary or other payment model types
-            // For fixed_salary, workers don't get per-appointment commission, but we default to 50% for consistency
+            // Fallback for unknown payment model types - default to 50% commission
             commissionPercentage = 50;
             newWorkerEarning = (newPrice * 50) / 100;
           }
@@ -1423,9 +1435,13 @@ const editWalkInAppointmentOwner = async (req, res, next) => {
         } else if (worker.paymentModel.type === 'hybrid') {
           commissionPercentage = worker.paymentModel.commissionPercentage || 30;
           newWorkerEarning = (newPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'fixed_salary') {
+          // Fixed salary workers don't get per-appointment commission
+          // Earnings are calculated monthly, not per appointment
+          commissionPercentage = 0;
+          newWorkerEarning = 0;
         } else {
-          // Fallback for fixed_salary or other payment model types
-          // For fixed_salary, workers don't get per-appointment commission, but we default to 50% for consistency
+          // Fallback for unknown payment model types - default to 50% commission
           commissionPercentage = 50;
           newWorkerEarning = (newPrice * 50) / 100;
         }
