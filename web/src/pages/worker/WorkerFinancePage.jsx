@@ -16,6 +16,8 @@ const WorkerFinancePage = () => {
   const [estimatedEarnings, setEstimatedEarnings] = useState(null)
   const [paymentHistory, setPaymentHistory] = useState([])
   const [advances, setAdvances] = useState([])
+  const [adjustments, setAdjustments] = useState([])
+  const [loadingAdjustments, setLoadingAdjustments] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('paid')
   const [processing, setProcessing] = useState(false)
@@ -48,6 +50,25 @@ const WorkerFinancePage = () => {
       setLoading(false)
     }
   }
+
+  const loadAdjustments = async () => {
+    setLoadingAdjustments(true)
+    try {
+      const data = await workerFinanceService.getAdjustmentHistory()
+      setAdjustments(data || [])
+    } catch (error) {
+      console.error('Error loading adjustments:', error)
+      toast.error(t('worker.failedToLoadAdjustments', 'Failed to load adjustments'))
+    } finally {
+      setLoadingAdjustments(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'adjustments') {
+      loadAdjustments()
+    }
+  }, [activeTab])
 
   if (loading) {
     return (
@@ -249,6 +270,17 @@ const WorkerFinancePage = () => {
             >
               <DollarSign className="inline mr-2" size={18} />
               {t('worker.advances', 'Advances')} ({advances.filter(a => a.status === 'approved').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('adjustments')}
+              className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'adjustments'
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <AlertCircle className="inline mr-2" size={18} />
+              {t('worker.adjustments', 'Adjustments')} ({adjustments.length})
             </button>
           </div>
         </div>
@@ -646,6 +678,82 @@ const WorkerFinancePage = () => {
                     </table>
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'adjustments' && (
+            <div className="space-y-4">
+              {loadingAdjustments ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+                </div>
+              ) : adjustments.length === 0 ? (
+                <div className="text-center py-12">
+                  <CheckCircle className="mx-auto text-gray-400 mb-4" size={48} />
+                  <p className="text-gray-600">{t('worker.noAdjustments', 'No adjustments found')}</p>
+                  <p className="text-gray-500 text-sm mt-1">
+                    {t('worker.adjustmentsDescription', 'Any changes to your appointments will appear here')}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {adjustments.map((adj) => (
+                    <Card key={adj._id} className="border-l-4 border-l-orange-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant={adj.adjustmentType === 'void' ? 'danger' : 'warning'}>
+                                {adj.adjustmentType === 'void' ? t('worker.voided', 'Voided') : t('worker.edited', 'Edited')}
+                              </Badge>
+                              <span className="text-sm text-gray-500">
+                                {formatDate(adj.createdAt)}
+                              </span>
+                            </div>
+                            
+                            {adj.changes.price && adj.changes.price.old !== null && adj.changes.price.new !== null && (
+                              <div className="mb-2">
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-semibold">{t('worker.price', 'Price')}:</span>{' '}
+                                  <span className="line-through text-red-500">
+                                    {formatCurrency(adj.changes.price.old)}
+                                  </span>{' '}
+                                  →{' '}
+                                  <span className="font-semibold text-green-600">
+                                    {formatCurrency(adj.changes.price.new)}
+                                  </span>
+                                </p>
+                              </div>
+                            )}
+                            
+                            {adj.financialImpact.earningDifference !== 0 && (
+                              <div className="mb-2">
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-semibold">{t('worker.yourEarning', 'Your Earning')}:</span>{' '}
+                                  <span className={adj.financialImpact.earningDifference < 0 ? 'text-red-600' : 'text-green-600'}>
+                                    {adj.financialImpact.earningDifference > 0 ? '+' : ''}
+                                    {formatCurrency(adj.financialImpact.earningDifference)}
+                                  </span>
+                                </p>
+                              </div>
+                            )}
+                            
+                            <div className="mt-2 p-2 bg-gray-50 rounded">
+                              <p className="text-xs text-gray-500 mb-1">
+                                <span className="font-semibold">{t('worker.reason', 'Reason')}:</span>
+                              </p>
+                              <p className="text-sm text-gray-700">{adj.reason}</p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {t('worker.adjustedBy', 'Adjusted by')}: {adj.adjustedBy?.name || t('worker.owner', 'Owner')}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
           )}

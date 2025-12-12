@@ -8,7 +8,12 @@ const {
   getWorkerPendingAppointments,
   getWorkerActiveAppointments,
   reassignAppointment,
-  createWalkInAppointment
+  createWalkInAppointment,
+  editWalkInAppointment,
+  deleteWalkInAppointment,
+  editWalkInAppointmentOwner,
+  voidWalkInAppointment,
+  getWorkerAdjustments
 } = require('../controllers/appointmentManagementController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -38,6 +43,17 @@ router.put('/:id/complete', protect, authorize('Worker'), completeAppointment);
 
 // Reassign - Only Owner
 router.put('/:id/reassign', protect, authorize('Owner'), reassignAppointment);
+
+// Walk-in corrections - Worker quick fix (15 min limit)
+router.put('/walk-in/:id/edit', protect, authorize('Worker'), editWalkInAppointment);
+router.delete('/walk-in/:id', protect, authorize('Worker'), deleteWalkInAppointment);
+
+// Walk-in corrections - Owner override (no time limit)
+router.put('/walk-in/:id/edit-owner', protect, authorize('Owner'), editWalkInAppointmentOwner);
+router.delete('/walk-in/:id/void', protect, authorize('Owner'), voidWalkInAppointment);
+
+// Worker adjustment history
+router.get('/adjustments', protect, authorize('Worker'), getWorkerAdjustments);
 
 module.exports = router;
 

@@ -48,5 +48,41 @@ export const appointmentManagementService = {
     const response = await api.post('/appointment-management/walk-in', appointmentData)
     // API interceptor already unwraps response.data, so response IS the data
     return response
+  },
+
+  // Worker quick fix: Edit walk-in appointment (within 15 minutes)
+  editWalkInAppointment: async (appointmentId, appointmentData) => {
+    const response = await api.put(`/appointment-management/walk-in/${appointmentId}/edit`, appointmentData)
+    return response.data
+  },
+
+  // Worker quick fix: Delete walk-in appointment (within 15 minutes)
+  deleteWalkInAppointment: async (appointmentId) => {
+    const response = await api.delete(`/appointment-management/walk-in/${appointmentId}`)
+    return response.data
+  },
+
+  // Owner override: Edit walk-in appointment (no time limit)
+  editWalkInAppointmentOwner: async (appointmentId, appointmentData) => {
+    const response = await api.put(`/appointment-management/walk-in/${appointmentId}/edit-owner`, appointmentData)
+    return response.data
+  },
+
+  // Owner override: Void walk-in appointment (no time limit)
+  voidWalkInAppointment: async (appointmentId, reason) => {
+    const response = await api.delete(`/appointment-management/walk-in/${appointmentId}/void`, {
+      data: { reason }
+    })
+    return response.data
+  },
+
+  // Get worker adjustment history
+  getWorkerAdjustments: async (startDate, endDate, limit = 50) => {
+    const params = new URLSearchParams()
+    if (startDate) params.append('startDate', startDate)
+    if (endDate) params.append('endDate', endDate)
+    params.append('limit', limit)
+    const response = await api.get(`/appointment-management/adjustments?${params}`)
+    return response.data?.data || []
   }
 }

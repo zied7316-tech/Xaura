@@ -1053,6 +1053,659 @@ const createWalkInAppointment = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Worker quick fix: Edit walk-in appointment (within 15 minutes)
+ * @route   PUT /api/appointment-management/walk-in/:id/edit
+ * @access  Private (Worker)
+ */
+const editWalkInAppointment = async (req, res, next) => {
+  try {
+    const { serviceId, price, paymentStatus, paymentMethod } = req.body;
+    const appointmentId = req.params.id;
+
+    // Find appointment
+    const appointment = await Appointment.findById(appointmentId)
+      .populate('serviceId', 'name price')
+      .populate('workerId', 'name paymentModel role worksAsWorker');
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+
+    // Verify it's a walk-in appointment
+    if (!appointment.isWalkIn) {
+      return res.status(400).json({
+        success: false,
+        message: 'This endpoint is only for walk-in appointments'
+      });
+    }
+
+    // Verify worker owns this appointment
+    const workerId = appointment.workerId._id || appointment.workerId;
+    if (workerId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to edit this appointment'
+      });
+    }
+
+    // Check 15-minute time limit
+    const appointmentAge = Date.now() - new Date(appointment.createdAt).getTime();
+    const fifteenMinutes = 15 * 60 * 1000;
+    if (appointmentAge > fifteenMinutes) {
+      return res.status(403).json({
+        success: false,
+        message: 'Edit time limit expired. Only appointments created within the last 15 minutes can be edited by workers. Please contact the owner for corrections.'
+      });
+    }
+
+    // Store old values for adjustment record
+    const oldPrice = appointment.finalPrice || appointment.servicePriceAtBooking;
+    const oldPaymentStatus = appointment.paymentStatus;
+    const oldPaymentMethod = appointment.paymentMethod;
+    const oldServiceId = appointment.serviceId._id || appointment.serviceId;
+
+    // Validate and convert new price
+    const newPrice = price !== undefined ? parseFloat(price) : oldPrice;
+    if (isNaN(newPrice) || newPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a valid positive number'
+      });
+    }
+
+    // Update appointment
+    if (serviceId) appointment.serviceId = serviceId;
+    appointment.finalPrice = newPrice;
+    appointment.servicePriceAtBooking = newPrice;
+    if (paymentStatus) appointment.paymentStatus = paymentStatus;
+    if (paymentMethod) appointment.paymentMethod = paymentMethod;
+    if (paymentStatus === 'paid') {
+      appointment.paidAmount = newPrice;
+      appointment.paidAt = new Date();
+    }
+
+    await appointment.save();
+
+    // Find and update WorkerEarning
+    const oldEarning = await WorkerEarning.findOne({ appointmentId: appointment._id });
+    if (oldEarning) {
+      const worker = appointment.workerId;
+      let newWorkerEarning = 0;
+      let commissionPercentage = 0;
+      const isOwner = worker.role === 'Owner' && worker.worksAsWorker;
+
+      // Recalculate earnings with new price
+      if (isOwner) {
+        if (worker.paymentModel && worker.paymentModel.type) {
+          if (worker.paymentModel.type === 'percentage_commission') {
+            commissionPercentage = worker.paymentModel.commissionPercentage || 100;
+            newWorkerEarning = (newPrice * commissionPercentage) / 100;
+          } else if (worker.paymentModel.type === 'hybrid') {
+            commissionPercentage = worker.paymentModel.commissionPercentage || 100;
+            newWorkerEarning = (newPrice * commissionPercentage) / 100;
+          } else {
+            commissionPercentage = 100;
+            newWorkerEarning = newPrice;
+          }
+        } else {
+          commissionPercentage = 100;
+          newWorkerEarning = newPrice;
+        }
+      } else {
+        if (worker.paymentModel && worker.paymentModel.type) {
+          if (worker.paymentModel.type === 'percentage_commission') {
+            commissionPercentage = worker.paymentModel.commissionPercentage || 50;
+            newWorkerEarning = (newPrice * commissionPercentage) / 100;
+          } else if (worker.paymentModel.type === 'hybrid') {
+            commissionPercentage = worker.paymentModel.commissionPercentage || 30;
+            newWorkerEarning = (newPrice * commissionPercentage) / 100;
+          }
+        } else {
+          commissionPercentage = 50;
+          newWorkerEarning = (newPrice * 50) / 100;
+        }
+      }
+
+      // Update earning record
+      const earningDifference = newWorkerEarning - oldEarning.workerEarning;
+      oldEarning.servicePrice = newPrice;
+      oldEarning.workerEarning = newWorkerEarning;
+      oldEarning.commissionPercentage = commissionPercentage;
+      await oldEarning.save();
+
+      // Update wallet balance
+      const wallet = await WorkerWallet.findOne({ workerId: workerId });
+      if (wallet) {
+        wallet.balance += earningDifference; // Adjust balance by difference
+        wallet.totalEarned += (newPrice - oldPrice); // Adjust total earned
+        await wallet.save();
+      }
+
+      // Update Payment if exists
+      const payment = await Payment.findOne({ appointmentId: appointment._id });
+      if (payment) {
+        const paymentDifference = newPrice - payment.amount;
+        payment.amount = newPrice;
+        payment.workerCommission.amount = newWorkerEarning;
+        payment.salonRevenue = newPrice - newWorkerEarning;
+        await payment.save();
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Walk-in appointment updated successfully',
+      data: appointment
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Worker quick fix: Delete walk-in appointment (within 15 minutes)
+ * @route   DELETE /api/appointment-management/walk-in/:id
+ * @access  Private (Worker)
+ */
+const deleteWalkInAppointment = async (req, res, next) => {
+  try {
+    const appointmentId = req.params.id;
+
+    // Find appointment
+    const appointment = await Appointment.findById(appointmentId)
+      .populate('workerId', 'name paymentModel role worksAsWorker');
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+
+    // Verify it's a walk-in appointment
+    if (!appointment.isWalkIn) {
+      return res.status(400).json({
+        success: false,
+        message: 'This endpoint is only for walk-in appointments'
+      });
+    }
+
+    // Verify worker owns this appointment
+    const workerId = appointment.workerId._id || appointment.workerId;
+    if (workerId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this appointment'
+      });
+    }
+
+    // Check 15-minute time limit
+    const appointmentAge = Date.now() - new Date(appointment.createdAt).getTime();
+    const fifteenMinutes = 15 * 60 * 1000;
+    if (appointmentAge > fifteenMinutes) {
+      return res.status(403).json({
+        success: false,
+        message: 'Delete time limit expired. Only appointments created within the last 15 minutes can be deleted by workers. Please contact the owner for corrections.'
+      });
+    }
+
+    // Reverse financial records
+    const earning = await WorkerEarning.findOne({ appointmentId: appointment._id });
+    if (earning) {
+      // Reverse wallet balance
+      const wallet = await WorkerWallet.findOne({ workerId: workerId });
+      if (wallet) {
+        wallet.balance -= earning.workerEarning;
+        wallet.totalEarned -= earning.servicePrice;
+        await wallet.save();
+      }
+
+      // Delete earning
+      await WorkerEarning.findByIdAndDelete(earning._id);
+    }
+
+    // Reverse payment if exists
+    const payment = await Payment.findOne({ appointmentId: appointment._id });
+    if (payment) {
+      // Mark as refunded instead of deleting (for audit trail)
+      payment.status = 'refunded';
+      payment.refundedAt = new Date();
+      payment.refundReason = 'Walk-in appointment deleted by worker';
+      await payment.save();
+    }
+
+    // Delete appointment
+    await Appointment.findByIdAndDelete(appointmentId);
+
+    res.json({
+      success: true,
+      message: 'Walk-in appointment deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Owner override: Edit walk-in appointment (no time limit)
+ * @route   PUT /api/appointment-management/walk-in/:id/edit-owner
+ * @access  Private (Owner)
+ */
+const editWalkInAppointmentOwner = async (req, res, next) => {
+  try {
+    const { serviceId, price, paymentStatus, paymentMethod, reason } = req.body;
+    const appointmentId = req.params.id;
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reason is required for owner adjustments'
+      });
+    }
+
+    // Find appointment
+    const appointment = await Appointment.findById(appointmentId)
+      .populate('serviceId', 'name price')
+      .populate('workerId', 'name paymentModel role worksAsWorker')
+      .populate('salonId', 'ownerId');
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+
+    // Verify it's a walk-in appointment
+    if (!appointment.isWalkIn) {
+      return res.status(400).json({
+        success: false,
+        message: 'This endpoint is only for walk-in appointments'
+      });
+    }
+
+    // Verify owner owns the salon
+    const salonOwnerId = appointment.salonId.ownerId || appointment.salonId.ownerId;
+    if (salonOwnerId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to edit this appointment'
+      });
+    }
+
+    // Store old values
+    const oldPrice = appointment.finalPrice || appointment.servicePriceAtBooking;
+    const oldPaymentStatus = appointment.paymentStatus;
+    const oldPaymentMethod = appointment.paymentMethod;
+    const oldServiceId = appointment.serviceId._id || appointment.serviceId;
+    const workerId = appointment.workerId._id || appointment.workerId;
+
+    // Validate and convert new price
+    const newPrice = price !== undefined ? parseFloat(price) : oldPrice;
+    if (isNaN(newPrice) || newPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a valid positive number'
+      });
+    }
+
+    // Find old earning and payment records
+    const oldEarning = await WorkerEarning.findOne({ appointmentId: appointment._id });
+    const oldPayment = await Payment.findOne({ appointmentId: appointment._id });
+    const oldWorkerEarning = oldEarning ? oldEarning.workerEarning : 0;
+    const oldPaymentAmount = oldPayment ? oldPayment.amount : 0;
+
+    // Update appointment
+    if (serviceId) appointment.serviceId = serviceId;
+    appointment.finalPrice = newPrice;
+    appointment.servicePriceAtBooking = newPrice;
+    if (paymentStatus) appointment.paymentStatus = paymentStatus;
+    if (paymentMethod) appointment.paymentMethod = paymentMethod;
+    if (paymentStatus === 'paid') {
+      appointment.paidAmount = newPrice;
+      appointment.paidAt = new Date();
+    }
+
+    await appointment.save();
+
+    // Recalculate and update WorkerEarning
+    let newWorkerEarning = 0;
+    let commissionPercentage = 0;
+    const worker = appointment.workerId;
+    const isOwner = worker.role === 'Owner' && worker.worksAsWorker;
+
+    if (isOwner) {
+      if (worker.paymentModel && worker.paymentModel.type) {
+        if (worker.paymentModel.type === 'percentage_commission') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 100;
+          newWorkerEarning = (newPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'hybrid') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 100;
+          newWorkerEarning = (newPrice * commissionPercentage) / 100;
+        } else {
+          commissionPercentage = 100;
+          newWorkerEarning = newPrice;
+        }
+      } else {
+        commissionPercentage = 100;
+        newWorkerEarning = newPrice;
+      }
+    } else {
+      if (worker.paymentModel && worker.paymentModel.type) {
+        if (worker.paymentModel.type === 'percentage_commission') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 50;
+          newWorkerEarning = (newPrice * commissionPercentage) / 100;
+        } else if (worker.paymentModel.type === 'hybrid') {
+          commissionPercentage = worker.paymentModel.commissionPercentage || 30;
+          newWorkerEarning = (newPrice * commissionPercentage) / 100;
+        }
+      } else {
+        commissionPercentage = 50;
+        newWorkerEarning = (newPrice * 50) / 100;
+      }
+    }
+
+    // Update or create earning record
+    let newEarning;
+    if (oldEarning) {
+      oldEarning.servicePrice = newPrice;
+      oldEarning.workerEarning = newWorkerEarning;
+      oldEarning.commissionPercentage = commissionPercentage;
+      await oldEarning.save();
+      newEarning = oldEarning;
+    } else {
+      newEarning = await WorkerEarning.create({
+        workerId: workerId,
+        salonId: appointment.salonId,
+        appointmentId: appointment._id,
+        serviceId: appointment.serviceId,
+        servicePrice: newPrice,
+        commissionPercentage,
+        workerEarning: newWorkerEarning,
+        paymentModelType: worker.paymentModel?.type || 'percentage_commission',
+        isPaid: paymentStatus === 'paid',
+        serviceDate: appointment.dateTime
+      });
+    }
+
+    // Update wallet balance
+    const earningDifference = newWorkerEarning - oldWorkerEarning;
+    const wallet = await WorkerWallet.findOne({ workerId: workerId });
+    if (wallet) {
+      wallet.balance += earningDifference;
+      wallet.totalEarned += (newPrice - oldPrice);
+      await wallet.save();
+    }
+
+    // Update or create Payment
+    let newPayment;
+    if (oldPayment) {
+      const paymentDifference = newPrice - oldPaymentAmount;
+      oldPayment.amount = newPrice;
+      oldPayment.workerCommission.amount = newWorkerEarning;
+      oldPayment.salonRevenue = newPrice - newWorkerEarning;
+      if (paymentStatus) oldPayment.status = paymentStatus === 'paid' ? 'completed' : 'pending';
+      await oldPayment.save();
+      newPayment = oldPayment;
+    } else if (paymentStatus === 'paid') {
+      newPayment = await Payment.create({
+        salonId: appointment.salonId,
+        appointmentId: appointment._id,
+        clientId: null,
+        workerId: workerId,
+        amount: newPrice,
+        paymentMethod: paymentMethod || 'cash',
+        status: 'completed',
+        paidAt: new Date(),
+        workerCommission: {
+          percentage: commissionPercentage,
+          amount: newWorkerEarning
+        },
+        salonRevenue: newPrice - newWorkerEarning,
+        notes: `Walk-in payment for ${appointment.serviceId.name || 'service'}`
+      });
+    }
+
+    // Create adjustment record
+    const AppointmentAdjustment = require('../models/AppointmentAdjustment');
+    const adjustment = await AppointmentAdjustment.create({
+      appointmentId: appointment._id,
+      workerId: workerId,
+      salonId: appointment.salonId,
+      adjustedBy: req.user.id,
+      adjustmentType: 'edit',
+      reason: reason.trim(),
+      changes: {
+        serviceId: { old: oldServiceId, new: serviceId || oldServiceId },
+        price: { old: oldPrice, new: newPrice },
+        paymentStatus: { old: oldPaymentStatus, new: paymentStatus || oldPaymentStatus },
+        paymentMethod: { old: oldPaymentMethod, new: paymentMethod || oldPaymentMethod }
+      },
+      financialImpact: {
+        oldWorkerEarning: oldWorkerEarning,
+        newWorkerEarning: newWorkerEarning,
+        earningDifference: earningDifference,
+        oldPaymentAmount: oldPaymentAmount,
+        newPaymentAmount: newPrice,
+        paymentDifference: newPrice - oldPaymentAmount
+      },
+      originalEarningId: oldEarning ? oldEarning._id : null,
+      newEarningId: newEarning._id,
+      originalPaymentId: oldPayment ? oldPayment._id : null,
+      newPaymentId: newPayment ? newPayment._id : null
+    });
+
+    // Notify worker
+    const notification = await createNotification({
+      userId: workerId,
+      salonId: appointment.salonId,
+      type: 'appointment_adjusted',
+      title: 'Appointment Price Adjusted',
+      message: `Your walk-in appointment price was adjusted by owner. New price: ${newPrice} TND (was ${oldPrice} TND). Reason: ${reason}`,
+      relatedAppointment: appointment._id,
+      priority: 'high',
+      data: {
+        adjustmentId: adjustment._id,
+        adjustmentType: 'edit',
+        oldPrice: oldPrice,
+        newPrice: newPrice,
+        reason: reason
+      }
+    });
+
+    adjustment.notificationId = notification._id;
+    adjustment.notificationSent = true;
+    await adjustment.save();
+
+    res.json({
+      success: true,
+      message: 'Walk-in appointment updated successfully',
+      data: appointment
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Owner override: Void walk-in appointment (no time limit)
+ * @route   DELETE /api/appointment-management/walk-in/:id/void
+ * @access  Private (Owner)
+ */
+const voidWalkInAppointment = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const appointmentId = req.params.id;
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reason is required for voiding appointments'
+      });
+    }
+
+    // Find appointment
+    const appointment = await Appointment.findById(appointmentId)
+      .populate('workerId', 'name paymentModel role worksAsWorker')
+      .populate('salonId', 'ownerId');
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+
+    // Verify it's a walk-in appointment
+    if (!appointment.isWalkIn) {
+      return res.status(400).json({
+        success: false,
+        message: 'This endpoint is only for walk-in appointments'
+      });
+    }
+
+    // Verify owner owns the salon
+    const salonOwnerId = appointment.salonId.ownerId || appointment.salonId.ownerId;
+    if (salonOwnerId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to void this appointment'
+      });
+    }
+
+    const workerId = appointment.workerId._id || appointment.workerId;
+    const oldPrice = appointment.finalPrice || appointment.servicePriceAtBooking;
+
+    // Find old records
+    const oldEarning = await WorkerEarning.findOne({ appointmentId: appointment._id });
+    const oldPayment = await Payment.findOne({ appointmentId: appointment._id });
+    const oldWorkerEarning = oldEarning ? oldEarning.workerEarning : 0;
+    const oldPaymentAmount = oldPayment ? oldPayment.amount : 0;
+
+    // Reverse financial records
+    if (oldEarning) {
+      // Reverse wallet balance
+      const wallet = await WorkerWallet.findOne({ workerId: workerId });
+      if (wallet) {
+        wallet.balance -= oldWorkerEarning;
+        wallet.totalEarned -= oldEarning.servicePrice;
+        await wallet.save();
+      }
+
+      // Mark earning as voided (soft delete for audit)
+      oldEarning.isPaid = false;
+      await oldEarning.save();
+    }
+
+    // Mark payment as refunded
+    if (oldPayment) {
+      oldPayment.status = 'refunded';
+      oldPayment.refundedAt = new Date();
+      oldPayment.refundReason = `Walk-in appointment voided: ${reason}`;
+      await oldPayment.save();
+    }
+
+    // Mark appointment as voided (soft delete)
+    appointment.status = 'Cancelled';
+    appointment.notes = (appointment.notes || '') + `\n[VOIDED] ${reason} - Voided by owner at ${new Date().toISOString()}`;
+    await appointment.save();
+
+    // Create adjustment record
+    const AppointmentAdjustment = require('../models/AppointmentAdjustment');
+    const adjustment = await AppointmentAdjustment.create({
+      appointmentId: appointment._id,
+      workerId: workerId,
+      salonId: appointment.salonId,
+      adjustedBy: req.user.id,
+      adjustmentType: 'void',
+      reason: reason.trim(),
+      changes: {
+        price: { old: oldPrice, new: 0 }
+      },
+      financialImpact: {
+        oldWorkerEarning: oldWorkerEarning,
+        newWorkerEarning: 0,
+        earningDifference: -oldWorkerEarning,
+        oldPaymentAmount: oldPaymentAmount,
+        newPaymentAmount: 0,
+        paymentDifference: -oldPaymentAmount
+      },
+      originalEarningId: oldEarning ? oldEarning._id : null,
+      originalPaymentId: oldPayment ? oldPayment._id : null
+    });
+
+    // Notify worker
+    const notification = await createNotification({
+      userId: workerId,
+      salonId: appointment.salonId,
+      type: 'appointment_adjusted',
+      title: 'Appointment Voided',
+      message: `Your walk-in appointment (${oldPrice} TND) was voided by owner. Reason: ${reason}`,
+      relatedAppointment: appointment._id,
+      priority: 'high',
+      data: {
+        adjustmentId: adjustment._id,
+        adjustmentType: 'void',
+        oldPrice: oldPrice,
+        reason: reason
+      }
+    });
+
+    adjustment.notificationId = notification._id;
+    adjustment.notificationSent = true;
+    await adjustment.save();
+
+    res.json({
+      success: true,
+      message: 'Walk-in appointment voided successfully',
+      data: appointment
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get adjustment history for worker's appointments
+ * @route   GET /api/appointment-management/adjustments
+ * @access  Private (Worker)
+ */
+const getWorkerAdjustments = async (req, res, next) => {
+  try {
+    const AppointmentAdjustment = require('../models/AppointmentAdjustment');
+    const { startDate, endDate, limit = 50 } = req.query;
+    
+    const query = { workerId: req.user.id };
+    
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    
+    const adjustments = await AppointmentAdjustment.find(query)
+      .populate('appointmentId', 'dateTime clientName serviceId isWalkIn')
+      .populate('adjustedBy', 'name email')
+      .populate('originalEarningId', 'servicePrice workerEarning')
+      .populate('newEarningId', 'servicePrice workerEarning')
+      .populate('changes.serviceId.old', 'name')
+      .populate('changes.serviceId.new', 'name')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: adjustments
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   acceptAppointment,
   rejectAppointment,
@@ -1061,6 +1714,11 @@ module.exports = {
   getWorkerPendingAppointments,
   getWorkerActiveAppointments,
   reassignAppointment,
-  createWalkInAppointment
+  createWalkInAppointment,
+  editWalkInAppointment,
+  deleteWalkInAppointment,
+  editWalkInAppointmentOwner,
+  voidWalkInAppointment,
+  getWorkerAdjustments
 };
 

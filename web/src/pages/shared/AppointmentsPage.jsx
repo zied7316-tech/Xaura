@@ -12,7 +12,7 @@ import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
 import Modal from '../../components/ui/Modal'
 import ReviewModal from '../../components/reviews/ReviewModal'
-import { Calendar, Clock, User, Store, Phone, Mail, Check, X, RefreshCw, Star, MessageSquare } from 'lucide-react'
+import { Calendar, Clock, User, Store, Phone, Mail, Check, X, RefreshCw, Star, MessageSquare, Edit, Trash2 } from 'lucide-react'
 import { formatDate, formatTime, formatCurrency } from '../../utils/helpers'
 import { celebrateSuccess } from '../../utils/confetti'
 import toast from 'react-hot-toast'
@@ -36,6 +36,10 @@ const AppointmentsPage = () => {
   const [messagingWorker, setMessagingWorker] = useState(null)
   const [workersWithAvailability, setWorkersWithAvailability] = useState([])
   const [loadingAvailability, setLoadingAvailability] = useState(false)
+  const [showEditWalkInModal, setShowEditWalkInModal] = useState(false)
+  const [showVoidWalkInModal, setShowVoidWalkInModal] = useState(false)
+  const [editWalkInForm, setEditWalkInForm] = useState({ price: '', paymentStatus: 'paid', paymentMethod: 'cash', reason: '' })
+  const [voidReason, setVoidReason] = useState('')
 
   useEffect(() => {
     loadAppointments()
@@ -153,6 +157,71 @@ const AppointmentsPage = () => {
       loadAppointments()
     } catch (error) {
       toast.error(error.message || 'Failed to cancel appointment')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const handleOpenEditWalkIn = (appointment) => {
+    setSelectedAppointment(appointment)
+    setEditWalkInForm({
+      price: appointment.finalPrice || appointment.servicePriceAtBooking || '',
+      paymentStatus: appointment.paymentStatus || 'paid',
+      paymentMethod: appointment.paymentMethod || 'cash',
+      reason: ''
+    })
+    setShowEditWalkInModal(true)
+  }
+
+  const handleOpenVoidWalkIn = (appointment) => {
+    setSelectedAppointment(appointment)
+    setVoidReason('')
+    setShowVoidWalkInModal(true)
+  }
+
+  const handleEditWalkIn = async () => {
+    if (!editWalkInForm.reason || editWalkInForm.reason.trim().length === 0) {
+      toast.error('Reason is required')
+      return
+    }
+    if (!editWalkInForm.price || parseFloat(editWalkInForm.price) <= 0) {
+      toast.error('Price must be a valid positive number')
+      return
+    }
+
+    setProcessing(true)
+    try {
+      await appointmentManagementService.editWalkInAppointmentOwner(selectedAppointment._id, editWalkInForm)
+      toast.success('Walk-in appointment updated successfully')
+      setShowEditWalkInModal(false)
+      setEditWalkInForm({ price: '', paymentStatus: 'paid', paymentMethod: 'cash', reason: '' })
+      loadAppointments()
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Failed to update appointment')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const handleVoidWalkIn = async () => {
+    if (!voidReason || voidReason.trim().length === 0) {
+      toast.error('Reason is required')
+      return
+    }
+
+    if (!confirm('⚠️ WARNING: This will void the appointment and reverse all financial records. This action cannot be undone. Are you sure?')) {
+      return
+    }
+
+    setProcessing(true)
+    try {
+      await appointmentManagementService.voidWalkInAppointment(selectedAppointment._id, voidReason)
+      toast.success('Walk-in appointment voided successfully')
+      setShowVoidWalkInModal(false)
+      setVoidReason('')
+      loadAppointments()
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Failed to void appointment')
     } finally {
       setProcessing(false)
     }
@@ -776,6 +845,11 @@ const AppointmentsPage = () => {
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">{formatCurrency(apt.servicePriceAtBooking)}</p>
                       {getStatusBadge(apt.status)}
+                      {apt.isWalkIn && (
+                        <div className="mt-1 px-2 py-0.5 bg-blue-100 border border-blue-300 rounded-md inline-block">
+                          <p className="text-xs text-blue-700 font-semibold">🚶 Walk-in</p>
+                        </div>
+                      )}
                       {isClient && apt.status === 'Completed' && (
                         <Button
                           size="sm"
@@ -786,6 +860,30 @@ const AppointmentsPage = () => {
                           <Star size={14} />
                           Leave Review
                         </Button>
+                      )}
+                      {isOwner && apt.isWalkIn && apt.status === 'Completed' && (
+                        <div className="mt-2 space-y-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenEditWalkIn(apt)}
+                            disabled={processing}
+                            className="w-full text-blue-600 border-blue-300 hover:bg-blue-50"
+                          >
+                            <Edit size={14} />
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenVoidWalkIn(apt)}
+                            disabled={processing}
+                            className="w-full text-red-600 border-red-300 hover:bg-red-50"
+                          >
+                            <Trash2 size={14} />
+                            Void
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -985,6 +1083,192 @@ const AppointmentsPage = () => {
         appointment={selectedAppointment}
         onReviewSubmitted={handleReviewSubmitted}
       />
+
+      {/* Edit Walk-in Modal */}
+      <Modal
+        isOpen={showEditWalkInModal}
+        onClose={() => {
+          setShowEditWalkInModal(false)
+          setSelectedAppointment(null)
+          setEditWalkInForm({ price: '', paymentStatus: 'paid', paymentMethod: 'cash', reason: '' })
+        }}
+        title="Edit Walk-in Appointment"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-gray-600">Service: <span className="font-semibold text-gray-900">
+              {selectedAppointment?.serviceId?.name || 'Service'}
+            </span></p>
+            <p className="text-sm text-gray-600 mt-1">Worker: <span className="font-semibold text-gray-900">
+              {selectedAppointment?.workerId?.name || 'Worker'}
+            </span></p>
+            <p className="text-sm text-gray-600 mt-1">Date: <span className="font-semibold text-gray-900">
+              {selectedAppointment?.dateTime ? formatDate(selectedAppointment.dateTime) : ''}
+            </span></p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Price *
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className="input w-full"
+              value={editWalkInForm.price}
+              onChange={(e) => setEditWalkInForm({ ...editWalkInForm, price: e.target.value })}
+              placeholder="Enter price"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Payment Status
+            </label>
+            <select
+              className="input w-full"
+              value={editWalkInForm.paymentStatus}
+              onChange={(e) => setEditWalkInForm({ ...editWalkInForm, paymentStatus: e.target.value })}
+            >
+              <option value="paid">Paid</option>
+              <option value="waiting">Waiting Payment</option>
+            </select>
+          </div>
+
+          {editWalkInForm.paymentStatus === 'paid' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Method
+              </label>
+              <select
+                className="input w-full"
+                value={editWalkInForm.paymentMethod}
+                onChange={(e) => setEditWalkInForm({ ...editWalkInForm, paymentMethod: e.target.value })}
+              >
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reason for Adjustment *
+            </label>
+            <textarea
+              className="input w-full"
+              rows="3"
+              value={editWalkInForm.reason}
+              onChange={(e) => setEditWalkInForm({ ...editWalkInForm, reason: e.target.value })}
+              placeholder="Explain why you're adjusting this appointment..."
+            />
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            ⚠️ This will update the appointment and recalculate worker earnings. The worker will be notified of this change.
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              onClick={handleEditWalkIn}
+              disabled={processing || !editWalkInForm.reason || !editWalkInForm.price}
+              loading={processing}
+              className="flex-1"
+            >
+              <Edit size={16} />
+              Update Appointment
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEditWalkInModal(false)
+                setEditWalkInForm({ price: '', paymentStatus: 'paid', paymentMethod: 'cash', reason: '' })
+              }}
+              disabled={processing}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Void Walk-in Modal */}
+      <Modal
+        isOpen={showVoidWalkInModal}
+        onClose={() => {
+          setShowVoidWalkInModal(false)
+          setSelectedAppointment(null)
+          setVoidReason('')
+        }}
+        title="Void Walk-in Appointment"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+            <p className="text-sm font-semibold text-red-800 mb-2">⚠️ Warning: This action cannot be undone!</p>
+            <p className="text-sm text-red-700">
+              Voiding this appointment will:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Reverse all worker earnings</li>
+                <li>Mark payment as refunded</li>
+                <li>Update worker wallet balance</li>
+                <li>Cancel the appointment</li>
+              </ul>
+            </p>
+          </div>
+
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">Service: <span className="font-semibold text-gray-900">
+              {selectedAppointment?.serviceId?.name || 'Service'}
+            </span></p>
+            <p className="text-sm text-gray-600 mt-1">Worker: <span className="font-semibold text-gray-900">
+              {selectedAppointment?.workerId?.name || 'Worker'}
+            </span></p>
+            <p className="text-sm text-gray-600 mt-1">Price: <span className="font-semibold text-gray-900">
+              {selectedAppointment ? formatCurrency(selectedAppointment.finalPrice || selectedAppointment.servicePriceAtBooking) : ''}
+            </span></p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reason for Voiding *
+            </label>
+            <textarea
+              className="input w-full"
+              rows="3"
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="Explain why you're voiding this appointment..."
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              onClick={handleVoidWalkIn}
+              disabled={processing || !voidReason}
+              loading={processing}
+              className="flex-1 bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 size={16} />
+              Void Appointment
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowVoidWalkInModal(false)
+                setVoidReason('')
+              }}
+              disabled={processing}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

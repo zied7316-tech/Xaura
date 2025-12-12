@@ -141,6 +141,19 @@ export const workerFinanceService = {
       : `${API_URL}/worker-finance/advances`
     const response = await axios.get(url, getAuthHeader())
     return response.data.data
+  },
+
+  // Get adjustment history for worker's appointments
+  getAdjustmentHistory: async (startDate, endDate, limit = 50) => {
+    const params = new URLSearchParams()
+    if (startDate) params.append('startDate', startDate)
+    if (endDate) params.append('endDate', endDate)
+    params.append('limit', limit)
+    const response = await axios.get(
+      `${API_URL}/appointment-management/adjustments?${params}`,
+      getAuthHeader()
+    )
+    return response.data?.data || []
   }
 }
 
