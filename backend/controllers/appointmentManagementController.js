@@ -343,6 +343,11 @@ const completeAppointment = async (req, res, next) => {
         } else if (worker.paymentModel.type === 'hybrid') {
           commissionPercentage = worker.paymentModel.commissionPercentage || 30;
           workerEarning = (actualPrice * commissionPercentage) / 100;
+        } else {
+          // Fallback for fixed_salary or other payment model types
+          // For fixed_salary, workers don't get per-appointment commission, but we default to 50% for consistency
+          commissionPercentage = 50;
+          workerEarning = (actualPrice * 50) / 100;
         }
       } else {
         // Default: 50% commission if no payment model set
@@ -863,6 +868,11 @@ const createWalkInAppointment = async (req, res, next) => {
         } else if (worker.paymentModel.type === 'hybrid') {
           commissionPercentage = worker.paymentModel.commissionPercentage || 30;
           workerEarning = (numericPrice * commissionPercentage) / 100;
+        } else {
+          // Fallback for fixed_salary or other payment model types
+          // For fixed_salary, workers don't get per-appointment commission, but we default to 50% for consistency
+          commissionPercentage = 50;
+          workerEarning = (numericPrice * 50) / 100;
         }
       } else {
         commissionPercentage = 50;
