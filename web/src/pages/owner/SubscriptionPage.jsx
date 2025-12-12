@@ -33,7 +33,7 @@ import {
   Settings,
   Infinity
 } from 'lucide-react'
-import { formatCurrency } from '../../utils/helpers'
+import { formatCurrency, formatDate } from '../../utils/helpers'
 import Badge, { StatusBadge } from '../../components/ui/Badge'
 
 const SubscriptionPage = () => {
@@ -313,6 +313,21 @@ const SubscriptionPage = () => {
                         : (subscription.monthlyFee || subscription.price || currentPlan.price || 0)
                     )} / {subscription.billingInterval === 'year' ? 'year' : 'month'}
                   </p>
+                  {subscription.currentPeriodEnd && (
+                    <p className="text-gray-500 text-xs mt-1">
+                      Plan ends: {formatDate(subscription.currentPeriodEnd)}
+                      {(() => {
+                        const now = new Date();
+                        const endDate = new Date(subscription.currentPeriodEnd);
+                        const diff = endDate - now;
+                        const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                        if (daysRemaining > 0) {
+                          return ` (${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining)`;
+                        }
+                        return ' (Expired)';
+                      })()}
+                    </p>
+                  )}
                   <p className="text-gray-500 text-xs mt-1">{currentPlan.description}</p>
                 </div>
                 <StatusBadge status={subscription.status} />

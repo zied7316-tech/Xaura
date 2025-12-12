@@ -122,11 +122,28 @@ const OwnerDashboard = () => {
                       )}
                     </p>
                   ) : subscription.plan ? (
-                    <p className="text-sm text-gray-600 mt-1">
-                      {subscription.billingInterval === 'year' 
-                        ? `${t('owner.annualBilling', 'Annual billing')} • ${formatCurrency(subscription.price || 0)}/year`
-                        : `${t('owner.monthlyBilling', 'Monthly billing')} • ${formatCurrency(subscription.monthlyFee || subscription.price || 0)}/month`}
-                    </p>
+                    <div className="text-sm text-gray-600 mt-1">
+                      <p>
+                        {subscription.billingInterval === 'year' 
+                          ? `${t('owner.annualBilling', 'Annual billing')} • ${formatCurrency(subscription.price || 0)}/year`
+                          : `${t('owner.monthlyBilling', 'Monthly billing')} • ${formatCurrency(subscription.monthlyFee || subscription.price || 0)}/month`}
+                      </p>
+                      {subscription.currentPeriodEnd && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {t('owner.planEnds', 'Plan ends')}: {formatDate(subscription.currentPeriodEnd)}
+                          {(() => {
+                            const now = new Date();
+                            const endDate = new Date(subscription.currentPeriodEnd);
+                            const diff = endDate - now;
+                            const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                            if (daysRemaining > 0) {
+                              return ` (${daysRemaining} ${daysRemaining === 1 ? t('owner.day', 'day') : t('owner.days', 'days')} ${t('owner.remaining', 'remaining')})`;
+                            }
+                            return ` (${t('owner.expired', 'Expired')})`;
+                          })()}
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-sm text-red-600 mt-1">
                       {t('owner.choosePlanToContinue', 'Please choose a plan to continue')}
