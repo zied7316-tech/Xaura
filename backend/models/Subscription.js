@@ -19,9 +19,9 @@ const subscriptionSchema = new mongoose.Schema({
     default: null, // No default - must choose a plan after trial
     validate: {
       validator: function(v) {
-        return v === null || v === undefined || ['basic', 'pro', 'enterprise'].includes(v)
+        return v === null || v === undefined || ['solo_basic', 'solo_pro', 'basic', 'pro', 'enterprise'].includes(v)
       },
-      message: 'Plan must be null or one of: basic, pro, enterprise'
+      message: 'Plan must be null or one of: solo_basic, solo_pro, basic, pro, enterprise'
     }
   },
   // Pricing (in Tunisian Dinar - TND)
@@ -134,9 +134,9 @@ const subscriptionSchema = new mongoose.Schema({
     default: null,
     validate: {
       validator: function(v) {
-        return v === null || v === undefined || ['basic', 'pro', 'enterprise'].includes(v)
+        return v === null || v === undefined || ['solo_basic', 'solo_pro', 'basic', 'pro', 'enterprise'].includes(v)
       },
-      message: 'Requested plan must be null or one of: basic, pro, enterprise'
+      message: 'Requested plan must be null or one of: solo_basic, solo_pro, basic, pro, enterprise'
     }
   },
   requestedPlanPrice: {

@@ -16,6 +16,8 @@ import { formatDate, formatCurrency, formatDateTime } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const PLAN_PRICING = {
+  solo_basic: { label: 'أساسي فردي - Solo Basic', labelEn: 'Solo Basic', price: { month: 29, year: 278.4 }, color: 'green' },
+  solo_pro: { label: 'احترافي فردي - Solo Pro', labelEn: 'Solo Pro', price: { month: 59, year: 566.4 }, color: 'blue' },
   basic: { label: 'أساسي - Basic', labelEn: 'Basic', price: { month: 49, year: 470.4 }, color: 'green' },
   pro: { label: 'احترافي - Pro', labelEn: 'Pro', price: { month: 99, year: 950.4 }, color: 'blue' },
   enterprise: { label: 'مؤسسي - Enterprise', labelEn: 'Enterprise', price: { month: 299, year: 2870.4 }, color: 'purple' }

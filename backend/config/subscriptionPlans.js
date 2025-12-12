@@ -7,6 +7,154 @@
  */
 
 const SUBSCRIPTION_PLANS = {
+  // ========== SOLO ACCOUNT PLANS (Exclusive for solo operating mode) ==========
+  solo_basic: {
+    name: 'Solo Basic',
+    nameAr: 'أساسي فردي',
+    price: {
+      month: 29,
+      year: 278.4, // 29 * 12 * 0.8 (20% discount)
+    },
+    currency: 'TND',
+    interval: 'month',
+    features: {
+      // Solo-specific: No workers, no multi-location
+      maxLocations: 1,  // Fixed at 1, cannot add more
+      maxWorkers: 1,    // Only the owner themselves
+      
+      // Core Operations (same as regular Basic)
+      unlimitedAppointments: true,
+      unlimitedServices: true,
+      clientCRM: true,
+      calendarBooking: true,
+      qrCodeBooking: true,
+      basicDashboard: true,
+      
+      // Finance (NO worker features)
+      fullFinanceSystem: true,
+      revenueTracking: true,
+      cashCardTracking: true,
+      // REMOVED: workerCommissions, workerPayments
+      workerCommissions: false,
+      workerPayments: false,
+      
+      // Inventory
+      basicInventory: true,
+      manualAlerts: true,
+      
+      // Reporting
+      basicReports: true,
+      
+      // Notifications
+      inAppNotifications: true,
+      
+      // NOT Included (same as regular Basic)
+      loyaltyProgram: false,
+      adsManager: false,
+      advancedAnalytics: false,
+      aiInsights: false,
+      multiLocation: false,
+      pixelTracking: false,
+      prioritySupport: false,
+      whiteLabel: false,
+      pushNotifications: false,
+      emailNotifications: false,
+      apiAccess: false,
+      // Worker features explicitly disabled
+      workerPerformanceDashboard: false,
+      revenuePerWorker: false,
+      workerLeaderboard: false,
+    },
+    description: 'Perfect for solo barbers & individual professionals',
+    descriptionAr: 'مثالي للحلاقين الأفراد والمهنيين المستقلين',
+    exclusiveForSolo: true, // Flag to identify solo-only plans
+  },
+  
+  solo_pro: {
+    name: 'Solo Pro',
+    nameAr: 'احترافي فردي',
+    price: {
+      month: 59,
+      year: 566.4, // 59 * 12 * 0.8 (20% discount)
+    },
+    currency: 'TND',
+    interval: 'month',
+    features: {
+      // Solo-specific: No workers, no multi-location
+      maxLocations: 1,  // Fixed at 1, cannot add more
+      maxWorkers: 1,    // Only the owner themselves
+      
+      // Core Operations (same as regular Pro)
+      unlimitedAppointments: true,
+      unlimitedServices: true,
+      clientCRM: true,
+      calendarBooking: true,
+      qrCodeBooking: true,
+      basicDashboard: true,
+      fullFinanceSystem: true,
+      revenueTracking: true,
+      cashCardTracking: true,
+      basicInventory: true,
+      inAppNotifications: true,
+      
+      // Analytics (NO worker-specific analytics)
+      advancedAnalytics: true,
+      clientInsights: true,
+      heatmaps: true,
+      revenuePerService: true,
+      // REMOVED: workerPerformanceDashboard, revenuePerWorker
+      workerPerformanceDashboard: false,
+      revenuePerWorker: false,
+      
+      // Finance (upgraded, but NO worker features)
+      advancedFinanceBreakdown: true,
+      profitabilityIndicators: true,
+      // REMOVED: workerLeaderboard
+      workerLeaderboard: false,
+      workerCommissions: false,
+      workerPayments: false,
+      
+      // Inventory Pro
+      autoAlerts: true,
+      automaticCostCalculation: true,
+      productUsageInsights: true,
+      
+      // Loyalty
+      loyaltyProgram: true,
+      loyaltyProgramPro: true,
+      
+      // Ads Manager Basic
+      adsManager: true,
+      adsManagerBasic: true,
+      boostSuggestions: true,
+      basicCampaignTracking: true,
+      adPerformanceDashboard: true,
+      ctrCpcEstimation: true,
+      
+      // Notifications (upgraded)
+      pushNotifications: true,
+      emailNotifications: true,
+      
+      // WhatsApp Messages
+      maxWhatsAppMessages: 1500,
+      
+      // NOT Included
+      pixelTracking: false,
+      adsManagerPro: false,
+      apiAccess: false,
+      whiteLabel: false,
+      prioritySupport: false,
+      aiInsights: false,
+      multiLocation: false,
+      // Worker features explicitly disabled
+      workerPerformanceAI: false,
+    },
+    description: 'For solo professionals who want advanced analytics & marketing',
+    descriptionAr: 'للمهنيين الأفراد الذين يريدون تحليلات متقدمة وتسويق',
+    exclusiveForSolo: true,
+  },
+  
+  // ========== TEAM ACCOUNT PLANS (For team operating mode) ==========
   basic: {
     name: 'Basic',
     nameAr: 'أساسي',

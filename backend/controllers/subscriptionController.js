@@ -142,7 +142,8 @@ const updateSubscriptionPlan = async (req, res, next) => {
     const { logUserHistory } = require('../utils/userHistoryLogger');
 
     const subscription = await Subscription.findById(req.params.id)
-      .populate('ownerId', 'name role');
+      .populate('ownerId', 'name role')
+      .populate('salonId', 'operatingMode');
 
     if (!subscription) {
       return res.status(404).json({
@@ -151,8 +152,31 @@ const updateSubscriptionPlan = async (req, res, next) => {
       });
     }
 
+    // Validate plan based on salon operating mode
+    if (subscription.salonId && subscription.salonId.operatingMode === 'solo') {
+      if (plan !== 'solo_basic' && plan !== 'solo_pro') {
+        return res.status(400).json({
+          success: false,
+          message: 'Solo accounts can only have Solo plans. Change salon to Team mode first.'
+        });
+      }
+    }
+    
+    if (subscription.salonId && subscription.salonId.operatingMode === 'team') {
+      if (plan === 'solo_basic' || plan === 'solo_pro') {
+        return res.status(400).json({
+          success: false,
+          message: 'Solo plans are only for solo accounts. Change salon to Solo mode first.'
+        });
+      }
+    }
+
     const oldPlan = subscription.plan;
-    const isUpgrade = !oldPlan || (oldPlan && plan && ['basic', 'pro', 'enterprise'].indexOf(plan) > ['basic', 'pro', 'enterprise'].indexOf(oldPlan));
+    // Update isUpgrade logic to include solo plans
+    const teamPlans = ['basic', 'pro', 'enterprise'];
+    const soloPlans = ['solo_basic', 'solo_pro'];
+    const allPlans = [...soloPlans, ...teamPlans];
+    const isUpgrade = !oldPlan || (oldPlan && plan && allPlans.indexOf(plan) > allPlans.indexOf(oldPlan));
     
     subscription.plan = plan;
     
@@ -484,6 +508,30 @@ const requestPlanUpgrade = async (req, res, next) => {
 
     const { salonId } = ownerSalon;
 
+    // Check salon operating mode
+    const Salon = require('../models/Salon');
+    const salon = await Salon.findById(salonId).select('operatingMode');
+    
+    // Validate: Solo accounts can only choose Solo plans
+    if (salon && salon.operatingMode === 'solo') {
+      if (plan !== 'solo_basic' && plan !== 'solo_pro') {
+        return res.status(400).json({
+          success: false,
+          message: 'Solo accounts can only subscribe to Solo plans (Solo Basic or Solo Pro). To access team plans, please switch to Team mode in your salon settings.'
+        });
+      }
+    }
+    
+    // Validate: Team accounts cannot choose Solo plans
+    if (salon && salon.operatingMode === 'team') {
+      if (plan === 'solo_basic' || plan === 'solo_pro') {
+        return res.status(400).json({
+          success: false,
+          message: 'Solo plans are only available for solo accounts. Please switch to Solo mode in your salon settings to access these plans.'
+        });
+      }
+    }
+
     const interval = billingInterval || 'month';
     const planDetails = getPlanDetails(plan, interval);
     if (!planDetails) {
@@ -542,13 +590,37 @@ const requestPlanUpgrade = async (req, res, next) => {
  */
 const getAvailablePlans = async (req, res, next) => {
   try {
-    const plans = getAllPlans();
+    // Get owner's salon to check operating mode
+    const ownerSalon = await getOwnerSalon(req.user.id);
+    const Salon = require('../models/Salon');
+    
+    let salon = null;
+    if (ownerSalon && ownerSalon.salonId) {
+      salon = await Salon.findById(ownerSalon.salonId).select('operatingMode');
+    }
+    
+    const allPlans = getAllPlans();
     const addOns = getAllAddOns();
+    
+    // Filter plans based on operating mode
+    let filteredPlans = allPlans;
+    
+    if (salon && salon.operatingMode === 'solo') {
+      // Solo accounts: Only show Solo plans
+      filteredPlans = allPlans.filter(plan => 
+        plan.id === 'solo_basic' || plan.id === 'solo_pro'
+      );
+    } else {
+      // Team accounts: Show regular plans (exclude solo plans)
+      filteredPlans = allPlans.filter(plan => 
+        plan.id !== 'solo_basic' && plan.id !== 'solo_pro'
+      );
+    }
 
     res.json({
       success: true,
       data: {
-        plans,
+        plans: filteredPlans,
         addOns,
         trialConfig: TRIAL_CONFIG
       }
@@ -724,7 +796,8 @@ const getPendingUpgrades = async (req, res, next) => {
  */
 const approveUpgrade = async (req, res, next) => {
   try {
-    const subscription = await Subscription.findById(req.params.id);
+    const subscription = await Subscription.findById(req.params.id)
+      .populate('salonId', 'operatingMode');
 
     if (!subscription) {
       return res.status(404).json({
@@ -738,6 +811,25 @@ const approveUpgrade = async (req, res, next) => {
         success: false,
         message: 'Upgrade request is not pending'
       });
+    }
+
+    // Validate plan based on salon operating mode
+    if (subscription.salonId && subscription.salonId.operatingMode === 'solo') {
+      if (subscription.requestedPlan !== 'solo_basic' && subscription.requestedPlan !== 'solo_pro') {
+        return res.status(400).json({
+          success: false,
+          message: 'Solo accounts can only have Solo plans. Change salon to Team mode first.'
+        });
+      }
+    }
+    
+    if (subscription.salonId && subscription.salonId.operatingMode === 'team') {
+      if (subscription.requestedPlan === 'solo_basic' || subscription.requestedPlan === 'solo_pro') {
+        return res.status(400).json({
+          success: false,
+          message: 'Solo plans are only for solo accounts. Change salon to Solo mode first.'
+        });
+      }
     }
 
     // Activate subscription with requested plan (owner can use it)
